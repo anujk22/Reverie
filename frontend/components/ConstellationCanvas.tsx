@@ -73,37 +73,52 @@ const colors: Record<string, string> = {
 
 // side profile facing right, normalized to a unit box (x right, y down)
 const BRAIN_OUTLINE: Array<[number, number]> = [
-  [0.055, 0.47],
-  [0.045, 0.35],
-  [0.09, 0.22],
-  [0.17, 0.12],
-  [0.28, 0.055],
-  [0.42, 0.03],
-  [0.56, 0.035],
-  [0.68, 0.06],
-  [0.79, 0.11],
-  [0.875, 0.185],
-  [0.935, 0.28],
-  [0.955, 0.38],
-  [0.94, 0.47],
-  [0.9, 0.54],
-  [0.845, 0.585],
-  [0.78, 0.63],
-  [0.71, 0.66],
-  [0.62, 0.675],
-  [0.53, 0.67],
-  [0.47, 0.7],
-  [0.435, 0.76],
-  [0.38, 0.815],
-  [0.3, 0.84],
-  [0.22, 0.825],
-  [0.16, 0.77],
-  [0.115, 0.7],
-  [0.075, 0.6]
+  [0.06, 0.53],
+  [0.055, 0.4],
+  [0.095, 0.27],
+  [0.18, 0.16],
+  [0.31, 0.08],
+  [0.46, 0.045],
+  [0.61, 0.055],
+  [0.75, 0.1],
+  [0.86, 0.18],
+  [0.935, 0.3],
+  [0.965, 0.43],
+  [0.945, 0.53],
+  [0.885, 0.61],
+  [0.79, 0.68],
+  [0.67, 0.72],
+  [0.56, 0.72],
+  [0.49, 0.755],
+  [0.455, 0.825],
+  [0.405, 0.895],
+  [0.345, 0.91],
+  [0.31, 0.835],
+  [0.27, 0.765],
+  [0.2, 0.735],
+  [0.13, 0.665],
+  [0.085, 0.6]
 ];
 
-const BRAIN_CORE: [number, number] = [0.46, 0.38];
-const BRAIN_ASPECT = 1.18; // width / height of the outline's bounding box, roughly
+const BRAIN_CORE: [number, number] = [0.52, 0.43];
+const BRAIN_ASPECT = 1.58; // width / height of the outline's bounding box, roughly
+
+const SYNAPSE_ANCHORS: Array<[number, number, number]> = [
+  [0.12, 0.46, 3.5],
+  [0.18, 0.34, 4.2],
+  [0.28, 0.23, 3.2],
+  [0.39, 0.18, 4.0],
+  [0.52, 0.17, 2.6],
+  [0.65, 0.24, 3.0],
+  [0.79, 0.34, 3.4],
+  [0.88, 0.47, 4.1],
+  [0.8, 0.58, 3.5],
+  [0.68, 0.67, 4.0],
+  [0.52, 0.7, 3.4],
+  [0.36, 0.62, 4.6],
+  [0.23, 0.56, 3.1],
+  [0.47, 0.5, 3.0]
+];
 
 // where each memory type gravitates inside the brain, echoing the
 // violet (back) -> pink (core) -> amber (front) gradient of the fibers
@@ -199,14 +214,14 @@ type BrainFrame = {
 };
 
 function computeFrame(width: number, height: number): BrainFrame {
-  const margin = 0.06;
+  const margin = 0.12;
   const usableW = width * (1 - margin * 2);
   const usableH = height * (1 - margin * 2);
-  const scale = Math.min(usableW, usableH * BRAIN_ASPECT);
+  const scale = Math.min(usableW, usableH * BRAIN_ASPECT, width * 0.72, height * 0.58 * BRAIN_ASPECT);
   const brainW = scale;
   const brainH = scale / BRAIN_ASPECT;
-  const offsetX = (width - brainW) / 2;
-  const offsetY = (height - brainH) / 2;
+  const offsetX = (width - brainW) / 2 + width * 0.035;
+  const offsetY = (height - brainH) * 0.34;
   const polygon = BRAIN_OUTLINE.map(
     ([x, y]) => [offsetX + x * brainW, offsetY + y * brainH] as [number, number]
   );
@@ -228,6 +243,46 @@ function toCanvas(frame: BrainFrame, nx: number, ny: number): [number, number] {
     frame.offsetX + nx * frame.scale,
     frame.offsetY + (ny * frame.scale) / BRAIN_ASPECT
   ];
+}
+
+function traceBrainPath(context: CanvasRenderingContext2D, frame: BrainFrame) {
+  const p = (x: number, y: number) => toCanvas(frame, x, y);
+  const move = p(0.06, 0.51);
+  context.beginPath();
+  context.moveTo(move[0], move[1]);
+  let c1 = p(0.035, 0.39);
+  let c2 = p(0.085, 0.22);
+  let end = p(0.2, 0.14);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.32, 0.045);
+  c2 = p(0.53, 0.015);
+  end = p(0.7, 0.075);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.86, 0.13);
+  c2 = p(0.965, 0.27);
+  end = p(0.965, 0.43);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.965, 0.56);
+  c2 = p(0.855, 0.66);
+  end = p(0.72, 0.7);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.62, 0.735);
+  c2 = p(0.53, 0.71);
+  end = p(0.47, 0.73);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.42, 0.755);
+  c2 = p(0.41, 0.845);
+  end = p(0.35, 0.89);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.325, 0.8);
+  c2 = p(0.285, 0.735);
+  end = p(0.21, 0.71);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  c1 = p(0.125, 0.685);
+  c2 = p(0.08, 0.61);
+  end = p(0.06, 0.51);
+  context.bezierCurveTo(c1[0], c1[1], c2[0], c2[1], end[0], end[1]);
+  context.closePath();
 }
 
 function pointInPolygon(x: number, y: number, polygon: Array<[number, number]>) {
@@ -277,7 +332,7 @@ function buildFibers(frame: BrainFrame): { fibers: Fiber[]; synapses: Synapse[] 
   const synapses: Synapse[] = [];
 
   // long tracts radiating from the core toward the silhouette
-  const radial = 44;
+  const radial = 58;
   for (let index = 0; index < radial; index += 1) {
     const angle = (index / radial) * Math.PI * 2 + (random() - 0.5) * 0.22;
     const edge = marchToEdge(frame, angle);
@@ -304,7 +359,7 @@ function buildFibers(frame: BrainFrame): { fibers: Fiber[]; synapses: Synapse[] 
   }
 
   // nested arcs that wrap around the core like folded cortex shells
-  const shells = 30;
+  const shells = 44;
   for (let index = 0; index < shells; index += 1) {
     const theta1 = random() * Math.PI * 2;
     const theta2 = theta1 + 0.6 + random() * 1.1;
@@ -335,7 +390,7 @@ function buildFibers(frame: BrainFrame): { fibers: Fiber[]; synapses: Synapse[] 
 
   // synapse motes scattered along the fibers
   for (const fiber of fibers) {
-    const count = 1 + Math.floor(random() * 3);
+    const count = 2 + Math.floor(random() * 3);
     for (let index = 0; index < count; index += 1) {
       const t = 0.25 + random() * 0.7;
       const inv = 1 - t;
@@ -344,11 +399,23 @@ function buildFibers(frame: BrainFrame): { fibers: Fiber[]; synapses: Synapse[] 
       synapses.push({
         x,
         y,
-        radius: 0.7 + random() * 1.5,
-        alpha: 0.25 + random() * 0.5,
+        radius: 0.9 + random() * 2.2,
+        alpha: 0.35 + random() * 0.55,
         phase: random() * Math.PI * 2
       });
     }
+  }
+
+  for (const [nx, ny, radius] of SYNAPSE_ANCHORS) {
+    const [x, y] = toCanvas(frame, nx, ny);
+    if (!pointInPolygon(x, y, frame.polygon)) continue;
+    synapses.push({
+      x,
+      y,
+      radius,
+      alpha: 0.82,
+      phase: random() * Math.PI * 2
+    });
   }
 
   return { fibers, synapses };
@@ -412,14 +479,14 @@ export function ConstellationCanvas({
   }, []);
 
   useEffect(() => {
-    starfieldRef.current = Array.from({ length: 90 }, (_, index) => {
+    starfieldRef.current = Array.from({ length: 170 }, (_, index) => {
       const seed = hashSeed(`static-${index}`);
       return {
         x: (seed * 997) % 1,
         y: (seed * 1777) % 1,
         radius: 0.4 + ((seed * 61) % 1) * 0.9,
-        alpha: 0.04 + ((seed * 31) % 0.12),
-        twinkle: index < 12,
+        alpha: 0.045 + ((seed * 31) % 0.18),
+        twinkle: index < 24,
         phase: seed * Math.PI * 2
       };
     });
@@ -529,14 +596,17 @@ export function ConstellationCanvas({
       if (!context) return;
       const frame = frameRef.current;
       context.clearRect(0, 0, size.width, size.height);
-      context.fillStyle = "#0B0609";
+      context.fillStyle = "#050408";
       context.fillRect(0, 0, size.width, size.height);
+      drawNebula(context, size.width, size.height);
       drawStaticField(context, size.width, size.height, starfieldRef.current, time, motionReduced);
 
       if (frame) {
-        const vitality = dormant ? 0.35 : 1;
+        const vitality = dormant ? 0.88 : 1;
+        drawBrainBase(context, frame, time, motionReduced, vitality);
         drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
         drawCore(context, frame, time, motionReduced, vitality);
+        drawBrainRim(context, frame, time, motionReduced, vitality);
       }
 
       const radiusScale = Math.max(0.55, Math.min(1, Math.min(size.width, size.height) / 480));
@@ -621,9 +691,11 @@ export function ConstellationCanvas({
       />
 
       {graph.nodes.length === 0 ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center">
-          <p className="max-w-md font-display text-2xl italic leading-snug text-dim">
-            Reverie has not met Maya yet. Everything she teaches it will appear here.
+        <div className="pointer-events-none absolute inset-x-0 top-[68%] flex justify-center px-8 text-center">
+          <p className="max-w-xl font-display text-[27px] italic leading-snug text-[#d9aec2]">
+            Reverie has not met Maya yet.
+            <br />
+            Everything she teaches it will appear here.
           </p>
         </div>
       ) : null}
@@ -664,7 +736,7 @@ export function ConstellationCanvas({
 }
 
 function nodeRadius(engram: Engram, scale = 1) {
-  return (4 + Math.max(0, Math.min(1, engram.importance)) * 10) * scale;
+  return (4.5 + Math.max(0, Math.min(1, engram.importance)) * 11) * scale;
 }
 
 function ambientDrift(seed: number, time: number, reduced: boolean) {
@@ -686,11 +758,119 @@ function drawStaticField(
     const y = star.y * height;
     const twinkle = star.twinkle && !reduced ? 0.55 + Math.sin(time / 2600 + star.phase) * 0.35 : 1;
     const alpha = Math.max(0.03, star.alpha * twinkle);
-    context.fillStyle = `rgba(243,236,227,${alpha})`;
+    const warm = star.phase > Math.PI;
+    context.fillStyle = warm
+      ? `rgba(255,147,168,${alpha})`
+      : `rgba(243,236,227,${alpha})`;
     context.beginPath();
     context.arc(x, y, star.radius, 0, Math.PI * 2);
     context.fill();
+
+    if (star.twinkle && star.radius > 0.8) {
+      context.strokeStyle = `rgba(255,147,168,${alpha * 0.42})`;
+      context.lineWidth = 0.7;
+      context.beginPath();
+      context.moveTo(x - star.radius * 5, y);
+      context.lineTo(x + star.radius * 5, y);
+      context.moveTo(x, y - star.radius * 5);
+      context.lineTo(x, y + star.radius * 5);
+      context.stroke();
+    }
   }
+  context.restore();
+}
+
+function drawNebula(context: CanvasRenderingContext2D, width: number, height: number) {
+  context.save();
+  context.globalCompositeOperation = "lighter";
+
+  const cloud = context.createRadialGradient(
+    width * 0.95,
+    height * 0.78,
+    0,
+    width * 0.95,
+    height * 0.78,
+    Math.max(width, height) * 0.42
+  );
+  cloud.addColorStop(0, "rgba(245,71,107,0.16)");
+  cloud.addColorStop(0.35, "rgba(169,139,250,0.08)");
+  cloud.addColorStop(1, "rgba(5,4,8,0)");
+  context.fillStyle = cloud;
+  context.beginPath();
+  context.arc(width * 0.95, height * 0.78, Math.max(width, height) * 0.42, 0, Math.PI * 2);
+  context.fill();
+
+  const horizon = context.createLinearGradient(0, 0, width, height);
+  horizon.addColorStop(0, "rgba(169,139,250,0.04)");
+  horizon.addColorStop(0.55, "rgba(245,71,107,0.025)");
+  horizon.addColorStop(1, "rgba(242,166,90,0.035)");
+  context.fillStyle = horizon;
+  context.fillRect(0, 0, width, height);
+
+  context.restore();
+}
+
+function drawBrainBase(
+  context: CanvasRenderingContext2D,
+  frame: BrainFrame,
+  time: number,
+  reduced: boolean,
+  vitality: number
+) {
+  const breath = reduced ? 1 : 0.92 + Math.sin(time / 4200) * 0.08;
+  context.save();
+  traceBrainPath(context, frame);
+
+  const wash = context.createRadialGradient(
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.04,
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.62
+  );
+  wash.addColorStop(0, `rgba(245,71,107,${0.18 * vitality * breath})`);
+  wash.addColorStop(0.42, `rgba(169,139,250,${0.055 * vitality})`);
+  wash.addColorStop(1, "rgba(5,4,8,0)");
+  context.fillStyle = wash;
+  context.fill();
+
+  context.globalCompositeOperation = "lighter";
+  context.lineWidth = 1.2;
+  context.strokeStyle = `rgba(169,139,250,${0.18 * vitality})`;
+  traceBrainPath(context, frame);
+  context.stroke();
+  context.restore();
+}
+
+function drawBrainRim(
+  context: CanvasRenderingContext2D,
+  frame: BrainFrame,
+  time: number,
+  reduced: boolean,
+  vitality: number
+) {
+  const shimmer = reduced ? 1 : 0.75 + Math.sin(time / 3600) * 0.25;
+  context.save();
+  context.globalCompositeOperation = "lighter";
+
+  const outline = context.createLinearGradient(frame.minX, frame.coreY, frame.maxX, frame.coreY);
+  outline.addColorStop(0, `rgba(169,139,250,${0.72 * vitality * shimmer})`);
+  outline.addColorStop(0.5, `rgba(255,76,169,${0.8 * vitality})`);
+  outline.addColorStop(1, `rgba(255,128,69,${0.72 * vitality * shimmer})`);
+
+  context.strokeStyle = outline;
+  context.lineWidth = Math.max(1, frame.scale * 0.0022);
+  traceBrainPath(context, frame);
+  context.stroke();
+
+  context.shadowColor = "rgba(245,71,107,0.62)";
+  context.shadowBlur = frame.scale * 0.018;
+  context.strokeStyle = `rgba(255,147,168,${0.34 * vitality})`;
+  context.lineWidth = Math.max(1, frame.scale * 0.0012);
+  traceBrainPath(context, frame);
+  context.stroke();
+
   context.restore();
 }
 
@@ -707,18 +887,20 @@ function drawFibers(
   vitality: number
 ) {
   context.save();
+  traceBrainPath(context, frame);
+  context.clip();
   context.globalCompositeOperation = "lighter";
 
   for (const fiber of bundle.fibers) {
     const breath = reduced ? 1 : 0.75 + Math.sin(time / 3400 + fiber.phase) * 0.25;
-    const alpha = fiber.alpha * breath * vitality;
+    const alpha = Math.min(0.48, fiber.alpha * 1.55 * breath * vitality);
     const startColor = regionColor(fiberFraction(frame, fiber.x1));
     const endColor = regionColor(fiberFraction(frame, fiber.x2));
     const gradient = context.createLinearGradient(fiber.x1, fiber.y1, fiber.x2, fiber.y2);
     gradient.addColorStop(0, rgba(startColor, alpha));
     gradient.addColorStop(1, rgba(endColor, alpha * 0.85));
     context.strokeStyle = gradient;
-    context.lineWidth = fiber.width;
+    context.lineWidth = fiber.width * 1.08;
     context.beginPath();
     context.moveTo(fiber.x1, fiber.y1);
     context.quadraticCurveTo(fiber.cx, fiber.cy, fiber.x2, fiber.y2);
@@ -727,11 +909,40 @@ function drawFibers(
 
   for (const synapse of bundle.synapses) {
     const twinkle = reduced ? 0.8 : 0.55 + Math.sin(time / 1900 + synapse.phase) * 0.45;
-    const alpha = synapse.alpha * twinkle * vitality * 0.55;
+    const alpha = synapse.alpha * twinkle * vitality * 0.82;
     const color = regionColor(fiberFraction(frame, synapse.x));
+    const radius = synapse.radius * 1.12;
+
+    const glow = context.createRadialGradient(
+      synapse.x,
+      synapse.y,
+      radius * 0.2,
+      synapse.x,
+      synapse.y,
+      radius * 5.4
+    );
+    glow.addColorStop(0, rgba(color, alpha * 0.45));
+    glow.addColorStop(0.34, rgba(color, alpha * 0.22));
+    glow.addColorStop(1, "rgba(5,4,8,0)");
+    context.fillStyle = glow;
+    context.beginPath();
+    context.arc(synapse.x, synapse.y, radius * 5.4, 0, Math.PI * 2);
+    context.fill();
+
     context.fillStyle = rgba(color, alpha);
     context.beginPath();
-    context.arc(synapse.x, synapse.y, synapse.radius, 0, Math.PI * 2);
+    context.arc(synapse.x, synapse.y, radius, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = `rgba(255,255,255,${Math.min(0.72, alpha * 0.8)})`;
+    context.beginPath();
+    context.arc(
+      synapse.x - radius * 0.28,
+      synapse.y - radius * 0.28,
+      Math.max(0.7, radius * 0.28),
+      0,
+      Math.PI * 2
+    );
     context.fill();
   }
 
@@ -746,7 +957,7 @@ function drawCore(
   vitality: number
 ) {
   const breath = reduced ? 1 : 0.85 + Math.sin(time / 2600) * 0.15;
-  const radius = frame.scale * 0.085 * breath;
+  const radius = frame.scale * 0.058 * breath;
   context.save();
   context.globalCompositeOperation = "lighter";
 
@@ -760,7 +971,7 @@ function drawCore(
   );
   halo.addColorStop(0, `rgba(255,214,224,${0.5 * vitality})`);
   halo.addColorStop(0.28, `rgba(245,71,107,${0.3 * vitality})`);
-  halo.addColorStop(1, "rgba(11,6,9,0)");
+  halo.addColorStop(1, "rgba(5,4,8,0)");
   context.fillStyle = halo;
   context.beginPath();
   context.arc(frame.coreX, frame.coreY, radius * 3.2, 0, Math.PI * 2);
@@ -841,7 +1052,7 @@ function drawStrongLabels(
     const textWidth = context.measureText(label).width;
     const labelX = Math.min(width - textWidth - 14, Math.max(14, x + radius + 11));
     const labelY = Math.min(height - 12, Math.max(12, y - radius - 9));
-    context.fillStyle = "rgba(11,6,9,0.66)";
+    context.fillStyle = "rgba(5,4,8,0.66)";
     context.fillRect(labelX - 5, labelY - 8, textWidth + 10, 16);
     context.fillStyle = "rgba(160,141,155,0.9)";
     context.fillText(label, labelX, labelY);
@@ -882,7 +1093,7 @@ function drawNode(
   const gradient = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 3);
   gradient.addColorStop(0, color);
   gradient.addColorStop(0.42, `${color}77`);
-  gradient.addColorStop(1, "rgba(11,6,9,0)");
+  gradient.addColorStop(1, "rgba(5,4,8,0)");
   context.fillStyle = gradient;
   context.globalAlpha = haloOpacity;
   context.beginPath();

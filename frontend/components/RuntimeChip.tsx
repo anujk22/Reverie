@@ -50,7 +50,7 @@ export function RuntimeChip() {
 
   return (
     <div
-      className={`min-w-12 rounded-full bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
+      className={`min-w-12 rounded-full border border-hairline bg-field-2/80 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
         mock
           ? "text-ember"
           : state === "live"

@@ -105,7 +105,7 @@ function sessionEyebrow(session: SessionRecord | null) {
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  const title = session?.title ?? "Session — chain rule";
+  const title = session?.title ?? "Session - chain rule";
   const subject = title.split(" - ")[1] ?? title;
   const sentence = subject.charAt(0).toUpperCase() + subject.slice(1);
   return /[.?!]$/.test(sentence) ? sentence : `${sentence}.`;
@@ -136,6 +136,57 @@ function memoryLabel(item: MemoryPackItem) {
   if (text.includes("late") || text.includes("shorter")) return "short sets";
   if (text.includes("outer") || text.includes("inner")) return "outer inner";
   return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
+}
+
+function sessionNumber(session: SessionRecord | null) {
+  const match = /session\s*(\d+)/i.exec(session?.title ?? "");
+  return match?.[1] ?? "1";
+}
+
+function SessionTimeline({
+  session,
+  dreaming
+}: {
+  session: SessionRecord | null;
+  dreaming: boolean;
+}) {
+  const active = sessionNumber(session);
+  return (
+    <section className="flex h-full items-center border-l border-hairline px-8">
+      <div className="w-full">
+        <div className="flex items-center justify-between font-mono text-[15px] text-starlight">
+          <span className={active === "1" ? "text-starlight" : "text-dim"}>S1</span>
+          <span className="text-dim">-</span>
+          <span className={`inline-flex items-center gap-2 ${dreaming ? "text-glow" : "text-dim"}`}>
+            <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
+            dream
+          </span>
+          <span className="text-dim">-</span>
+          <span className={active === "2" ? "text-glow" : "text-ember"}>S2</span>
+        </div>
+        <div className="relative mt-5 h-8">
+          <div className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-sage/60 via-dim/50 to-ember/70" />
+          <div
+            className={`absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ${
+              active === "1" ? "bg-glow ember-glow" : "bg-dim"
+            }`}
+            style={{ left: "5%" }}
+          />
+          <div
+            className={`absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+              dreaming ? "bg-glow ember-glow" : "bg-faint"
+            }`}
+          />
+          <div
+            className={`absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ${
+              active === "2" ? "bg-ember ember-glow" : "bg-faint"
+            }`}
+            style={{ right: "5%" }}
+          />
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function SessionClient() {
@@ -425,15 +476,15 @@ export function SessionClient() {
   const hasMessages = items.some((item) => item.kind === "message");
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(360px,44%)_minmax(0,56%)]">
-      <section className="order-2 flex min-h-[60dvh] flex-col border-hairline bg-void lg:order-1 lg:h-dvh lg:min-h-0 lg:border-r">
-        <header className="border-b border-hairline bg-void/60 px-5 py-5">
+    <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
+      <section className="order-2 flex min-h-[66dvh] flex-col border-hairline bg-void/72 lg:order-1 lg:h-full lg:min-h-0 lg:border-r">
+        <header className="border-b border-hairline bg-void/62 px-7 py-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
                 {sessionEyebrow(session)}
               </p>
-              <h1 className="mt-2 font-display text-[34px] leading-tight text-starlight">
+              <h1 className="display-glow mt-2 font-display text-[44px] font-medium leading-none text-starlight">
                 {sessionHeadline(session)}
               </h1>
             </div>
@@ -442,7 +493,7 @@ export function SessionClient() {
                 type="button"
                 disabled={!session || dreaming || streaming}
                 onClick={() => runDream()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
               >
                 <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
                 <span>End session</span>
@@ -452,12 +503,12 @@ export function SessionClient() {
                 aria-label="More session actions"
                 title="More session actions"
                 onClick={() => setMenuOpen((open) => !open)}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field text-dim transition hover:text-starlight"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field/80 text-dim transition hover:text-starlight"
               >
                 <MoreHorizontal aria-hidden="true" size={18} strokeWidth={1.8} />
               </button>
               {menuOpen ? (
-                <div className="absolute right-0 top-12 z-30 w-44 rounded-xl border border-hairline bg-field-2 p-2">
+                <div className="stellar-panel absolute right-0 top-12 z-30 w-44 rounded-lg p-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -466,7 +517,7 @@ export function SessionClient() {
                         setError(err.message)
                       );
                     }}
-                    className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
+                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
                   >
                     <Plus aria-hidden="true" size={16} strokeWidth={1.8} />
                     <span>New session</span>
@@ -477,7 +528,7 @@ export function SessionClient() {
                       setMenuOpen(false);
                       resetLocalDemo();
                     }}
-                    className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
+                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
                   >
                     <RefreshCcw aria-hidden="true" size={15} strokeWidth={1.8} />
                     <span>Reset demo</span>
@@ -492,23 +543,28 @@ export function SessionClient() {
             </p>
           ) : null}
           {error ? (
-            <p className="mt-3 border-l-2 border-coral pl-3 text-sm leading-6 text-coral">
+            <p className="relative mt-4 pl-4 text-sm leading-6 text-coral">
+              <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
               {error}
             </p>
           ) : null}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <div className="flex min-h-full flex-col justify-end">
+        <div className="flex-1 overflow-y-auto px-7 py-5">
+          <div
+            className={`flex min-h-full flex-col ${
+              hasMessages ? "justify-end" : "justify-start"
+            }`}
+          >
             {booting ? (
               <div className="space-y-4 pb-4">
                 <div className="h-4 w-2/3 rounded-full bg-field-2" />
-                <div className="ml-auto h-20 w-4/5 rounded-2xl bg-field-2" />
+                <div className="stellar-panel ml-auto h-20 w-4/5 rounded-lg" />
                 <div className="h-28 w-5/6 bg-void" />
               </div>
             ) : !hasMessages ? (
               <div className="flex flex-col gap-3 pb-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-faint">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
                   pick up the thread
                 </p>
                 {starterTurns.map((turn) => (
@@ -516,14 +572,15 @@ export function SessionClient() {
                     key={turn}
                     type="button"
                     onClick={() => sendMessage(turn)}
-                    className="min-h-11 rounded-2xl border border-hairline bg-field px-4 py-[14px] text-left font-mono text-[13px] leading-6 text-dim transition hover:border-ember/40 hover:text-starlight"
+                    className="stellar-panel group relative min-h-[64px] overflow-hidden rounded-lg px-7 py-3.5 text-left font-mono text-[13px] leading-6 text-starlight/90 transition hover:border-ember/50 hover:text-starlight"
                   >
+                    <span className="transcript-rail absolute bottom-5 left-0 top-5 w-[3px] rounded-full opacity-95" />
                     <RichText text={turn} />
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="space-y-6 pb-4">
+              <div className="space-y-7 pb-4">
                 {items.map((item) =>
                   item.kind === "memory" ? (
                     <motion.div
@@ -538,7 +595,7 @@ export function SessionClient() {
                       <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-ember">
                         <Sparkles aria-hidden="true" size={12} strokeWidth={1.8} />
                         <span className="truncate">
-                          {item.eyebrow} — {item.content.toLowerCase()}
+                          {item.eyebrow} - {item.content.toLowerCase()}
                         </span>
                       </span>
                       <span className="hairline-divider h-px flex-1 opacity-60" />
@@ -553,11 +610,12 @@ export function SessionClient() {
                       className={item.role === "student" ? "flex justify-end" : "block"}
                     >
                       {item.role === "student" ? (
-                        <div className="max-w-[78%] rounded-2xl border border-hairline bg-field-2 px-4 py-[14px] font-mono text-[13px] leading-6 text-starlight">
+                        <div className="stellar-panel max-w-[76%] rounded-lg px-6 py-4 font-mono text-[15px] leading-7 text-starlight">
                           <RichText text={item.content} />
                         </div>
                       ) : (
-                        <div className="max-w-[94%] border-l-2 border-ember pl-4 font-mono text-[13px] leading-7 text-starlight">
+                        <div className="relative max-w-[94%] pl-6 font-mono text-[15px] leading-8 text-starlight">
+                          <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
                           {item.content ? (
                             <RichText text={item.content} />
                           ) : (
@@ -603,7 +661,7 @@ export function SessionClient() {
         </div>
 
         <form
-          className="border-t border-hairline bg-void/60 p-4"
+          className="border-t border-hairline bg-void/72 px-7 py-4"
           onSubmit={(event) => {
             event.preventDefault();
             sendMessage();
@@ -618,7 +676,7 @@ export function SessionClient() {
               <span className="hairline-divider h-px flex-1" />
             </div>
           ) : (
-            <div className="flex items-end gap-3 rounded-2xl border border-hairline bg-field px-2 py-2 focus-within:border-ember/40">
+            <div className="stellar-panel flex items-end gap-3 rounded-[18px] px-4 py-2.5 focus-within:border-ember/50">
               <label className="sr-only" htmlFor="message">
                 Message
               </label>
@@ -633,8 +691,8 @@ export function SessionClient() {
                     sendMessage();
                   }
                 }}
-                rows={2}
-                className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 font-mono text-[13px] leading-6 text-starlight outline-none placeholder:text-faint disabled:cursor-not-allowed disabled:text-faint"
+                rows={1}
+                className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 font-display text-[24px] leading-8 text-starlight outline-none placeholder:text-dim disabled:cursor-not-allowed disabled:text-faint"
                 placeholder="Type your message…"
               />
               <button
@@ -642,17 +700,17 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-void transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-coral text-white shadow-[0_0_28px_rgba(255,111,94,0.34)] transition hover:bg-[#ff806d] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Send aria-hidden="true" size={17} strokeWidth={2} />
+                <Send aria-hidden="true" size={24} strokeWidth={2.25} />
               </button>
             </div>
           )}
         </form>
       </section>
 
-      <section className="order-1 flex h-[52dvh] min-h-[460px] flex-col bg-void lg:order-2 lg:h-dvh">
-        <div className="relative flex-1">
+      <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-void lg:order-2 lg:h-full lg:min-h-0">
+        <div className="relative min-h-0 flex-1">
           <ConstellationCanvas
             graph={graph}
             selectedId={selected?.id ?? null}
@@ -661,7 +719,7 @@ export function SessionClient() {
             onSelect={setSelected}
           />
 
-          <div className="pointer-events-none absolute left-4 top-4 max-w-[calc(100%-2rem)]">
+          <div className="pointer-events-none absolute left-8 top-7 max-w-[calc(100%-4rem)]">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
               the constellation
             </p>
@@ -671,7 +729,7 @@ export function SessionClient() {
           </div>
 
           {Object.keys(dreamStages).length ? (
-            <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-hairline bg-field/90 p-3 backdrop-blur">
+            <div className="stellar-panel absolute bottom-5 left-8 right-8 rounded-lg p-3 backdrop-blur">
               <div className="flex flex-wrap gap-2">
                 {stageList.map((stage) => {
                   const item = dreamStages[stage];
@@ -695,12 +753,15 @@ export function SessionClient() {
           ) : null}
         </div>
 
-        <BudgetMeter
-          pack={pack}
-          engrams={graph.nodes}
-          onHover={setHighlightedId}
-          onSelect={selectEngramById}
-        />
+        <div className="grid min-h-[136px] shrink-0 border-t border-hairline bg-void/78 lg:grid-cols-[55%_45%]">
+          <BudgetMeter
+            pack={pack}
+            engrams={graph.nodes}
+            onHover={setHighlightedId}
+            onSelect={selectEngramById}
+          />
+          <SessionTimeline session={session} dreaming={dreaming} />
+        </div>
       </section>
 
       <MemoryInspector engram={selected} onClose={() => setSelected(null)} />

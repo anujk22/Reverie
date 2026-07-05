@@ -78,7 +78,7 @@ export function MemoryInspector({
 
   return (
     <aside
-      className="fixed inset-x-0 bottom-0 z-40 max-h-[82dvh] overflow-y-auto border-t border-hairline bg-field p-5 lg:inset-x-auto lg:right-0 lg:top-0 lg:h-dvh lg:max-h-none lg:w-[420px] lg:border-l lg:border-t-0"
+      className="stellar-panel fixed inset-x-4 bottom-4 z-40 max-h-[78dvh] overflow-y-auto rounded-lg p-5 lg:inset-x-auto lg:bottom-[160px] lg:right-8 lg:top-auto lg:max-h-[42dvh] lg:w-[min(680px,calc(56vw-4rem))]"
       aria-label="Memory inspector"
     >
       <div className="flex items-start justify-between gap-4">
@@ -108,14 +108,14 @@ export function MemoryInspector({
         </button>
       </div>
 
-      <div className="mt-6 font-display text-[30px] leading-tight text-starlight">
+      <div className="display-glow mt-6 font-display text-[34px] leading-tight text-starlight">
         <RichText text={current.content} />
       </div>
 
       {detail?.provenance?.[0] ? (
         <p className="mt-4 font-display text-lg italic leading-snug text-glow">
           <RichText
-            text={`'${trimQuote(detail.provenance[0].content)}' — said ${shortDate(
+            text={`'${trimQuote(detail.provenance[0].content)}' - said ${shortDate(
               detail.provenance[0].created_at
             ).toLowerCase()}`}
           />
@@ -134,7 +134,7 @@ export function MemoryInspector({
         </p>
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-hairline bg-field-2 p-4 font-mono text-[11px] text-dim">
+      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-field-2/80 p-4 font-mono text-[11px] text-dim">
         <div>
           <dt>confidence</dt>
           <dd className="mt-1 text-starlight">{current.confidence.toFixed(2)}</dd>
@@ -165,7 +165,7 @@ export function MemoryInspector({
       </div>
 
       {current.superseded_by ? (
-        <div className="mt-5 rounded-xl border border-coral/40 bg-field-2 p-3 text-sm leading-5 text-coral">
+        <div className="mt-5 rounded-lg border border-coral/40 bg-field-2 p-3 text-sm leading-5 text-coral">
           overwritten by {current.superseded_by}
         </div>
       ) : null}
@@ -180,7 +180,7 @@ export function MemoryInspector({
               <button
                 key={item.id}
                 type="button"
-                className="rounded-r-lg border-l-2 border-ember bg-field-2 p-3 text-left font-mono text-[12px] leading-6 text-starlight"
+                className="relative rounded-lg border border-hairline bg-field-2/80 p-3 pl-5 text-left font-mono text-[12px] leading-6 text-starlight"
                 onClick={() => {
                   document.getElementById(item.id)?.scrollIntoView({
                     block: "center",
@@ -188,6 +188,7 @@ export function MemoryInspector({
                   });
                 }}
               >
+                <span className="transcript-rail absolute bottom-3 left-0 top-3 w-[3px] rounded-full" />
                 <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
                   {item.role} · {shortDate(item.created_at)}
                 </span>

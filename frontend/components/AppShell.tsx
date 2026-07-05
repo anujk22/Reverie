@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BarChart3, Brain, Moon, Network, Radio } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { RuntimeChip } from "@/components/RuntimeChip";
 
 const routes = [
@@ -12,26 +15,34 @@ const routes = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
   return (
-    <div className="min-h-dvh bg-void text-starlight">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 border-r border-hairline bg-void md:flex md:flex-col md:items-center">
+    <div className="min-h-dvh bg-void text-starlight md:p-3">
+      <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-16 rounded-l-lg border border-hairline bg-void/95 md:flex md:flex-col md:items-center">
         <Link
           href="/"
-          className="flex h-24 w-full items-center justify-center font-display text-[19px] italic text-starlight [writing-mode:vertical-rl]"
+          className="flex h-28 w-full items-center justify-center border-b border-hairline font-display text-[21px] italic text-starlight [writing-mode:vertical-rl]"
           title="Reverie"
         >
           Reverie
         </Link>
-        <nav className="flex flex-1 flex-col items-center gap-2 py-5">
+        <nav className="flex flex-1 flex-col items-center gap-3 py-6">
           {routes.map((route) => {
             const Icon = route.icon;
+            const active =
+              route.href === "/" ? pathname === "/" : pathname.startsWith(route.href);
             return (
               <Link
                 key={route.href}
                 href={route.href}
                 aria-label={route.label}
                 title={route.label}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-dim transition hover:bg-field-2 hover:text-glow"
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
+                  active
+                    ? "bg-field-2 text-glow ember-glow"
+                    : "text-dim hover:bg-field-2 hover:text-starlight"
+                }`}
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
               </Link>
@@ -39,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="flex flex-col items-center gap-3 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 font-mono text-[11px] text-dim">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2/80 font-mono text-[11px] text-starlight">
             MC
           </div>
           <RuntimeChip />
@@ -60,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={route.href}
                   aria-label={route.label}
                   title={route.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-hairline bg-field text-dim"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field text-dim"
                 >
                   <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
                 </Link>
@@ -70,7 +81,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-dvh md:pl-16">{children}</main>
+      <main className="min-h-dvh md:ml-16 md:min-h-[calc(100dvh-1.5rem)] md:rounded-r-lg md:border-y md:border-r md:border-hairline md:bg-void">
+        {children}
+      </main>
     </div>
   );
 }

@@ -9,10 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        void: "#0B0609",
-        field: "#150C12",
-        "field-2": "#1F1319",
-        hairline: "#2C1C25",
+        void: "#050408",
+        field: "#10090F",
+        "field-2": "#1A1018",
+        hairline: "#342031",
         starlight: "#F3ECE3",
         dim: "#A08D9B",
         faint: "#5D4B58",
@@ -22,9 +22,9 @@ const config: Config = {
         sage: "#63C9A5",
         coral: "#FF6F5E",
         moth: "#A98BFA",
-        bg: "#0B0609",
-        panel: "#150C12",
-        line: "#2C1C25",
+        bg: "#050408",
+        panel: "#10090F",
+        line: "#342031",
         text: "#F3ECE3",
         muted: "#A08D9B",
         warning: "#F2A65A"

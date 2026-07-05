@@ -8,16 +8,20 @@ export function GatedRoute({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-md bg-panel p-6">
-      <p className="font-mono text-xs uppercase tracking-widest text-muted">
-        Memory surface unavailable
-      </p>
-      <h2 className="mt-2 text-2xl font-semibold">{title}</h2>
-      <p className="mt-4 max-w-2xl text-sm leading-6 text-muted">
-        This route is a fallback shell. Shipped screens should render memory
-        state, dream events, or honest proof state from the backend.
-      </p>
-      {children ? <div className="mt-5">{children}</div> : null}
-    </section>
+    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+      <section className="stellar-panel relative z-10 mx-auto max-w-4xl rounded-lg p-7">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
+          Memory surface unavailable
+        </p>
+        <h2 className="display-glow mt-3 font-display text-[44px] font-medium leading-none text-starlight">
+          {title}
+        </h2>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-dim">
+          This route is a fallback shell. Shipped screens should render memory
+          state, dream events, or honest proof state from the backend.
+        </p>
+        {children ? <div className="mt-5">{children}</div> : null}
+      </section>
+    </div>
   );
 }

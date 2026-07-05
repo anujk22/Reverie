@@ -55,45 +55,45 @@ export function HealthPanel() {
   const mock = isMockMode(status);
 
   return (
-    <section className="rounded-md bg-panel p-5">
+    <section className="stellar-panel rounded-lg p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-base font-semibold">Backend health</h2>
-        <span className="rounded-full bg-field-2 px-2 py-0.5 font-mono text-xs text-muted">
+        <h2 className="font-display text-2xl font-medium text-starlight">Backend health</h2>
+        <span className="rounded-full border border-hairline bg-field-2 px-2 py-0.5 font-mono text-xs text-dim">
           {state}
         </span>
         {mock ? (
-          <span className="rounded-full bg-field-2 px-2 py-0.5 font-mono text-xs text-warning">
+          <span className="rounded-full border border-ember/40 bg-field-2 px-2 py-0.5 font-mono text-xs text-warning">
             MOCK
           </span>
         ) : null}
       </div>
 
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <dl className="mt-4 grid gap-3 text-sm text-starlight sm:grid-cols-2">
         <div>
-          <dt className="text-muted">Endpoint</dt>
+          <dt className="text-dim">Endpoint</dt>
           <dd className="mt-1 break-all font-mono text-xs">{healthUrl()}</dd>
         </div>
         <div>
-          <dt className="text-muted">API status</dt>
+          <dt className="text-dim">API status</dt>
           <dd className="mt-1 font-mono text-xs">{String(status?.ok ?? false)}</dd>
         </div>
         <div>
-          <dt className="text-muted">Database</dt>
+          <dt className="text-dim">Database</dt>
           <dd className="mt-1 font-mono text-xs">{String(status?.db ?? "not reported")}</dd>
         </div>
         <div>
-          <dt className="text-muted">DashScope</dt>
+          <dt className="text-dim">DashScope</dt>
           <dd className="mt-1 font-mono text-xs">
             {String(status?.dashscope_reachable ?? "not reported")}
           </dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-muted">Models</dt>
+          <dt className="text-dim">Models</dt>
           <dd className="mt-1 break-words font-mono text-xs">{models}</dd>
         </div>
         {status?.error ? (
           <div className="sm:col-span-2">
-            <dt className="text-muted">Last error</dt>
+            <dt className="text-dim">Last error</dt>
             <dd className="mt-1 font-mono text-xs text-warning">{status.error}</dd>
           </div>
         ) : null}

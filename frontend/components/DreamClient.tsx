@@ -135,8 +135,8 @@ export function DreamClient() {
   const duration = durationMs(report);
 
   return (
-    <div className="min-h-dvh bg-void px-4 py-6 md:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,720px)_minmax(300px,1fr)]">
+    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,720px)_minmax(300px,1fr)]">
         <section className="space-y-6">
           <header className="space-y-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
@@ -144,7 +144,7 @@ export function DreamClient() {
             </p>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h1 className="max-w-2xl font-display text-[44px] leading-[1.05] text-starlight">
+                <h1 className="display-glow max-w-2xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
                   Reverie is dreaming over memory evidence.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
@@ -157,20 +157,21 @@ export function DreamClient() {
                 type="button"
                 onClick={startDream}
                 disabled={running}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
               >
                 <Play aria-hidden="true" size={17} strokeWidth={1.8} />
                 <span>{running ? "dreaming" : "run latest dream"}</span>
               </button>
             </div>
             {error ? (
-              <p className="border-l-2 border-coral pl-3 text-sm leading-6 text-coral">
+              <p className="relative pl-4 text-sm leading-6 text-coral">
+                <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
                 {error}
               </p>
             ) : null}
           </header>
 
-          <div className="h-64 overflow-hidden rounded-2xl border border-hairline bg-void">
+          <div className="stellar-panel h-72 overflow-hidden rounded-lg">
             <ConstellationCanvas
               graph={graph}
               selectedId={selected?.id ?? null}
@@ -186,7 +187,7 @@ export function DreamClient() {
               const isRunning = item?.status === "running";
               const isDone = item?.status === "done";
               return (
-                <div key={stage} className="rounded-xl border border-hairline bg-field p-4">
+                <div key={stage} className="stellar-panel rounded-lg p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
@@ -196,7 +197,7 @@ export function DreamClient() {
                         {item ? countText(item.counts) : "waiting for event"}
                       </p>
                     </div>
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-field-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline bg-field-2/80">
                       {isRunning ? (
                         <Radio
                           aria-hidden="true"
@@ -218,7 +219,7 @@ export function DreamClient() {
         </section>
 
         <aside className="space-y-4">
-          <section className="rounded-xl border border-hairline bg-field p-5">
+          <section className="stellar-panel rounded-lg p-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
               latest report
             </p>
@@ -235,7 +236,7 @@ export function DreamClient() {
                     const item = stageFromReport(report, stage);
                     const total = sumCounts(item?.counts);
                     return (
-                      <div key={stage} className="rounded-lg border border-hairline bg-field-2 p-3">
+                      <div key={stage} className="rounded-lg border border-hairline bg-field-2/80 p-3">
                         <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
                           {stage}
                         </p>
@@ -252,7 +253,7 @@ export function DreamClient() {
             )}
           </section>
 
-          <section className="rounded-xl border border-hairline bg-field p-5">
+          <section className="stellar-panel rounded-lg p-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
               selected memory
             </p>
@@ -274,7 +275,7 @@ export function DreamClient() {
             )}
           </section>
 
-          <section className="rounded-xl border border-hairline bg-field p-5">
+          <section className="stellar-panel rounded-lg p-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
               contract
             </p>

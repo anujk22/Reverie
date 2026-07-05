@@ -53,7 +53,7 @@ function ChartBlock({ title, rows, valueKeys, suffix = "" }: MetricSpec) {
   const max = Math.max(...values, 1);
 
   return (
-    <section className="rounded-xl border border-hairline bg-field p-5">
+    <section className="stellar-panel rounded-lg p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           {title}
@@ -149,14 +149,14 @@ export function EvalsClient() {
   }
 
   return (
-    <div className="min-h-dvh bg-void px-4 py-6 md:px-8 lg:px-12">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto max-w-6xl space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
               eval honesty
             </p>
-            <h1 className="mt-3 max-w-3xl font-display text-[44px] leading-[1.05] text-starlight">
+            <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
               Does memory make the response more personal?
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
@@ -169,7 +169,7 @@ export function EvalsClient() {
               type="button"
               onClick={runFullEval}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
             >
               <Play aria-hidden="true" size={17} strokeWidth={1.8} />
               <span>{loading ? "running" : "run evals"}</span>
@@ -178,7 +178,7 @@ export function EvalsClient() {
               type="button"
               onClick={runSmoke}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-field-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field-2/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
             >
               <ShieldCheck aria-hidden="true" size={17} strokeWidth={1.8} />
               <span>smoke judge</span>
@@ -187,13 +187,16 @@ export function EvalsClient() {
         </header>
 
         {error ? (
-          <p className="border-l-2 border-coral pl-3 text-sm leading-6 text-coral">{error}</p>
+          <p className="relative pl-4 text-sm leading-6 text-coral">
+            <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
+            {error}
+          </p>
         ) : null}
 
         {results?.real_run ? (
           <div className="space-y-6">
             {results.headline ? (
-              <section className="rounded-xl border border-hairline bg-field p-6">
+              <section className="stellar-panel rounded-lg p-6">
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
                   headline
                 </p>
@@ -209,7 +212,7 @@ export function EvalsClient() {
             </div>
           </div>
         ) : (
-          <section className="rounded-xl border border-hairline bg-field p-6">
+          <section className="stellar-panel rounded-lg p-6">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
               no real eval suite yet
             </p>
@@ -225,7 +228,7 @@ export function EvalsClient() {
         )}
 
         {smoke ? (
-          <section className="rounded-xl border border-hairline bg-field p-5">
+          <section className="stellar-panel rounded-lg p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
@@ -236,7 +239,7 @@ export function EvalsClient() {
               <p className="font-mono text-3xl text-ember">{smoke.score}</p>
             </div>
             {smoke.llm_call ? (
-              <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-field-2 p-4 font-mono text-[11px] text-dim sm:grid-cols-4">
+              <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-field-2/80 p-4 font-mono text-[11px] text-dim sm:grid-cols-4">
                 <div>
                   <dt>mode</dt>
                   <dd className="mt-1 text-starlight">{smoke.mode}</dd>
@@ -265,7 +268,7 @@ export function EvalsClient() {
         ) : null}
 
         {results?.observed_llm_tokens ? (
-          <section className="rounded-xl border border-hairline bg-field p-5">
+          <section className="stellar-panel rounded-lg p-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
               observed model tokens
             </p>

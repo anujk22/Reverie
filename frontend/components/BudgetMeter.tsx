@@ -48,22 +48,22 @@ export function BudgetMeter({
   }
 
   return (
-    <section className="border-t border-hairline bg-void/70 px-4 py-3 md:px-5">
+    <section className="flex h-full flex-col justify-center px-8 py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
           Working memory
         </h2>
-        <p className="font-mono text-xs text-starlight">
+        <p className="font-mono text-[13px] text-starlight">
           {used.toLocaleString()} / {budget.toLocaleString()} tokens
         </p>
       </div>
 
       <div
-        className="mt-3 flex h-2 gap-[3px] overflow-visible"
+        className="mt-3 flex h-3 max-w-[560px] gap-[3px] overflow-visible rounded-full bg-field-2/70 p-[1px]"
         aria-label={`Working memory budget ${used} of ${budget} tokens`}
       >
         {winners.length === 0 ? (
-          <div className="h-full w-full rounded-full bg-field-2" />
+          <div className="brand-gradient h-full w-3/4 rounded-full" />
         ) : (
           <>
             {winners.map((item) => {
@@ -103,7 +103,7 @@ export function BudgetMeter({
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex max-h-8 flex-wrap gap-2 overflow-hidden">
         {winners.map((item) => (
           <button
             key={item.engram_id}
@@ -125,7 +125,7 @@ export function BudgetMeter({
         ))}
       </div>
 
-      <div className="mt-2 min-h-9 font-mono text-[11px] leading-5 text-faint">
+      <div className="mt-2 min-h-5 font-mono text-[11px] leading-5 text-faint">
         {excluded.length ? (
           excluded.map((item) => (
             <p key={item.engram_id}>
