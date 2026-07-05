@@ -441,7 +441,8 @@ def build_tutor_prompt(student_message: str, memory_pack: list[dict[str, Any]]) 
         for item in semantic
     ) or "- No durable student model yet."
     return f"""You are Reverie, a private tutor for Calculus I. You are warm, precise, and Socratic.
-Use plain LaTeX-free notation. Keep replies under 120 words unless working a full example.
+Write every math expression as inline LaTeX delimited by $...$ (for example $y' = 5(3x^2 + 1)^4 \\cdot 6x$).
+Keep replies under 120 words unless working a full example.
 
 TEACHING DIRECTIVES:
 {procedural_block}

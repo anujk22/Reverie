@@ -18,11 +18,11 @@ type MetricSpec = {
 };
 
 const conditionTone: Record<string, string> = {
-  "no memory": "bg-faint text-dim",
-  no_memory: "bg-faint text-dim",
-  "full history": "bg-dim text-field",
-  full_history: "bg-dim text-field",
-  reverie: "bg-ember text-void"
+  "no memory": "bg-faint",
+  no_memory: "bg-faint",
+  "full history": "bg-moth",
+  full_history: "bg-moth",
+  reverie: "brand-gradient"
 };
 
 function asNumber(value: unknown) {
@@ -45,7 +45,7 @@ function rowLabel(row: Record<string, unknown>) {
 
 function conditionClass(row: Record<string, unknown>) {
   const condition = String(row.condition ?? "").toLowerCase();
-  return conditionTone[condition] ?? "bg-moth text-void";
+  return conditionTone[condition] ?? "bg-moth";
 }
 
 function ChartBlock({ title, rows, valueKeys, suffix = "" }: MetricSpec) {
@@ -53,9 +53,9 @@ function ChartBlock({ title, rows, valueKeys, suffix = "" }: MetricSpec) {
   const max = Math.max(...values, 1);
 
   return (
-    <section className="rounded-md bg-field p-5">
+    <section className="rounded-xl border border-hairline bg-field p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           {title}
         </h2>
         <BarChart3 aria-hidden="true" className="text-dim" size={17} strokeWidth={1.8} />
@@ -153,10 +153,10 @@ export function EvalsClient() {
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
               eval honesty
             </p>
-            <h1 className="mt-3 max-w-3xl font-display text-[40px] font-semibold leading-tight text-starlight">
+            <h1 className="mt-3 max-w-3xl font-display text-[44px] leading-[1.05] text-starlight">
               Does memory make the response more personal?
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
@@ -169,7 +169,7 @@ export function EvalsClient() {
               type="button"
               onClick={runFullEval}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-field-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-ember transition hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
             >
               <Play aria-hidden="true" size={17} strokeWidth={1.8} />
               <span>{loading ? "running" : "run evals"}</span>
@@ -178,7 +178,7 @@ export function EvalsClient() {
               type="button"
               onClick={runSmoke}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-field-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-field-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
             >
               <ShieldCheck aria-hidden="true" size={17} strokeWidth={1.8} />
               <span>smoke judge</span>
@@ -193,11 +193,11 @@ export function EvalsClient() {
         {results?.real_run ? (
           <div className="space-y-6">
             {results.headline ? (
-              <section className="rounded-md bg-field p-6">
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+              <section className="rounded-xl border border-hairline bg-field p-6">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
                   headline
                 </p>
-                <p className="mt-3 font-display text-[40px] font-semibold leading-tight text-ember">
+                <p className="brand-gradient-text mt-3 font-display text-[44px] leading-[1.05]">
                   {results.headline}
                 </p>
               </section>
@@ -209,8 +209,8 @@ export function EvalsClient() {
             </div>
           </div>
         ) : (
-          <section className="rounded-md bg-field p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ember">
+          <section className="rounded-xl border border-hairline bg-field p-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
               no real eval suite yet
             </p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
@@ -225,10 +225,10 @@ export function EvalsClient() {
         )}
 
         {smoke ? (
-          <section className="rounded-md bg-field p-5">
+          <section className="rounded-xl border border-hairline bg-field p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
                   smoke judge
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{smoke.reason}</p>
@@ -236,7 +236,7 @@ export function EvalsClient() {
               <p className="font-mono text-3xl text-ember">{smoke.score}</p>
             </div>
             {smoke.llm_call ? (
-              <dl className="mt-4 grid gap-3 rounded-md bg-field-2 p-4 font-mono text-[11px] text-dim sm:grid-cols-4">
+              <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-field-2 p-4 font-mono text-[11px] text-dim sm:grid-cols-4">
                 <div>
                   <dt>mode</dt>
                   <dd className="mt-1 text-starlight">{smoke.mode}</dd>
@@ -265,15 +265,15 @@ export function EvalsClient() {
         ) : null}
 
         {results?.observed_llm_tokens ? (
-          <section className="rounded-md bg-field p-5">
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+          <section className="rounded-xl border border-hairline bg-field p-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
               observed model tokens
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(results.observed_llm_tokens).map(([purpose, tokens]) => (
                 <span
                   key={purpose}
-                  className="rounded-full bg-field-2 px-3 py-1 font-mono text-[11px] text-dim"
+                  className="rounded-full border border-hairline bg-field-2 px-3 py-1 font-mono text-[11px] text-dim"
                 >
                   {purpose} · {tokens}
                 </span>

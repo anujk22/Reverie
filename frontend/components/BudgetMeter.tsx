@@ -6,7 +6,7 @@ import { uiText } from "@/lib/text";
 
 const typeColors: Record<string, string> = {
   misconception: "bg-coral",
-  mastery: "bg-sage",
+  mastery: "bg-gold",
   preference: "bg-moth",
   affect: "bg-moth",
   goal: "bg-ember",
@@ -48,50 +48,58 @@ export function BudgetMeter({
   }
 
   return (
-    <section className="bg-field px-4 py-3 md:px-5">
+    <section className="border-t border-hairline bg-void/70 px-4 py-3 md:px-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
           Working memory
         </h2>
         <p className="font-mono text-xs text-starlight">
-          {used} / {budget} tokens
+          {used.toLocaleString()} / {budget.toLocaleString()} tokens
         </p>
       </div>
 
       <div
-        className="mt-3 flex h-2.5 overflow-visible rounded-full bg-void"
+        className="mt-3 flex h-2 gap-[3px] overflow-visible"
         aria-label={`Working memory budget ${used} of ${budget} tokens`}
       >
         {winners.length === 0 ? (
-          <div className="h-full w-px bg-faint" />
+          <div className="h-full w-full rounded-full bg-field-2" />
         ) : (
-          winners.map((item) => {
-            const width = Math.max(5, (item.tokens / Math.max(budget, 1)) * 100);
-            const color = typeColors[item.type] ?? "bg-ember";
-            return (
-              <div
-                key={item.engram_id}
-                className={`relative h-full ${color} first:rounded-l-full last:rounded-r-full`}
-                style={{ width: `${width}%` }}
-                onMouseEnter={() => updateHover(item.engram_id)}
-                onMouseLeave={() => updateHover(null)}
-              >
-                {hovered === item.engram_id ? (
-                  <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-md bg-field-2 p-3 shadow-none">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
-                      {item.tokens} tokens · {item.type}
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-starlight">
-                      {uiText(nodeById.get(item.engram_id)?.content ?? item.content)}
-                    </p>
-                    <p className="mt-2 font-mono text-[11px] text-dim">
-                      {scoreLine(item)}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
+          <>
+            {winners.map((item) => {
+              const width = Math.max(5, (item.tokens / Math.max(budget, 1)) * 100);
+              const color = typeColors[item.type] ?? "bg-ember";
+              return (
+                <div
+                  key={item.engram_id}
+                  className={`relative h-full rounded-full ${color}`}
+                  style={{ width: `${width}%` }}
+                  onMouseEnter={() => updateHover(item.engram_id)}
+                  onMouseLeave={() => updateHover(null)}
+                >
+                  {hovered === item.engram_id ? (
+                    <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-lg border border-hairline bg-field-2 p-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+                        {item.tokens} tokens · {item.type}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-starlight">
+                        {uiText(nodeById.get(item.engram_id)?.content ?? item.content)}
+                      </p>
+                      <p className="mt-2 font-mono text-[11px] text-dim">
+                        {scoreLine(item)}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+            <div
+              className="h-full rounded-full bg-field-2"
+              style={{
+                width: `${Math.max(0, 100 - (used / Math.max(budget, 1)) * 100)}%`
+              }}
+            />
+          </>
         )}
       </div>
 
@@ -117,7 +125,7 @@ export function BudgetMeter({
         ))}
       </div>
 
-      <div className="mt-3 min-h-10 text-xs leading-5 text-dim">
+      <div className="mt-2 min-h-9 font-mono text-[11px] leading-5 text-faint">
         {excluded.length ? (
           excluded.map((item) => (
             <p key={item.engram_id}>

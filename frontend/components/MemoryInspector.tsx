@@ -2,18 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
+import { RichText } from "@/components/RichText";
 import { fetchEngramDetail, type Engram, type EngramDetail } from "@/lib/api";
-import { uiText } from "@/lib/text";
 
 const typeText: Record<string, string> = {
   misconception: "text-coral",
-  mastery: "text-sage",
+  mastery: "text-gold",
   preference: "text-moth",
   affect: "text-moth",
   goal: "text-ember",
   fact: "text-ember",
   strategy_outcome: "text-ember"
 };
+
+function trimQuote(value: string) {
+  return value.length > 140 ? `${value.slice(0, 140).trimEnd()}…` : value;
+}
 
 function shortDate(value?: string) {
   if (!value) return "unknown";
@@ -74,20 +78,20 @@ export function MemoryInspector({
 
   return (
     <aside
-      className="fixed inset-x-0 bottom-0 z-40 max-h-[82dvh] overflow-y-auto bg-field p-5 shadow-none lg:inset-x-auto lg:right-0 lg:top-0 lg:h-dvh lg:max-h-none lg:w-[420px]"
+      className="fixed inset-x-0 bottom-0 z-40 max-h-[82dvh] overflow-y-auto border-t border-hairline bg-field p-5 lg:inset-x-auto lg:right-0 lg:top-0 lg:h-dvh lg:max-h-none lg:w-[420px] lg:border-l lg:border-t-0"
       aria-label="Memory inspector"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className={`font-mono text-[11px] uppercase tracking-[0.08em] ${typeClass}`}>
+          <p className={`font-mono text-[11px] uppercase tracking-[0.22em] ${typeClass}`}>
             {current.type.replace("_", " ")}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-full bg-field-2 px-2 py-1 font-mono text-[10px] uppercase text-dim">
+            <span className="rounded-full border border-hairline bg-field-2 px-2 py-1 font-mono text-[10px] uppercase text-dim">
               {current.status}
             </span>
             {current.provisional ? (
-              <span className="rounded-full bg-void px-2 py-1 font-mono text-[10px] uppercase text-ember">
+              <span className="rounded-full border border-ember/40 px-2 py-1 font-mono text-[10px] uppercase text-ember">
                 provisional
               </span>
             ) : null}
@@ -98,17 +102,39 @@ export function MemoryInspector({
           aria-label="Close inspector"
           title="Close inspector"
           onClick={onClose}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-field-2 text-dim transition hover:text-starlight"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-hairline bg-field-2 text-dim transition hover:text-starlight"
         >
           <X aria-hidden="true" size={18} strokeWidth={1.8} />
         </button>
       </div>
 
-      <p className="mt-6 font-display text-[28px] font-semibold leading-tight text-starlight">
-        {uiText(current.content)}
-      </p>
+      <div className="mt-6 font-display text-[30px] leading-tight text-starlight">
+        <RichText text={current.content} />
+      </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-md bg-field-2 p-4 font-mono text-[11px] text-dim">
+      {detail?.provenance?.[0] ? (
+        <p className="mt-4 font-display text-lg italic leading-snug text-glow">
+          <RichText
+            text={`'${trimQuote(detail.provenance[0].content)}' — said ${shortDate(
+              detail.provenance[0].created_at
+            ).toLowerCase()}`}
+          />
+        </p>
+      ) : null}
+
+      <div className="mt-6">
+        <div className="h-1.5 overflow-hidden rounded-full bg-field-2">
+          <div
+            className="brand-gradient h-full rounded-full"
+            style={{ width: `${Math.round(Math.max(0.04, current.strength) * 100)}%` }}
+          />
+        </div>
+        <p className="mt-2 font-mono text-[12px] text-dim">
+          {current.strength.toFixed(2)} · recalled ×{current.access_count}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 rounded-xl border border-hairline bg-field-2 p-4 font-mono text-[11px] text-dim">
         <div>
           <dt>confidence</dt>
           <dd className="mt-1 text-starlight">{current.confidence.toFixed(2)}</dd>
@@ -131,7 +157,7 @@ export function MemoryInspector({
         {tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full bg-field-2 px-2 py-1 font-mono text-[10px] text-dim"
+            className="rounded-full border border-hairline px-2 py-1 font-mono text-[10px] text-dim"
           >
             {tag}
           </span>
@@ -139,13 +165,13 @@ export function MemoryInspector({
       </div>
 
       {current.superseded_by ? (
-        <div className="mt-5 rounded-md bg-field-2 p-3 text-sm leading-5 text-coral">
+        <div className="mt-5 rounded-xl border border-coral/40 bg-field-2 p-3 text-sm leading-5 text-coral">
           overwritten by {current.superseded_by}
         </div>
       ) : null}
 
       <section className="mt-7">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           Provenance
         </h3>
         <div className="mt-3 grid gap-3">
@@ -154,7 +180,7 @@ export function MemoryInspector({
               <button
                 key={item.id}
                 type="button"
-                className="border-l-2 border-ember bg-field-2 p-3 text-left text-sm leading-6 text-starlight"
+                className="rounded-r-lg border-l-2 border-ember bg-field-2 p-3 text-left font-mono text-[12px] leading-6 text-starlight"
                 onClick={() => {
                   document.getElementById(item.id)?.scrollIntoView({
                     block: "center",
@@ -162,10 +188,12 @@ export function MemoryInspector({
                   });
                 }}
               >
-                <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
+                <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
                   {item.role} · {shortDate(item.created_at)}
                 </span>
-                <span className="mt-2 block">{uiText(item.content)}</span>
+                <span className="mt-2 block">
+                  <RichText text={item.content} />
+                </span>
               </button>
             ))
           ) : (
@@ -177,7 +205,7 @@ export function MemoryInspector({
       </section>
 
       <section className="mt-7">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           Lifecycle
         </h3>
         <ol className="mt-3">

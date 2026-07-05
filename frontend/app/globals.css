@@ -4,24 +4,25 @@
 
 :root {
   color-scheme: dark;
-  --void: #070b14;
-  --field: #0d1424;
-  --field-2: #131c31;
-  --hairline: #1e2a44;
-  --starlight: #e9edf6;
-  --dim: #8a94ad;
-  --faint: #4a5674;
-  --ember: #e8a33d;
-  --glow: #ffd9a0;
-  --sage: #3fbfad;
-  --coral: #e5534b;
-  --moth: #b9a7e8;
+  --void: #0b0609;
+  --field: #150c12;
+  --field-2: #1f1319;
+  --hairline: #2c1c25;
+  --starlight: #f3ece3;
+  --dim: #a08d9b;
+  --faint: #5d4b58;
+  --ember: #f5476b;
+  --glow: #ff93a8;
+  --gold: #f2a65a;
+  --sage: #63c9a5;
+  --coral: #ff6f5e;
+  --moth: #a98bfa;
   --bg: var(--void);
   --panel: var(--field);
   --line: var(--hairline);
   --text: var(--starlight);
   --muted: var(--dim);
-  --warning: var(--ember);
+  --warning: var(--gold);
 }
 
 * {
@@ -39,6 +40,10 @@ body {
   color: var(--text);
   font-family: var(--font-sans), Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
+  background-image:
+    radial-gradient(1100px 700px at 78% -10%, rgba(169, 139, 250, 0.07), transparent 62%),
+    radial-gradient(900px 620px at 12% 108%, rgba(245, 71, 107, 0.055), transparent 60%);
+  background-attachment: fixed;
 }
 
 button,
@@ -56,7 +61,7 @@ input:focus-visible {
 }
 
 ::selection {
-  background: rgba(232, 163, 61, 0.28);
+  background: rgba(245, 71, 107, 0.32);
 }
 
 button {
@@ -65,6 +70,68 @@ button {
 
 canvas {
   display: block;
+}
+
+/* the pink → violet → amber thread that runs through the whole app */
+.brand-gradient {
+  background-image: linear-gradient(90deg, #f5476b 0%, #a98bfa 46%, #f2a65a 100%);
+}
+
+.brand-gradient-text {
+  background-image: linear-gradient(92deg, #ff93a8 0%, #a98bfa 52%, #f2a65a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hairline-divider {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(245, 71, 107, 0.55),
+    transparent
+  );
+}
+
+/* KaTeX inside chat and cards: match surrounding rhythm, never overflow */
+.katex {
+  font-size: 1.12em;
+}
+
+.katex-display {
+  margin: 0.6em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+.rich-text p {
+  margin: 0;
+}
+
+.rich-text p + p {
+  margin-top: 0.65em;
+}
+
+.rich-text ul,
+.rich-text ol {
+  margin: 0.5em 0 0;
+  padding-left: 1.25em;
+}
+
+.rich-text li + li {
+  margin-top: 0.3em;
+}
+
+.rich-text strong {
+  color: var(--starlight);
+  font-weight: 600;
+}
+
+.rich-text code {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.92em;
+  color: var(--glow);
 }
 
 .sr-only {
