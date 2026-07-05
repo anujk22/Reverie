@@ -700,9 +700,9 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-coral text-white shadow-[0_0_28px_rgba(255,111,94,0.34)] transition hover:bg-[#ff806d] disabled:cursor-not-allowed disabled:opacity-70"
+                className="brand-gradient flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-[0_0_28px_rgba(255,111,94,0.38)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Send aria-hidden="true" size={24} strokeWidth={2.25} />
+                <Send aria-hidden="true" size={25} strokeWidth={2.35} />
               </button>
             </div>
           )}

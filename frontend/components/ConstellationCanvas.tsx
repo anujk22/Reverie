@@ -71,6 +71,8 @@ const colors: Record<string, string> = {
   strategy_outcome: "#F5476B"
 };
 
+const BRAIN_IMAGE_SRC = "/assets/reverie-brain.png";
+
 // side profile facing right, normalized to a unit box (x right, y down)
 const BRAIN_OUTLINE: Array<[number, number]> = [
   [0.06, 0.53],
@@ -436,6 +438,7 @@ export function ConstellationCanvas({
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const brainImageRef = useRef<HTMLImageElement | null>(null);
   const nodesRef = useRef<CanvasNode[]>([]);
   const linksRef = useRef<CanvasLink[]>([]);
   const starfieldRef = useRef<StaticStar[]>([]);
@@ -448,6 +451,7 @@ export function ConstellationCanvas({
   const [size, setSize] = useState({ width: 720, height: 520 });
   const [tooltip, setTooltip] = useState<Tooltip>(null);
   const [motionReduced, setMotionReduced] = useState(false);
+  const [brainImageReady, setBrainImageReady] = useState(false);
 
   const graphKey = useMemo(
     () =>
@@ -463,6 +467,22 @@ export function ConstellationCanvas({
     const listener = () => setMotionReduced(query.matches);
     query.addEventListener("change", listener);
     return () => query.removeEventListener("change", listener);
+  }, []);
+
+  useEffect(() => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      brainImageRef.current = image;
+      setBrainImageReady(true);
+    };
+    image.onerror = () => setBrainImageReady(false);
+    image.src = BRAIN_IMAGE_SRC;
+
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -603,10 +623,17 @@ export function ConstellationCanvas({
 
       if (frame) {
         const vitality = dormant ? 0.88 : 1;
-        drawBrainBase(context, frame, time, motionReduced, vitality);
-        drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
-        drawCore(context, frame, time, motionReduced, vitality);
-        drawBrainRim(context, frame, time, motionReduced, vitality);
+        const brainImage = brainImageReady ? brainImageRef.current : null;
+        if (brainImage) {
+          drawBrainArtwork(context, frame, brainImage, vitality);
+          drawReferenceLights(context, frame, time, motionReduced, vitality);
+          drawCore(context, frame, time, motionReduced, vitality * 0.72);
+        } else {
+          drawBrainBase(context, frame, time, motionReduced, vitality);
+          drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
+          drawCore(context, frame, time, motionReduced, vitality);
+          drawBrainRim(context, frame, time, motionReduced, vitality);
+        }
       }
 
       const radiusScale = Math.max(0.55, Math.min(1, Math.min(size.width, size.height) / 480));
@@ -652,7 +679,16 @@ export function ConstellationCanvas({
     return () => {
       if (animationRef.current) window.cancelAnimationFrame(animationRef.current);
     };
-  }, [graphKey, highlightedId, motionReduced, pulseId, selectedId, size.height, size.width]);
+  }, [
+    brainImageReady,
+    graphKey,
+    highlightedId,
+    motionReduced,
+    pulseId,
+    selectedId,
+    size.height,
+    size.width
+  ]);
 
   function nodeAt(clientX: number, clientY: number) {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -806,6 +842,86 @@ function drawNebula(context: CanvasRenderingContext2D, width: number, height: nu
   horizon.addColorStop(1, "rgba(242,166,90,0.035)");
   context.fillStyle = horizon;
   context.fillRect(0, 0, width, height);
+
+  context.restore();
+}
+
+function drawBrainArtwork(
+  context: CanvasRenderingContext2D,
+  frame: BrainFrame,
+  image: HTMLImageElement,
+  vitality: number
+) {
+  const imageAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
+  const targetW = frame.scale * 1.18;
+  const targetH = targetW / imageAspect;
+  const brainH = frame.scale / BRAIN_ASPECT;
+  const x = frame.offsetX + frame.scale * 0.5 - targetW * 0.5;
+  const y = frame.offsetY + brainH * 0.49 - targetH * 0.5;
+
+  context.save();
+  context.globalCompositeOperation = "lighter";
+
+  const backlight = context.createRadialGradient(
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.06,
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.56
+  );
+  backlight.addColorStop(0, `rgba(245,71,107,${0.26 * vitality})`);
+  backlight.addColorStop(0.42, `rgba(169,139,250,${0.18 * vitality})`);
+  backlight.addColorStop(1, "rgba(5,4,8,0)");
+  context.fillStyle = backlight;
+  context.beginPath();
+  context.arc(frame.coreX, frame.coreY, frame.scale * 0.56, 0, Math.PI * 2);
+  context.fill();
+
+  context.globalAlpha = 0.95;
+  context.filter = "saturate(1.18) contrast(1.08) brightness(1.04)";
+  context.drawImage(image, x, y, targetW, targetH);
+  context.filter = "none";
+  context.restore();
+}
+
+function drawReferenceLights(
+  context: CanvasRenderingContext2D,
+  frame: BrainFrame,
+  time: number,
+  reduced: boolean,
+  vitality: number
+) {
+  context.save();
+  context.globalCompositeOperation = "lighter";
+
+  for (let index = 0; index < SYNAPSE_ANCHORS.length; index += 1) {
+    const [nx, ny, size] = SYNAPSE_ANCHORS[index];
+    const [x, y] = toCanvas(frame, nx, ny);
+    const color = regionColor(nx);
+    const wave = reduced ? 0.75 : 0.58 + Math.sin(time / 1250 + index * 0.92) * 0.42;
+    const radius = size * (1.1 + wave * 0.32);
+    const alpha = (0.48 + wave * 0.34) * vitality;
+
+    const halo = context.createRadialGradient(x, y, radius * 0.18, x, y, radius * 7);
+    halo.addColorStop(0, rgba(color, alpha * 0.55));
+    halo.addColorStop(0.32, rgba(color, alpha * 0.2));
+    halo.addColorStop(1, "rgba(5,4,8,0)");
+    context.fillStyle = halo;
+    context.beginPath();
+    context.arc(x, y, radius * 7, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = rgba(color, alpha);
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = `rgba(255,255,255,${Math.min(0.82, alpha)})`;
+    context.beginPath();
+    context.arc(x - radius * 0.24, y - radius * 0.24, Math.max(1, radius * 0.28), 0, Math.PI * 2);
+    context.fill();
+  }
 
   context.restore();
 }
