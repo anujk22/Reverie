@@ -1,0 +1,13 @@
+{
+  "title": "Session 3 - recall probe",
+  "turns": [
+    {
+      "student": "Before another problem, use my example-first preference and start with an example first.",
+      "expected_tags": ["worked_examples"]
+    },
+    {
+      "student": "I can explain the chain rule now: outer derivative/inner derivative means take the outer derivative, leave the inside alone, times inner derivative.",
+      "expected_tags": ["chain_rule", "mastery"]
+    }
+  ]
+}

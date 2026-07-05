@@ -1,0 +1,17 @@
+{
+  "title": "Session 1 - chain rule memories",
+  "turns": [
+    {
+      "student": "My midterm goal is to be ready for the chain rule part of my differentiation midterm, but I am anxious about it.",
+      "expected_tags": ["midterm", "exam_anxiety"]
+    },
+    {
+      "student": "For f(g(x)), my mistake is that I do f'(x) times g'(x), like product rule, even though the functions are nested.",
+      "expected_tags": ["chain_rule", "composite_functions"]
+    },
+    {
+      "student": "Please use my example-first preference: show me an example first before abstract rules, because rules in the abstract don't stick for me.",
+      "expected_tags": ["worked_examples"]
+    }
+  ]
+}

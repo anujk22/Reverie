@@ -1,0 +1,8 @@
+{
+  "student": "Maya Chen",
+  "misconception": "Differentiates f(g(x)) as f'(x) times g'(x), applying product rule reasoning to composite functions.",
+  "preference": "Has an example-first preference: show an example first before abstract rules.",
+  "goal": "Has a midterm goal to prepare for a differentiation midterm covering chain rule.",
+  "affect": "Feels anxious about the chain rule midterm.",
+  "mastery": "Session2 mastery quote: outer derivative/inner derivative means take the outer derivative, leave the inside alone, times inner derivative."
+}
