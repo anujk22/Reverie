@@ -178,7 +178,8 @@ def test_session_level_dream_recovers_affect_from_session1_script(tmp_path, monk
         for turn in script["turns"]:
             database.insert_utterance(session["id"], "student", turn["student"])
             database.insert_utterance(session["id"], "tutor", "Let's make it concrete.")
-            await observe_exchange(session["id"])
+        await observe_exchange(session["id"])
+        assert not [node for node in database.graph()["nodes"] if node["type"] == "affect"]
         return await dream_module.run_dream(session["id"])
 
     report = asyncio.run(run())
@@ -201,20 +202,24 @@ def test_session_level_dream_does_not_duplicate_existing_affect(tmp_path, monkey
         "student",
         "My differentiation midterm makes me anxious about chain rule.",
     )
-    database.insert_engram(
-        {
-            "type": "affect",
-            "content": "The student experiences anxiety about the chain rule portion of the differentiation midterm.",
-            "subject_tags": ["chain_rule"],
-            "confidence": 0.9,
-            "importance": 0.7,
-        },
-        [utterance["id"]],
-        [1.0, 0.0],
-        provisional=False,
-    )
 
-    report = asyncio.run(dream_module.run_dream(session["id"]))
+    async def run():
+        content = "Anxiety rises around exam language; respond by concretizing the next step."
+        database.insert_engram(
+            {
+                "type": "affect",
+                "content": content,
+                "subject_tags": ["exam_anxiety"],
+                "confidence": 0.9,
+                "importance": 0.7,
+            },
+            [utterance["id"]],
+            await llm_module.llm_client.embed(content, session["id"]),
+            provisional=False,
+        )
+        return await dream_module.run_dream(session["id"])
+
+    report = asyncio.run(run())
     affect = [node for node in database.graph()["nodes"] if node["type"] == "affect"]
 
     assert len(affect) == 1

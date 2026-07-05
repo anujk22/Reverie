@@ -47,9 +47,6 @@ async def observe_exchange(session_id: str) -> None:
             continue
         if not all(quote_supported(quote, transcript) for quote in candidate.source_quotes):
             continue
-        candidate = normalize_candidate(candidate)
-        if candidate is None:
-            continue
 
         source_ids: list[str] = []
         for quote in candidate.source_quotes:
@@ -102,39 +99,3 @@ def nearest_duplicate(engram_type: str, embedding: list[float]) -> dict[str, Any
     if best and best[0] > settings.duplicate_reinforce_threshold:
         return best[1]
     return None
-
-
-def normalize_candidate(candidate: CandidateEngram) -> CandidateEngram | None:
-    evidence = " ".join([candidate.content, *candidate.source_quotes]).lower()
-    if is_correct_chain_rule_evidence(evidence):
-        return candidate.model_copy(
-            update={
-                "type": "mastery",
-                "content": "Correctly explains chain rule as outside derivative times inner derivative.",
-                "subject_tags": ["chain_rule", "composite_functions"],
-                "confidence": max(candidate.confidence, 0.82),
-                "importance": max(candidate.importance, 0.84),
-            }
-        )
-    if candidate.type == "misconception" and is_past_error_reference_only(evidence):
-        return None
-    return candidate
-
-
-def is_correct_chain_rule_evidence(evidence: str) -> bool:
-    has_outer = "outer derivative" in evidence or "outside derivative" in evidence
-    has_inner = "inner derivative" in evidence or "derivative of the inside" in evidence
-    has_inside = "inside alone" in evidence or "unchanged inside" in evidence
-    return has_outer and has_inner and has_inside
-
-
-def is_past_error_reference_only(evidence: str) -> bool:
-    past_reference = any(
-        marker in evidence
-        for marker in ("wrong yesterday", "prior error", "previously", "used to")
-    )
-    repeats_bad_rule = any(
-        marker in evidence
-        for marker in ("product rule", "f'(x)", "f prime x", "g'(x)", "g prime x")
-    )
-    return past_reference and not repeats_bad_rule

@@ -191,10 +191,12 @@ class LLMClient:
             "\"struggles with calculus\". Good: \"Differentiates f(g(x)) as f'(x) times g'(x), "
             "applying the product rule pattern to compositions.\"\n"
             "- Only claims supported by the transcript. Every engram MUST include at least one exact source quote.\n"
+            "- Type assignment must be supported by the quoted evidence, not by surrounding labels or assumptions.\n"
             "- Do not create a misconception merely because the student mentions a past error; only create one "
-            "when they repeat the incorrect reasoning.\n"
-            "- If the student correctly says to take the outside/outer derivative and multiply by the inside/inner "
-            "derivative, that is mastery, not a misconception.\n"
+            "when the quoted evidence shows current incorrect reasoning.\n"
+            "- Correct application of a skill is mastery evidence, never misconception evidence. Contrastive example: "
+            "if a transcript says \"I used to mix up rule A, but now I apply rule B correctly,\" extract mastery "
+            "for the current correct performance, not a misconception from the historical mention.\n"
             "- confidence: how sure the transcript supports this. importance: how much a tutor should care "
             "(misconceptions and goals high; incidental facts low).\n"
             "TRANSCRIPT (most recent exchange last):\n"
@@ -230,6 +232,79 @@ class LLMClient:
         except Exception as exc:
             self._log_call(
                 "observer",
+                self.settings.chat_model,
+                _count_tokens(prompt),
+                0,
+                int((time.perf_counter() - start) * 1000),
+                session_id,
+                error=str(exc),
+            )
+            return []
+
+    async def extract_session_level_engrams(
+        self,
+        transcript: str,
+        existing_engrams: list[dict[str, Any]],
+        session_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        if not self.settings.live_llm_enabled:
+            candidates = mock_session_level_extract(transcript)
+            self._log_call(
+                "consolidate",
+                self.settings.chat_model,
+                _count_tokens(transcript),
+                _count_tokens(json.dumps(candidates)),
+                1,
+                session_id,
+            )
+            return candidates
+
+        prompt = (
+            "You are consolidating a tutoring session into durable long-term memory.\n"
+            "Return STRICT JSON: {\"engrams\":[{\"type\":\"affect|strategy_outcome\","
+            "\"content\":\"...\",\"subject_tags\":[\"..\"],\"confidence\":0.0,"
+            "\"importance\":0.0,\"source_quotes\":[\"exact substring from transcript\", ...]}]}\n"
+            "Rules:\n"
+            "- Propose 0 to 2 memories, only if the full session arc supports them.\n"
+            "- Only use type affect or strategy_outcome.\n"
+            "- Every source quote must be an exact substring from the transcript.\n"
+            "- Reject unsupported type assignments: the quotes must support both the content and the type.\n"
+            "- Correct application of a skill is not a misconception. If a student corrects an earlier error, "
+            "that may support strategy_outcome or mastery elsewhere, not a new misconception.\n"
+            "- Do not duplicate an existing memory unless the transcript provides materially new evidence.\n"
+            f"EXISTING MEMORIES: {json.dumps(existing_engrams, sort_keys=True)}\n"
+            f"TRANSCRIPT:\n{transcript}"
+        )
+        start = time.perf_counter()
+        try:  # pragma: no cover - depends on network
+            from openai import AsyncOpenAI
+
+            client = AsyncOpenAI(
+                api_key=self.settings.dashscope_api_key,
+                base_url=self.settings.dashscope_base_url,
+                timeout=60,
+            )
+            response = await client.chat.completions.create(
+                model=self.settings.chat_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+            text = response.choices[0].message.content or '{"engrams":[]}'
+            usage = response.usage
+            self._log_call(
+                "consolidate",
+                self.settings.chat_model,
+                usage.prompt_tokens if usage else _count_tokens(prompt),
+                usage.completion_tokens if usage else _count_tokens(text),
+                int((time.perf_counter() - start) * 1000),
+                session_id,
+            )
+            parsed = json.loads(text)
+            return parsed.get("engrams", [])[:2]
+        except Exception as exc:
+            self._log_call(
+                "consolidate",
                 self.settings.chat_model,
                 _count_tokens(prompt),
                 0,
@@ -490,6 +565,40 @@ def mock_extract(transcript: str) -> list[dict[str, Any]]:
             }
         )
     return found[:3]
+
+
+def mock_session_level_extract(transcript: str) -> list[dict[str, Any]]:
+    lower = transcript.lower()
+    found: list[dict[str, Any]] = []
+    if ("anxious" in lower or "panic" in lower) and (
+        "midterm" in lower or "exam" in lower
+    ):
+        quote = find_case_snippet(transcript, "anxious") or find_case_snippet(
+            transcript, "panic"
+        ) or "anxious"
+        found.append(
+            {
+                "type": "affect",
+                "content": "Anxiety rises around exam language; respond by concretizing the next step.",
+                "subject_tags": ["exam_anxiety"],
+                "confidence": 0.72,
+                "importance": 0.7,
+                "source_quotes": [quote],
+            }
+        )
+    if "outer derivative" in lower and "inner derivative" in lower:
+        quote = find_case_snippet(transcript, "outer derivative") or "outer derivative"
+        found.append(
+            {
+                "type": "strategy_outcome",
+                "content": "Guiding questions helped Maya self-correct chain rule reasoning.",
+                "subject_tags": ["chain_rule", "guiding_questions"],
+                "confidence": 0.74,
+                "importance": 0.8,
+                "source_quotes": [quote],
+            }
+        )
+    return found[:2]
 
 
 def find_case_snippet(text: str, needle: str) -> str | None:

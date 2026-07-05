@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from app.memory.observer import normalize_candidate, quote_sources, quote_supported, transcript_window
-from app.models import CandidateEngram
+from app.memory.observer import quote_sources, quote_supported, transcript_window
 
 
 def test_transcript_window_uses_last_six_utterances() -> None:
@@ -52,38 +51,3 @@ def test_quote_sources_prefers_exact_match_then_best_fuzzy_source() -> None:
         utterances,
     ) == ["utt_chain"]
     assert quote_sources("anything", []) == []
-
-
-def test_normalize_candidate_converts_correct_chain_rule_to_mastery() -> None:
-    candidate = CandidateEngram(
-        type="misconception",
-        content="Incorrectly labels outer derivative times inner derivative as chain rule.",
-        subject_tags=["chain_rule"],
-        confidence=0.7,
-        importance=0.7,
-        source_quotes=[
-            "outer derivative means leave the inside alone, times inner derivative"
-        ],
-    )
-
-    normalized = normalize_candidate(candidate)
-
-    assert normalized is not None
-    assert normalized.type == "mastery"
-    assert normalized.content == (
-        "Correctly explains chain rule as outside derivative times inner derivative."
-    )
-    assert normalized.confidence == 0.82
-
-
-def test_normalize_candidate_drops_past_error_reference_only() -> None:
-    candidate = CandidateEngram(
-        type="misconception",
-        content="The student previously got chain rule wrong yesterday.",
-        subject_tags=["chain_rule"],
-        confidence=0.7,
-        importance=0.7,
-        source_quotes=["Can we start where I got chain rule wrong yesterday?"],
-    )
-
-    assert normalize_candidate(candidate) is None

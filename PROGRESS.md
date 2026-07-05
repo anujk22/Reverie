@@ -6,7 +6,7 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 
 | Item | Result |
 | --- | --- |
-| Repo state | Empty workspace at start; not a git repository in this environment. |
+| Repo state | Git initialized locally with remote `https://github.com/anujk22/Reverie.git`; push is pending GitHub authentication in this environment. |
 | Node.js | v22.22.3 |
 | npm | 10.9.8 |
 | Python | `python3` is 3.14.5; `python3.11` is available and used for backend verification. Docker targets Python 3.11 per PRD. |
@@ -31,7 +31,7 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 
 | Milestone | Status | Date | Notes |
 | --- | --- | --- | --- |
-| M0 | blocked | 2026-07-04 | Blocked-external: Saf owns ECS provisioning and DashScope key handoff. Fable amended gate: M1-M4 may proceed locally; M5 is gated on live ECS stub. |
+| M0 | blocked | 2026-07-04 | Blocked-external: Anuj owns ECS provisioning/SSH handoff. Fable amended gate: M1-M4 may proceed locally; M5 is gated on live ECS stub. |
 | M0.5 | done | 2026-07-04 | Local DashScope discovery, live observer/dream acceptance, and smoke eval completed. ECS health proof still belongs to M0. |
 | M1 | done | 2026-07-04 | SQLite migrations, event store/projection, decay and retrieval pure functions implemented. `backend/.venv311/bin/python -m pytest backend/tests` passes. |
 | M2 | done | 2026-07-04 | Streaming chat route, mock/live LLM boundary, observer validation, token logging, and SSE/event broadcast path implemented. API smoke passed in `MOCK_LLM=true`. |
@@ -48,30 +48,31 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 1. Started with a greenfield repo because the workspace was empty. This matches the PRD's requested repo layout.
 2. Chose a deterministic mock LLM/embedding fallback for local development because `DASHSCOPE_API_KEY` is absent. The PRD allows graceful degradation for API failures; live mode still routes through a single DashScope client.
 3. Implementing sqlite-vec as an optional future path and using a JSON vector table plus brute-force cosine by default. The PRD explicitly allows a NumPy/brute-force fallback if sqlite-vec is unavailable; at demo scale this keeps M0-M7 reliable.
-4. FABLE RULING — 2026-07-04: M0 amended, not waived. M1-M4 may proceed locally. M5 design/constellation is gated on a live ECS stub. M0 remains blocked-external; Saf owns ECS provisioning and key handoff.
+4. FABLE RULING — 2026-07-04: M0 amended, not waived. M1-M4 may proceed locally. M5 design/constellation is gated on a live ECS stub. M0 remains blocked-external; Anuj owns ECS provisioning and SSH handoff.
 5. FABLE RULING — 2026-07-04: `MOCK_LLM=true` is approved for dev, tests, and rehearsal only. The shell must show a visible mono `MOCK` chip whenever active. Mock mode is banned from the final demo video, deployment proof, and anything feeding `EVALS.md`.
 6. FABLE RULING — 2026-07-04: sqlite-vec gets a 30-minute Docker timebox. If it does not work quickly, brute-force NumPy/vector cosine is the shipped default at demo scale, documented as a deliberate tradeoff with a future upgrade path.
 7. FABLE RULING — 2026-07-04: eval numbers must come only from completed real runs. Cached real results are allowed for camera convenience; synthetic or hand-edited results are prohibited. No real run by deadline means honest empty state, no `EVALS.md` numbers, and the eval beat is cut from the demo.
-8. FABLE RULING — 2026-07-04: `deploy.sh` and `docs/DEPLOY.md` are written now and executed once Saf provides ECS IP, SSH key, and `DASHSCOPE_API_KEY`. Environment Report ECS row remains empty until true.
+8. FABLE RULING — 2026-07-04: `deploy.sh` and `docs/DEPLOY.md` are written now and executed once Anuj provides ECS IP and SSH key. Environment Report ECS row remains empty until true.
 9. Added a pre-M5 frontend skeleton only: health panel, visible `MOCK` chip, and gated placeholders. Full design system/constellation work remains blocked until the ECS stub is live.
 10. The first dependency install attempt used local Python 3.14 and failed because pinned `pydantic-core` does not support Python 3.14. Verification was moved to `backend/.venv311` with Python 3.11, matching Docker.
 11. FABLE AUDIT — 2026-07-04: M1-M4 approved. M5 gate is public `GET /api/health` from ECS public IP served by Docker stack, returning ok + live DashScope model IDs. Frontend through Nginx is M8, not the M5 gate.
 12. FABLE AUDIT — 2026-07-04: M0.5 required immediately when key lands: env check, live M2/M3 acceptance, extraction/judge quality, token costs. Completed locally; ECS deployment still pending.
 13. FABLE AUDIT — 2026-07-04: dream session-level pass must recover affect from session1 because turn-level cap may drop anxiety. Added acceptance test and implementation.
-14. Live M0.5 revealed two quality issues: Qwen sometimes mislabeled correct chain-rule mastery as misconception, and deterministic dream duplicated affect if Qwen used different tags. Added deterministic observer normalization and affect duplicate guard.
+14. Live M0.5 revealed two quality issues: Qwen sometimes mislabeled correct performance as misconception, and session-level memory could duplicate an existing affect if phrased differently. Fable rejected demo-string deterministic normalization, so the final mechanism is: generic extraction prompt rules for type assignment, session-level LLM/mock extraction for missed affect/strategy memories, exact-quote validation, and same-type vector dedupe before adding session-level memories.
 15. Added `backend/scripts/reembed_engrams.py` and updated `EMBED_DIM=1024` so mock-to-live vector transition can re-embed or reset cleanly.
+16. FABLE AUDIT — 2026-07-04: ECS target may be free-tier sized. Updated deployment so images build locally for `linux/amd64`, ship via `docker save`/`scp`, add a 2 GB swap file on ECS, and run `docker compose up -d --no-build` on the instance.
 
 ## Deviations from PRD
 
-- M0 live deployment cannot be completed from this environment without Alibaba Cloud ECS access and a DashScope key. Workaround: provide Docker Compose, Nginx config, deploy script, health endpoint, and env check script so Saf can run the proof once credentials exist. Fable explicitly approved proceeding through M1-M4 while this is blocked.
+- M0 live deployment cannot be completed from this environment without Alibaba Cloud ECS access. Workaround: provide Docker Compose, Nginx config, deploy script, health endpoint, and env check script so Anuj can run the proof once ECS credentials exist. Fable explicitly approved proceeding through M1-M4 while this is blocked.
 - Local Python is 3.14.5, not 3.11. Docker pins Python 3.11.
 - Mock embeddings originally used dimension 128. After M0.5 discovery, default `EMBED_DIM` was updated to the live `text-embedding-v4` dimension of 1024.
 - Added new hard law from Fable: eval charts/results must not be fabricated. The current eval endpoint returns an honest unavailable state until a live DashScope-backed run exists.
-- Dream distillation and judging currently use deterministic logic for M3, plus live observer and live embeddings. Live Qwen judge/distillation remains required before M7 and before any recorded material.
+- Dream distillation currently uses deterministic consolidation for provisional memories plus session-level LLM/mock extraction for affect/strategy memories. Live Qwen judge/distillation for dedup/contradiction remains required before M7 and before any recorded material.
 
 ## Verification Log
 
-- `backend/.venv311/bin/python -m pytest backend/tests` -> 19 passed.
+- `backend/.venv311/bin/python -m pytest backend/tests` -> 17 passed.
 - `MOCK_LLM=true ... TestClient` API smoke -> `/api/health`, `POST /api/sessions`, streamed `POST /api/sessions/{id}/chat`, and `/api/memory/graph` passed.
 - Observer broadcast smoke -> subscriber received `engram.observed` with toast.
 - Dream acceptance smoke -> duplicate merge count >= 1 and contradiction supersession count >= 1.
@@ -84,7 +85,7 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - Local stub servers started: backend `MOCK_LLM=true` on `http://127.0.0.1:8000`; frontend on `http://127.0.0.1:3001` because port 3000 was already occupied. Health and frontend HTTP checks returned 200.
 - Live env check with DashScope key -> international endpoint works, mainland endpoint fails with 401; `qwen-plus` chat ok at `610 ms`; `text-embedding-v4` ok at `1024` dims and `379 ms`; 28 VL/omni models detected.
 - Live observer sample -> Qwen extracted the chain-rule misconception and example-first preference with exact source quotes and no errors.
-- Live M0.5 session1/session2 flow -> one affect memory, misconception superseded by active mastery, report2 reconcile `superseded: 1`; total live M0.5 flow token use `1897` prompt + `722` completion over 14 calls, no errors.
+- Live M0.5 session1/session2 flow -> one affect memory, misconception superseded by active mastery, report2 reconcile `superseded: 1`; total live M0.5 flow token use `4932` prompt + `894` completion over 14 calls, no errors.
 - Live smoke eval -> strict JSON judge response, personalization score `5`, `244` prompt tokens + `97` completion tokens, `2961 ms`, no error.
 
 ## M2 Observer Sample
@@ -108,8 +109,8 @@ Live observer sample, using `qwen-plus` against DashScope international endpoint
 
 Live dream report after fixes:
 
-- Session 1 report: replay `4`, distill confirmed `4`, dedupe merged `0`, reconcile superseded `0`, duration `101 ms`.
-- Session 2 report: replay `2`, distill confirmed `3`, dedupe merged `0`, reconcile superseded `1`, duration `914 ms`.
+- Session 1 report: replay `4`, distill confirmed `5`, dedupe merged `0`, reconcile superseded `0`, duration `6828 ms`.
+- Session 2 report: replay `1`, distill confirmed `2`, dedupe merged `0`, reconcile superseded `1`, duration `3940 ms`.
 - Final live memory state includes one active affect, active preference, active goal, active mastery, strategy_outcome, and the original misconception superseded by the mastery.
 
 Live smoke eval:

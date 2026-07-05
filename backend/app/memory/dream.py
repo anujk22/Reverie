@@ -10,7 +10,9 @@ from app.config import settings
 from app.db import db, new_id, row_to_engram
 from app.llm import llm_client
 from app.memory.decay import DecayInput, compute_strength
+from app.memory.observer import quote_sources, quote_supported
 from app.memory.retrieval import cosine
+from app.models import CandidateEngram
 
 
 STAGES = ("replay", "distill", "deduplicate", "reconcile", "decay", "report")
@@ -112,83 +114,80 @@ async def distill(
         await emit_stage("distill", "running", counts)
         await asyncio.sleep(0.02)
 
-    session_transcript = "\n".join(
-        f"{utt['role']}: {utt['content']}" for utt in db.utterances_for_session(session_id)
+    session_level_confirmed = await add_session_level_engrams(session_id)
+    counts["confirmed"] += session_level_confirmed
+    stats["distill"] = counts
+    await emit_stage("distill", "done", counts)
+
+
+async def add_session_level_engrams(session_id: str) -> int:
+    utterances = db.utterances_for_session(session_id)
+    transcript = "\n".join(f"{utt['role']}: {utt['content']}" for utt in utterances)
+    raw_candidates = await llm_client.extract_session_level_engrams(
+        transcript,
+        db.active_engrams(),
+        session_id=session_id,
     )
-    if "outer derivative" in session_transcript.lower():
-        embedding = await llm_client.embed(
-            "Guiding-question approach led to Maya articulating the chain rule correction.",
-            session_id,
-        )
+    confirmed = 0
+    for raw in raw_candidates:
+        try:
+            candidate = CandidateEngram(**raw)
+        except Exception:
+            continue
+        if candidate.type not in {"affect", "strategy_outcome"}:
+            continue
+        if not all(quote_supported(quote, transcript) for quote in candidate.source_quotes):
+            continue
+        source_ids: list[str] = []
+        for quote in candidate.source_quotes:
+            source_ids.extend(quote_sources(quote, utterances))
+        source_ids = list(dict.fromkeys(source_ids))
+        if not source_ids:
+            continue
+
+        embedding = await llm_client.embed(candidate.content, session_id=session_id)
+        duplicate = nearest_same_type_memory(candidate.type, embedding)
+        if duplicate:
+            db.reinforce(duplicate["id"])
+            await db.append_event(
+                "engram.reinforced",
+                duplicate["id"],
+                {"reason": "session-level consolidation found similar evidence"},
+                session_id=session_id,
+            )
+            continue
+
         engram = db.insert_engram(
-            {
-                "type": "strategy_outcome",
-                "content": "Guiding questions helped Maya self-correct chain rule reasoning.",
-                "subject_tags": ["chain_rule", "guiding_questions"],
-                "confidence": 0.74,
-                "importance": 0.8,
-            },
-            [utt["id"] for utt in db.utterances_for_session(session_id)[-2:]],
+            candidate.model_dump(exclude={"source_quotes"}),
+            source_ids,
             embedding,
             provisional=False,
         )
-        counts["confirmed"] += 1
+        confirmed += 1
         await db.append_event(
             "engram.consolidated",
             engram["id"],
-            {"session_level": True, "toast": "Dream found a teaching pattern."},
+            {
+                "session_level": True,
+                "source_quotes": candidate.source_quotes,
+                "toast": "Dream found a session-level memory.",
+            },
             session_id=session_id,
         )
-    if has_exam_anxiety_signal(session_transcript):
-        existing_affect = [
-            item
-            for item in db.active_engrams()
-            if item["type"] == "affect"
-            and (
-                "exam_anxiety" in item.get("subject_tags", [])
-                or has_exam_anxiety_signal(item["content"])
-                or (
-                    "anxiety" in item["content"].lower()
-                    and any(
-                        marker in item["content"].lower()
-                        for marker in ("midterm", "exam", "test", "chain rule")
-                    )
-                )
-            )
-        ]
-        if not existing_affect:
-            embedding = await llm_client.embed(
-                "Anxiety rises around exam language; respond by concretizing the next step.",
-                session_id,
-            )
-            engram = db.insert_engram(
-                {
-                    "type": "affect",
-                    "content": "Anxiety rises around exam language; respond by concretizing the next step.",
-                    "subject_tags": ["exam_anxiety"],
-                    "confidence": 0.72,
-                    "importance": 0.7,
-                },
-                [
-                    utt["id"]
-                    for utt in db.utterances_for_session(session_id)
-                    if any(
-                        marker in utt["content"].lower()
-                        for marker in ("anxious", "panic", "midterm", "exam")
-                    )
-                ][:3],
-                embedding,
-                provisional=False,
-            )
-            counts["confirmed"] += 1
-            await db.append_event(
-                "engram.consolidated",
-                engram["id"],
-                {"session_level": True, "toast": "Dream recovered an affect memory."},
-                session_id=session_id,
-            )
-    stats["distill"] = counts
-    await emit_stage("distill", "done", counts)
+    return confirmed
+
+
+def nearest_same_type_memory(engram_type: str, embedding: list[float]) -> dict[str, Any] | None:
+    best: tuple[float, dict[str, Any]] | None = None
+    for engram in db.active_engrams():
+        if engram["type"] != engram_type:
+            continue
+        similarity = cosine(db.vector_for(engram["id"]), embedding)
+        if best is None or similarity > best[0]:
+            best = (similarity, engram)
+    if best and best[0] > settings.dream_dedupe_threshold:
+        return best[1]
+    return None
 
 
 async def deduplicate(session_id: str, stats: dict[str, Any]) -> None:
@@ -323,10 +322,3 @@ def choose_contradiction_winner(
     if float(mastery["confidence"]) >= float(misconception["confidence"]):
         return mastery, misconception
     return misconception, mastery
-
-
-def has_exam_anxiety_signal(transcript: str) -> bool:
-    lower = transcript.lower()
-    anxiety = any(marker in lower for marker in ("anxious", "anxiety", "panic"))
-    exam = any(marker in lower for marker in ("midterm", "exam", "test"))
-    return anxiety and exam

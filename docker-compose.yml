@@ -1,21 +1,29 @@
 services:
   backend:
+    image: reverie-backend:latest
     build:
       context: ./backend
-    env_file:
-      - .env
     environment:
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
+      CHAT_MODEL: ${CHAT_MODEL:-qwen-plus}
+      EMBED_MODEL: ${EMBED_MODEL:-text-embedding-v4}
+      JUDGE_MODEL: ${JUDGE_MODEL:-qwen-plus}
       DB_PATH: /app/data/reverie.db
+      DEMO_MODE: ${DEMO_MODE:-true}
+      MOCK_LLM: ${MOCK_LLM:-false}
+      CLOCK_OFFSET_SECONDS: ${CLOCK_OFFSET_SECONDS:-0}
+      CONTEXT_BUDGET_TOKENS: ${CONTEXT_BUDGET_TOKENS:-1200}
+      EMBED_DIM: ${EMBED_DIM:-1024}
     volumes:
       - ./data:/app/data
     ports:
       - "8000:8000"
 
   frontend:
+    image: reverie-frontend:latest
     build:
       context: ./frontend
-    env_file:
-      - .env
     environment:
       NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000}
     ports:
