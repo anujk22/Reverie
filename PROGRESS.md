@@ -37,8 +37,8 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 | M2 | done | 2026-07-04 | Streaming chat route, mock/live LLM boundary, observer validation, token logging, and SSE/event broadcast path implemented. API smoke passed in `MOCK_LLM=true`. |
 | M3 | done | 2026-07-04 | Dream worker has Replay, Distill, Deduplicate, Reconcile, Decay, Report stages and dream report rows. Acceptance smoke and committed test cover duplicate merge + misconception supersession. |
 | M4 | done | 2026-07-04 | Session-open and per-turn budgeted retrieval return winners, exclusions, score breakdowns, confidence/strength metadata, and emit reinforcement events. |
-| M5 | ready-for-fable-review | 2026-07-05 | ECS gate dissolved by Fable. Design rescue pass completed for screenshot review: conversation, constellation, header, composer, inspector, and richer live demo arc revised. |
-| M6 | todo |  |  |
+| M5 | provisional | 2026-07-05 | ECS gate dissolved by Fable. Design rescue pass completed; Fable provisionally accepted pending screenshot review. Hold two-panel session composition while later work proceeds. |
+| M6 | ready-for-fable-review | 2026-07-05 | Dream view, Evals honest-state screen, and `/architecture` memory-pipeline card implemented and QA'd at desktop + narrow widths. |
 | M7 | todo |  |  |
 | M8 | todo |  |  |
 | M9 | todo |  | Gated on VL model and core completion. |
@@ -65,6 +65,10 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 18. FABLE DIRECTIVE — 2026-07-05: fallback of record if ECS never lands is to submit with an `llm.py` permalink proving DashScope/Alibaba Cloud usage, a recording of the live app with token logs, and an honest note plus ticket screenshot. This is a fallback only; deployment remains attempted until deadline.
 19. FABLE DIRECTIVE — 2026-07-05: current M5 was wireframe fidelity, not spec. Rescue pass before M6 focuses on removing message borders, bottom-anchored conversation, richer constellation rendering, labeled header actions, composer polish, screenshot QA, and 8-12 real engrams across the demo arc.
 20. M5 rescue duplicate mechanism is content-general: same-type memories now run through a normalized content/token overlap plus subject-tag overlap matcher before insertion/reinforcement. This is not keyed to chain-rule strings or demo tags; a Spanish-conjugation acceptance test covers the litmus directly. Session-level affect recovery also treats natural "freeze/freezing" language as affect evidence in the mock path.
+21. FABLE AUDIT — 2026-07-05: M5 rescue pass is provisionally accepted pending Fable's screenshot review, but M6 may proceed. The product framing is hardened: Reverie leads as a memory engine wearing a tutoring skin, not a math tutor.
+22. Premise hardening implemented across `README.md`, `docs/DEVPOST.md`, `docs/ARCHITECTURE.md`, metadata, and route copy. The docs state near the top that extraction, dreaming, forgetting, duplicate detection, and budgeted recall contain zero calculus knowledge; the subject lives in prompt/script surfaces, and `backend/tests/test_dedupe.py` proves the Spanish-conjugation litmus.
+23. `docs/DESIGN.md` was read and resolved. Useful design/product-contract details were folded into `docs/ARCHITECTURE.md`; the standalone file was deleted so there is no mystery untracked design note.
+24. Eval result JSON is runtime state, not source. `backend/app/evals/results/*.json` is ignored; the API returns an honest empty state until a completed real run exists, and augments that state with live token totals from `llm_calls`.
 
 ## Deviations from PRD
 
@@ -96,6 +100,15 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - M5 rescue screenshot QA, live mode -> `docs/screenshots/m5-rescue-desktop.png` captured at exact `1440x900` with inspector open, live constellation, budget meter, drawing-on chips, bottom composer visible, no console errors, and no horizontal overflow. `docs/screenshots/m5-rescue-narrow.png` captured at exact `390x844` with live constellation, budget meter, session header, and first exchange; no horizontal overflow and no offscreen offenders.
 - M5 rescue live demo arc -> Session 1 five natural turns + dream + Session 2 two recall turns produced 9 active engrams: 3 preference, 2 misconception, 1 affect, 1 strategy_outcome, 1 goal, 1 mastery. This satisfies the 8-12 inhabited-sky target and proves session-level affect recovery without overfilling duplicates.
 - `backend/.venv311/bin/pytest backend/tests/test_dedupe.py backend/tests/test_observer.py backend/tests/test_dream_and_retrieval_service.py` -> 11 passed after the content-general duplicate guard.
+- M6 Dream browser QA, live backend -> `/dream` loaded at 1440x900 and 390x844; "run latest dream" triggered a real backend dream; stage rows rendered saved/event counts with no `[object Object]`; console clean; narrow horizontal overflow `0`. Screenshots: `docs/screenshots/m6-dream-desktop.png`, `docs/screenshots/m6-dream-narrow.png`.
+- M6 Evals browser QA -> `/evals` renders honest empty state only (`real_run=false`), no fabricated chart headings, synthetic-results prohibition visible, observed model token totals visible, console clean, narrow horizontal overflow `0`. Screenshots: `docs/screenshots/m6-evals-desktop.png`, `docs/screenshots/m6-evals-narrow.png`.
+- M6 Architecture browser QA -> `/architecture` renders the memory pipeline card, Qwen on Alibaba Cloud, storage/event-store proof, and Spanish subject-swap proof; console clean; narrow horizontal overflow `0`. Screenshots: `docs/screenshots/m6-architecture-desktop.png`, `docs/screenshots/m6-architecture-narrow.png`.
+- `npm run typecheck` in `frontend/` -> passed.
+- `npm run build` in `frontend/` -> passed for routes `/`, `/dream`, `/evals`, `/architecture`, `/conductor`.
+- `backend/.venv311/bin/pytest backend/tests` -> 20 passed.
+- `jq empty backend/app/evals/scripts/*.json` -> passed.
+- `git diff --check` -> passed.
+- Secret-pattern scan for DashScope/Qwen key material -> no repo matches.
 
 ## M2 Observer Sample
 

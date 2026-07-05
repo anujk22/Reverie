@@ -21,6 +21,19 @@ async def manual_run(session_id: str | None = None):
     return await run_dream(session_id)
 
 
+@router.get("/reports/latest")
+async def latest_report():
+    with db.connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM dream_reports ORDER BY started_at DESC LIMIT 1"
+        ).fetchone()
+        if not row:
+            return {"report": None}
+        item = dict(row)
+        item["stats_json"] = json.loads(item["stats_json"] or "{}")
+        return {"report": item}
+
+
 @router.get("/reports/{report_id}")
 async def report(report_id: str):
     with db.connection() as conn:

@@ -13,6 +13,16 @@ from app.llm import llm_client
 RESULTS_PATH = Path(__file__).resolve().parent / "results" / "latest.json"
 
 
+def _observed_llm_tokens() -> dict[str, int]:
+    with db.connection() as conn:
+        return {
+            row["purpose"]: row["tokens"]
+            for row in conn.execute(
+                "SELECT purpose, SUM(prompt_tokens + completion_tokens) AS tokens FROM llm_calls GROUP BY purpose"
+            )
+        }
+
+
 def run_eval_suite() -> dict[str, Any]:
     # Fable ruling 2026-07-04: fabricated eval numbers are prohibited.
     # Until live Qwen credentials exist, this endpoint returns an honest unavailable state.
@@ -29,22 +39,17 @@ def run_eval_suite() -> dict[str, Any]:
         "headline": "",
         "forgetting_check": "not_run",
     }
+    results["observed_llm_tokens"] = _observed_llm_tokens()
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     RESULTS_PATH.write_text(json.dumps(results, indent=2))
-    with db.connection() as conn:
-        totals = {
-            row["purpose"]: row["tokens"]
-            for row in conn.execute(
-                "SELECT purpose, SUM(prompt_tokens + completion_tokens) AS tokens FROM llm_calls GROUP BY purpose"
-            )
-        }
-    results["observed_llm_tokens"] = totals
     return results
 
 
 def latest_results() -> dict[str, Any]:
     if RESULTS_PATH.exists():
-        return json.loads(RESULTS_PATH.read_text())
+        results = json.loads(RESULTS_PATH.read_text())
+        results.setdefault("observed_llm_tokens", _observed_llm_tokens())
+        return results
     return run_eval_suite()
 
 

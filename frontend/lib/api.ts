@@ -93,11 +93,35 @@ export type DreamReport = {
   id?: string;
   report_id?: string;
   session_id: string;
-  stats?: Record<string, Record<string, number>>;
-  stats_json?: Record<string, Record<string, number>>;
+  stats?: Record<string, unknown>;
+  stats_json?: Record<string, unknown>;
   duration_ms?: number;
   started_at?: string;
   finished_at?: string;
+};
+
+export type EvalResults = {
+  generated_at?: number;
+  mode: string;
+  real_run: boolean;
+  message?: string;
+  conditions?: string[];
+  personalization?: Array<Record<string, unknown>>;
+  recall_precision?: Array<Record<string, unknown>>;
+  tokens?: Array<Record<string, unknown>>;
+  headline?: string;
+  forgetting_check?: string;
+  observed_llm_tokens?: Record<string, number>;
+};
+
+export type SmokeEvalResult = {
+  mode: string;
+  real_run: boolean;
+  condition: string;
+  sessions: number;
+  score: number;
+  reason: string;
+  llm_call: Record<string, unknown> | null;
 };
 
 export type RuntimeEvent =
@@ -113,7 +137,7 @@ export type RuntimeEvent =
       kind: "dream_stage";
       stage: string;
       status: string;
-      counts: Record<string, number>;
+      counts: Record<string, unknown>;
     };
 
 export function apiUrl(path: string) {
@@ -158,6 +182,35 @@ export function fetchEngramDetail(id: string) {
 
 export function fetchMemoryPack(sessionId: string) {
   return jsonRequest<MemoryPack>(`/api/sessions/${sessionId}/memory-pack`);
+}
+
+export function fetchLatestDreamReport() {
+  return jsonRequest<{ report: DreamReport | null }>("/api/dream/reports/latest");
+}
+
+export function runLatestDream() {
+  return jsonRequest<DreamReport>("/api/dream/run", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
+export function fetchEvalResults() {
+  return jsonRequest<EvalResults>("/api/evals/results");
+}
+
+export function runEvalSuite() {
+  return jsonRequest<EvalResults>("/api/evals/run", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+}
+
+export function runSmokeEval() {
+  return jsonRequest<SmokeEvalResult>("/api/evals/smoke", {
+    method: "POST",
+    body: JSON.stringify({})
+  });
 }
 
 export function endSession(sessionId: string) {

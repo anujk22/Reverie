@@ -3,6 +3,7 @@
 .pytest_cache/
 data/*.db
 data/*.db-*
+backend/app/evals/results/*.json
 backend/.venv*/
 backend/__pycache__/
 backend/app/**/__pycache__/

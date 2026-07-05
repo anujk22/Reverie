@@ -43,7 +43,7 @@ type Toast = {
 type DreamStage = {
   stage: string;
   status: string;
-  counts: Record<string, number>;
+  counts: Record<string, unknown>;
 };
 
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
@@ -87,7 +87,9 @@ function shortDate(value?: string) {
 }
 
 function stageSummary(stage: DreamStage) {
-  const entries = Object.entries(stage.counts ?? {});
+  const entries = Object.entries(stage.counts ?? {}).filter(
+    ([, value]) => typeof value === "number"
+  );
   if (!entries.length) return stage.status;
   return entries.map(([key, value]) => `${value} ${key}`).join(" · ");
 }

@@ -18,7 +18,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Reverie",
-  description: "A Calculus I tutor with visible long-term memory."
+  description: "A visible memory engine for extraction, dreaming, forgetting, and recall."
 };
 
 export default function RootLayout({
