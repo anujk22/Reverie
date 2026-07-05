@@ -1,41 +1,76 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { HealthPanel } from "@/components/HealthPanel";
+import { BarChart3, Brain, Moon, Network, Radio } from "lucide-react";
+import { RuntimeChip } from "@/components/RuntimeChip";
 
 const routes = [
-  { href: "/", label: "Session" },
-  { href: "/dream", label: "Dream" },
-  { href: "/evals", label: "Evals" },
-  { href: "/architecture", label: "Architecture" },
-  { href: "/conductor", label: "Conductor" }
+  { href: "/", label: "Session", icon: Radio },
+  { href: "/dream", label: "Dream", icon: Moon },
+  { href: "/evals", label: "Evals", icon: BarChart3 },
+  { href: "/architecture", label: "Architecture", icon: Network },
+  { href: "/conductor", label: "Conductor", icon: Brain }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <header className="border-b border-line bg-panel">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-muted">Reverie</p>
-            <h1 className="text-xl font-semibold">Pre-M5 frontend skeleton</h1>
-          </div>
-          <nav className="flex flex-wrap gap-2 text-sm">
-            {routes.map((route) => (
+    <div className="min-h-dvh bg-void text-starlight">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 border-r border-hairline bg-field md:flex md:flex-col md:items-center">
+        <Link
+          href="/"
+          className="flex h-24 w-full items-center justify-center border-b border-hairline font-display text-[18px] font-semibold text-starlight [writing-mode:vertical-rl]"
+          title="Reverie"
+        >
+          Reverie
+        </Link>
+        <nav className="flex flex-1 flex-col items-center gap-2 py-5">
+          {routes.map((route) => {
+            const Icon = route.icon;
+            return (
               <Link
                 key={route.href}
                 href={route.href}
-                className="rounded-md border border-line px-3 py-2 text-muted hover:text-text"
+                aria-label={route.label}
+                title={route.label}
+                className="flex h-11 w-11 items-center justify-center rounded-md border border-transparent text-dim transition hover:border-hairline hover:bg-field-2 hover:text-starlight"
               >
-                {route.label}
+                <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
               </Link>
-            ))}
-          </nav>
+            );
+          })}
+        </nav>
+        <div className="flex flex-col items-center gap-3 border-t border-hairline py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 font-mono text-[11px] text-dim">
+            MC
+          </div>
+          <RuntimeChip />
+        </div>
+      </aside>
+
+      <header className="sticky top-0 z-20 border-b border-hairline bg-field md:hidden">
+        <div className="flex h-14 items-center justify-between px-4">
+          <Link href="/" className="font-display text-xl font-semibold">
+            Reverie
+          </Link>
+          <div className="flex items-center gap-2">
+            {routes.slice(0, 3).map((route) => {
+              const Icon = route.icon;
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  aria-label={route.label}
+                  title={route.label}
+                  className="flex h-10 w-10 items-center justify-center rounded-md border border-hairline text-dim"
+                >
+                  <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </header>
-      <main className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-[1fr_360px]">
-        <div>{children}</div>
-        <HealthPanel />
-      </main>
+
+      <main className="min-h-dvh md:pl-16">{children}</main>
     </div>
   );
 }

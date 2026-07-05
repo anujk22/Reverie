@@ -4,12 +4,24 @@
 
 :root {
   color-scheme: dark;
-  --bg: #0b1020;
-  --panel: #111827;
-  --line: #253047;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --warning: #f59e0b;
+  --void: #070b14;
+  --field: #0d1424;
+  --field-2: #131c31;
+  --hairline: #1e2a44;
+  --starlight: #e9edf6;
+  --dim: #8a94ad;
+  --faint: #4a5674;
+  --ember: #e8a33d;
+  --glow: #ffd9a0;
+  --sage: #3fbfad;
+  --coral: #e5534b;
+  --moth: #b9a7e8;
+  --bg: var(--void);
+  --panel: var(--field);
+  --line: var(--hairline);
+  --text: var(--starlight);
+  --muted: var(--dim);
+  --warning: var(--ember);
 }
 
 * {
@@ -19,7 +31,7 @@
 html,
 body {
   min-height: 100%;
-  background: var(--bg);
+  background: var(--void);
 }
 
 body {
@@ -39,12 +51,20 @@ button:focus-visible,
 a:focus-visible,
 textarea:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--warning);
+  outline: 2px solid var(--ember);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: rgba(245, 158, 11, 0.28);
+  background: rgba(232, 163, 61, 0.28);
+}
+
+button {
+  touch-action: manipulation;
+}
+
+canvas {
+  display: block;
 }
 
 .sr-only {
