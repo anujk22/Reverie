@@ -2,16 +2,24 @@
   "title": "Session 1 - chain rule memories",
   "turns": [
     {
-      "student": "My midterm goal is to be ready for the chain rule part of my differentiation midterm, but I am anxious about it.",
-      "expected_tags": ["midterm", "exam_anxiety"]
+      "student": "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself.",
+      "expected_tags": ["midterm", "exam_anxiety", "power_rule", "chain_rule"]
     },
     {
-      "student": "For f(g(x)), my mistake is that I do f'(x) times g'(x), like product rule, even though the functions are nested.",
-      "expected_tags": ["chain_rule", "composite_functions"]
+      "student": "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making.",
+      "expected_tags": ["chain_rule", "composite_functions", "product_rule"]
     },
     {
-      "student": "Please use my example-first preference: show me an example first before abstract rules, because rules in the abstract don't stick for me.",
+      "student": "Could we start with actual numbers first? If I see one worked example, the rule usually lands better.",
       "expected_tags": ["worked_examples"]
+    },
+    {
+      "student": "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it.",
+      "expected_tags": ["guiding_questions"]
+    },
+    {
+      "student": "Also, I usually study late after work, so shorter practice sets are easier for me to stick with.",
+      "expected_tags": ["study_schedule", "short_practice"]
     }
   ]
 }

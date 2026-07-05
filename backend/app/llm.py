@@ -570,12 +570,12 @@ def mock_extract(transcript: str) -> list[dict[str, Any]]:
 def mock_session_level_extract(transcript: str) -> list[dict[str, Any]]:
     lower = transcript.lower()
     found: list[dict[str, Any]] = []
-    if ("anxious" in lower or "panic" in lower) and (
+    if ("anxious" in lower or "panic" in lower or "freez" in lower) and (
         "midterm" in lower or "exam" in lower
     ):
         quote = find_case_snippet(transcript, "anxious") or find_case_snippet(
             transcript, "panic"
-        ) or "anxious"
+        ) or find_case_snippet(transcript, "freez") or "anxious"
         found.append(
             {
                 "type": "affect",

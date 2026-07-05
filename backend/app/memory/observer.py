@@ -6,7 +6,7 @@ from typing import Any
 from app.config import settings
 from app.db import db
 from app.llm import llm_client
-from app.memory.retrieval import cosine
+from app.memory.dedupe import find_duplicate_memory
 from app.models import CandidateEngram
 
 
@@ -56,7 +56,7 @@ async def observe_exchange(session_id: str) -> None:
             continue
 
         embedding = await llm_client.embed(candidate.content, session_id=session_id)
-        duplicate = nearest_duplicate(candidate.type, embedding)
+        duplicate = nearest_duplicate(candidate.model_dump(exclude={"source_quotes"}), embedding)
         if duplicate:
             db.reinforce(duplicate["id"])
             await db.append_event(
@@ -88,14 +88,11 @@ async def observe_exchange(session_id: str) -> None:
         )
 
 
-def nearest_duplicate(engram_type: str, embedding: list[float]) -> dict[str, Any] | None:
-    best: tuple[float, dict[str, Any]] | None = None
-    for engram in db.active_engrams():
-        if engram["type"] != engram_type:
-            continue
-        similarity = cosine(db.vector_for(engram["id"]), embedding)
-        if best is None or similarity > best[0]:
-            best = (similarity, engram)
-    if best and best[0] > settings.duplicate_reinforce_threshold:
-        return best[1]
-    return None
+def nearest_duplicate(candidate: dict[str, Any], embedding: list[float]) -> dict[str, Any] | None:
+    return find_duplicate_memory(
+        candidate,
+        embedding,
+        db.active_engrams(),
+        db.vector_for,
+        settings.duplicate_reinforce_threshold,
+    )

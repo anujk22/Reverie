@@ -31,13 +31,13 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 
 | Milestone | Status | Date | Notes |
 | --- | --- | --- | --- |
-| M0 | blocked | 2026-07-04 | Blocked-external: Anuj owns ECS provisioning/SSH handoff. Fable amended gate: M1-M4 may proceed locally; M5 is gated on live ECS stub. |
+| M0 | blocked-external | 2026-07-05 | Alibaba ECS identity verification was rejected externally; remediation is running via retry + hackathon Discord ticket. Deployment executes whenever access lands. |
 | M0.5 | done | 2026-07-04 | Local DashScope discovery, live observer/dream acceptance, and smoke eval completed. ECS health proof still belongs to M0. |
 | M1 | done | 2026-07-04 | SQLite migrations, event store/projection, decay and retrieval pure functions implemented. `backend/.venv311/bin/python -m pytest backend/tests` passes. |
 | M2 | done | 2026-07-04 | Streaming chat route, mock/live LLM boundary, observer validation, token logging, and SSE/event broadcast path implemented. API smoke passed in `MOCK_LLM=true`. |
 | M3 | done | 2026-07-04 | Dream worker has Replay, Distill, Deduplicate, Reconcile, Decay, Report stages and dream report rows. Acceptance smoke and committed test cover duplicate merge + misconception supersession. |
 | M4 | done | 2026-07-04 | Session-open and per-turn budgeted retrieval return winners, exclusions, score breakdowns, confidence/strength metadata, and emit reinforcement events. |
-| M5 | local-preview | 2026-07-05 | Session screen, design system, canvas constellation, inspector, and budget meter are implemented locally because ECS verification may take 1-2 days. Official M5 acceptance remains gated on public ECS `/api/health` and Fable screenshot review. |
+| M5 | ready-for-fable-review | 2026-07-05 | ECS gate dissolved by Fable. Design rescue pass completed for screenshot review: conversation, constellation, header, composer, inspector, and richer live demo arc revised. |
 | M6 | todo |  |  |
 | M7 | todo |  |  |
 | M8 | todo |  |  |
@@ -61,20 +61,23 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 14. Live M0.5 revealed two quality issues: Qwen sometimes mislabeled correct performance as misconception, and session-level memory could duplicate an existing affect if phrased differently. Fable rejected demo-string deterministic normalization, so the final mechanism is: generic extraction prompt rules for type assignment, session-level LLM/mock extraction for missed affect/strategy memories, exact-quote validation, and same-type vector dedupe before adding session-level memories.
 15. Added `backend/scripts/reembed_engrams.py` and updated `EMBED_DIM=1024` so mock-to-live vector transition can re-embed or reset cleanly.
 16. FABLE AUDIT — 2026-07-04: ECS target may be free-tier sized. Updated deployment so images build locally for `linux/amd64`, ship via `docker save`/`scp`, add a 2 GB swap file on ECS, and run `docker compose up -d --no-build` on the instance.
-17. ECS verification is delayed externally, so M5 was built as a local preview to avoid losing schedule. This does not waive Fable's gate: no M6 deep work or M5 acceptance until the ECS health proof exists and Fable reviews the Session screenshots.
+17. FABLE DIRECTIVE — 2026-07-05: ECS identity verification was rejected externally; remediation is running via retry + hackathon Discord ticket. The M5 ECS gate is dissolved. Build M5-M8 without waiting; deployment executes whenever access lands, even submission morning.
+18. FABLE DIRECTIVE — 2026-07-05: fallback of record if ECS never lands is to submit with an `llm.py` permalink proving DashScope/Alibaba Cloud usage, a recording of the live app with token logs, and an honest note plus ticket screenshot. This is a fallback only; deployment remains attempted until deadline.
+19. FABLE DIRECTIVE — 2026-07-05: current M5 was wireframe fidelity, not spec. Rescue pass before M6 focuses on removing message borders, bottom-anchored conversation, richer constellation rendering, labeled header actions, composer polish, screenshot QA, and 8-12 real engrams across the demo arc.
+20. M5 rescue duplicate mechanism is content-general: same-type memories now run through a normalized content/token overlap plus subject-tag overlap matcher before insertion/reinforcement. This is not keyed to chain-rule strings or demo tags; a Spanish-conjugation acceptance test covers the litmus directly. Session-level affect recovery also treats natural "freeze/freezing" language as affect evidence in the mock path.
 
 ## Deviations from PRD
 
-- M0 live deployment cannot be completed from this environment without Alibaba Cloud ECS access. Workaround: provide Docker Compose, Nginx config, deploy script, health endpoint, and env check script so Anuj can run the proof once ECS credentials exist. Fable explicitly approved proceeding through M1-M4 while this is blocked.
+- M0 live deployment cannot be completed yet because Alibaba ECS identity verification was rejected externally. Workaround until access lands: keep Docker Compose, Nginx config, deploy script, health endpoint, and env check script ready; continue M5-M8 per Fable's dissolved gate directive.
 - Local Python is 3.14.5, not 3.11. Docker pins Python 3.11.
 - Mock embeddings originally used dimension 128. After M0.5 discovery, default `EMBED_DIM` was updated to the live `text-embedding-v4` dimension of 1024.
 - Added new hard law from Fable: eval charts/results must not be fabricated. The current eval endpoint returns an honest unavailable state until a live DashScope-backed run exists.
 - Dream distillation currently uses deterministic consolidation for provisional memories plus session-level LLM/mock extraction for affect/strategy memories. Live Qwen judge/distillation for dedup/contradiction remains required before M7 and before any recorded material.
-- M5 visual work was implemented before the ECS public health proof only because Alibaba account verification may take 1-2 days. It is marked local-preview, not accepted/done.
+- If ECS never lands before submission, fallback of record is an `llm.py` permalink showing DashScope/Alibaba Cloud API usage, a live app recording with token logs, and an honest deployment note plus ticket screenshot.
 
 ## Verification Log
 
-- `backend/.venv311/bin/python -m pytest backend/tests` -> 17 passed.
+- `backend/.venv311/bin/pytest backend/tests` -> 20 passed.
 - `MOCK_LLM=true ... TestClient` API smoke -> `/api/health`, `POST /api/sessions`, streamed `POST /api/sessions/{id}/chat`, and `/api/memory/graph` passed.
 - Observer broadcast smoke -> subscriber received `engram.observed` with toast.
 - Dream acceptance smoke -> duplicate merge count >= 1 and contradiction supersession count >= 1.
@@ -83,13 +86,16 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - `jq empty backend/app/evals/scripts/*.json` -> passed.
 - `npm run typecheck` in `frontend/` -> passed.
 - `npm run build` in `frontend/` -> passed.
-- Local M5 screenshot QA with Chrome/Playwright -> 1440x900 and 390x844 inspected. Full live UI rehearsal produced 4 graph nodes before dream and 5 after dream; Session 2 budget meter rendered `121 / 1200` tokens; inspector opened from a budget chip with provenance and lifecycle; canvas pixel check was nonblank; narrow viewport horizontal overflow was `0`; emoji display sanitizer prevented Qwen emoji leakage.
+- Local M5 pre-rescue screenshot QA with Chrome/Playwright -> 1440x900 and 390x844 inspected. Full live UI rehearsal produced 4 graph nodes before dream and 5 after dream; Session 2 budget meter rendered `121 / 1200` tokens; inspector opened from a budget chip with provenance and lifecycle; canvas pixel check was nonblank; narrow viewport horizontal overflow was `0`; emoji display sanitizer prevented Qwen emoji leakage.
 - `npm install` reports 5 transitive vulnerabilities in the current Next/ESLint dependency tree. No force update applied.
 - Local stub servers started: backend `MOCK_LLM=true` on `http://127.0.0.1:8000`; frontend on `http://127.0.0.1:3001` because port 3000 was already occupied. Health and frontend HTTP checks returned 200.
 - Live env check with DashScope key -> international endpoint works, mainland endpoint fails with 401; `qwen-plus` chat ok at `610 ms`; `text-embedding-v4` ok at `1024` dims and `379 ms`; 28 VL/omni models detected.
 - Live observer sample -> Qwen extracted the chain-rule misconception and example-first preference with exact source quotes and no errors.
 - Live M0.5 session1/session2 flow -> one affect memory, misconception superseded by active mastery, report2 reconcile `superseded: 1`; total live M0.5 flow token use `4932` prompt + `894` completion over 14 calls, no errors.
 - Live smoke eval -> strict JSON judge response, personalization score `5`, `244` prompt tokens + `97` completion tokens, `2961 ms`, no error.
+- M5 rescue screenshot QA, live mode -> `docs/screenshots/m5-rescue-desktop.png` captured at exact `1440x900` with inspector open, live constellation, budget meter, drawing-on chips, bottom composer visible, no console errors, and no horizontal overflow. `docs/screenshots/m5-rescue-narrow.png` captured at exact `390x844` with live constellation, budget meter, session header, and first exchange; no horizontal overflow and no offscreen offenders.
+- M5 rescue live demo arc -> Session 1 five natural turns + dream + Session 2 two recall turns produced 9 active engrams: 3 preference, 2 misconception, 1 affect, 1 strategy_outcome, 1 goal, 1 mastery. This satisfies the 8-12 inhabited-sky target and proves session-level affect recovery without overfilling duplicates.
+- `backend/.venv311/bin/pytest backend/tests/test_dedupe.py backend/tests/test_observer.py backend/tests/test_dream_and_retrieval_service.py` -> 11 passed after the content-general duplicate guard.
 
 ## M2 Observer Sample
 
@@ -124,9 +130,27 @@ Live smoke eval:
 - Latency: `2961 ms`.
 - Result is smoke-only and does not populate `EVALS.md` full-run claims.
 
+## Draft Demo Scripts for Fable Punch-up
+
+Session 1 draft (`backend/app/evals/scripts/session1.json`):
+
+1. Maya: "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself."
+2. Maya: "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making."
+3. Maya: "Could we start with actual numbers first? If I see one worked example, the rule usually lands better."
+4. Maya: "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it."
+5. Maya: "Also, I usually study late after work, so shorter practice sets are easier for me to stick with."
+
+Session 2 draft (`backend/app/evals/scripts/session2.json`):
+
+1. Maya: "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first."
+2. Maya: "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?"
+3. Maya: "It feels less panicky if I write outside first, then inside, almost like a checklist."
+4. Maya: "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative."
+5. Maya: "The power rule itself is fine now. It is recognizing that something is nested that slows me down."
+
 ## Blockers & Questions
 
-- Need Alibaba Cloud ECS region, instance, SSH target, and deployment credentials to complete the M0 public `/api/health` proof.
+- Need Alibaba Cloud ECS region, instance, SSH target, and deployment credentials to complete the M0 public `/api/health` proof if identity remediation succeeds.
 - Need GitHub authentication in this environment to push to `https://github.com/anujk22/Reverie.git`.
 
 ## Demo Readiness Checklist

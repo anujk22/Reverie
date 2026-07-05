@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
-
-const display = Fraunces({
-  subsets: ["latin"],
-  axes: ["SOFT", "WONK", "opsz"],
-  variable: "--font-display",
-  display: "swap"
-});
 
 const sans = Inter({
   subsets: ["latin"],
@@ -32,7 +25,7 @@ export default function RootLayout({
   children
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>
         <AppShell>{children}</AppShell>
       </body>

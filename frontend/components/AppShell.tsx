@@ -14,10 +14,10 @@ const routes = [
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-void text-starlight">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 border-r border-hairline bg-field md:flex md:flex-col md:items-center">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 bg-field md:flex md:flex-col md:items-center">
         <Link
           href="/"
-          className="flex h-24 w-full items-center justify-center border-b border-hairline font-display text-[18px] font-semibold text-starlight [writing-mode:vertical-rl]"
+          className="flex h-24 w-full items-center justify-center bg-field-2 font-display text-[18px] font-semibold text-starlight [writing-mode:vertical-rl]"
           title="Reverie"
         >
           Reverie
@@ -31,22 +31,22 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href={route.href}
                 aria-label={route.label}
                 title={route.label}
-                className="flex h-11 w-11 items-center justify-center rounded-md border border-transparent text-dim transition hover:border-hairline hover:bg-field-2 hover:text-starlight"
+                className="flex h-11 w-11 items-center justify-center rounded-md text-dim transition hover:bg-field-2 hover:text-starlight"
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
               </Link>
             );
           })}
         </nav>
-        <div className="flex flex-col items-center gap-3 border-t border-hairline py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 font-mono text-[11px] text-dim">
+        <div className="flex flex-col items-center gap-3 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-field-2 font-mono text-[11px] text-dim">
             MC
           </div>
           <RuntimeChip />
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-hairline bg-field md:hidden">
+      <header className="sticky top-0 z-20 bg-field md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/" className="font-display text-xl font-semibold">
             Reverie
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   href={route.href}
                   aria-label={route.label}
                   title={route.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-md border border-hairline text-dim"
+                  className="flex h-10 w-10 items-center justify-center rounded-md bg-field-2 text-dim"
                 >
                   <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
                 </Link>

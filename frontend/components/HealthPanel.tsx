@@ -55,14 +55,14 @@ export function HealthPanel() {
   const mock = isMockMode(status);
 
   return (
-    <section className="rounded-md border border-line bg-panel p-5">
+    <section className="rounded-md bg-panel p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-base font-semibold">Backend health</h2>
-        <span className="rounded-full border border-line px-2 py-0.5 font-mono text-xs text-muted">
+        <span className="rounded-full bg-field-2 px-2 py-0.5 font-mono text-xs text-muted">
           {state}
         </span>
         {mock ? (
-          <span className="rounded-full border border-warning px-2 py-0.5 font-mono text-xs text-warning">
+          <span className="rounded-full bg-field-2 px-2 py-0.5 font-mono text-xs text-warning">
             MOCK
           </span>
         ) : null}

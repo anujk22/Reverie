@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Moon, Plus, RefreshCcw, Send } from "lucide-react";
+import { MoreHorizontal, Moon, Plus, RefreshCcw, Send } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BudgetMeter } from "@/components/BudgetMeter";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
@@ -48,11 +48,31 @@ type DreamStage = {
 
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
 
-const starterTurns = [
-  "My midterm goal is to be ready for the chain rule part of my differentiation midterm, but I am anxious about it.",
-  "For f(g(x)), my mistake is that I do f'(x) times g'(x), like product rule, even though the functions are nested.",
-  "Please show me one worked example first before abstract rules."
+const sessionOneStarterTurns = [
+  "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself.",
+  "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making.",
+  "Could we start with actual numbers first? If I see one worked example, the rule usually lands better.",
+  "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it.",
+  "Also, I usually study late after work, so shorter practice sets are easier for me to stick with."
 ];
+
+const sessionTwoStarterTurns = [
+  "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first.",
+  "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?",
+  "It feels less panicky if I write outside first, then inside, almost like a checklist.",
+  "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative.",
+  "The power rule itself is fine now. It is recognizing that something is nested that slows me down."
+];
+
+const memoryDotColors: Record<string, string> = {
+  misconception: "bg-coral",
+  mastery: "bg-sage",
+  preference: "bg-moth",
+  affect: "bg-moth",
+  goal: "bg-ember",
+  fact: "bg-ember",
+  strategy_outcome: "bg-ember"
+};
 
 function localId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -79,6 +99,18 @@ function eventToast(event: RuntimeEvent) {
   return event.event_type;
 }
 
+function memoryLabel(item: MemoryPackItem) {
+  const text = item.content.toLowerCase();
+  if (text.includes("worked example") || text.includes("example")) return "example first";
+  if (text.includes("anxious") || text.includes("anxiety") || text.includes("midterm")) return "exam nerves";
+  if (text.includes("product rule")) return "product mixup";
+  if (text.includes("power rule")) return "power rule";
+  if (text.includes("guiding") || text.includes("question")) return "guided prompts";
+  if (text.includes("late") || text.includes("shorter")) return "short sets";
+  if (text.includes("outer") || text.includes("inner")) return "outer inner";
+  return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
+}
+
 export function SessionClient() {
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
@@ -95,6 +127,7 @@ export function SessionClient() {
   const [streaming, setStreaming] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadGraph = useCallback(async () => {
@@ -371,11 +404,14 @@ export function SessionClient() {
   }
 
   const stageList = ["replay", "distill", "deduplicate", "reconcile", "decay", "report"];
+  const starterTurns = session?.title?.includes("Session 2")
+    ? sessionTwoStarterTurns
+    : sessionOneStarterTurns;
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(360px,44%)_minmax(0,56%)]">
-      <section className="order-2 flex min-h-[60dvh] flex-col border-r border-hairline bg-void lg:order-1 lg:min-h-dvh">
-        <header className="border-b border-hairline bg-field px-5 py-5">
+      <section className="order-2 flex min-h-[60dvh] flex-col bg-void lg:order-1 lg:h-dvh lg:min-h-0">
+        <header className="bg-field px-5 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
@@ -385,35 +421,53 @@ export function SessionClient() {
                 {session?.title ?? "Session - chain rule"}
               </h1>
             </div>
-            <div className="flex gap-2">
+            <div className="relative flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Start new session"
-                title="Start new session"
-                onClick={() => startSession("Session 2 - chain rule recall").catch((err) => setError(err.message))}
-                className="flex h-11 w-11 items-center justify-center rounded-md border border-hairline text-dim transition hover:bg-field-2 hover:text-starlight"
-              >
-                <Plus aria-hidden="true" size={18} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="Reset demo"
-                title="Reset demo"
-                onClick={() => resetLocalDemo()}
-                className="flex h-11 w-11 items-center justify-center rounded-md border border-hairline text-dim transition hover:bg-field-2 hover:text-starlight"
-              >
-                <RefreshCcw aria-hidden="true" size={17} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                aria-label="End session and dream"
-                title="End session and dream"
                 disabled={!session || dreaming || streaming}
                 onClick={() => runDream()}
-                className="flex h-11 w-11 items-center justify-center rounded-md border border-ember text-ember transition hover:bg-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md bg-field-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.08em] text-ember transition hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
               >
                 <Moon aria-hidden="true" size={18} strokeWidth={1.8} />
+                <span>End session</span>
               </button>
+              <button
+                type="button"
+                aria-label="More session actions"
+                title="More session actions"
+                onClick={() => setMenuOpen((open) => !open)}
+                className="flex h-11 w-11 items-center justify-center rounded-md bg-field-2 text-dim transition hover:text-starlight"
+              >
+                <MoreHorizontal aria-hidden="true" size={18} strokeWidth={1.8} />
+              </button>
+              {menuOpen ? (
+                <div className="absolute right-0 top-12 z-30 w-44 rounded-md bg-field-2 p-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      startSession("Session 2 - chain rule recall").catch((err) =>
+                        setError(err.message)
+                      );
+                    }}
+                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
+                  >
+                    <Plus aria-hidden="true" size={16} strokeWidth={1.8} />
+                    <span>New session</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      resetLocalDemo();
+                    }}
+                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
+                  >
+                    <RefreshCcw aria-hidden="true" size={15} strokeWidth={1.8} />
+                    <span>Reset demo</span>
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
           {lastReport ? (
@@ -429,77 +483,86 @@ export function SessionClient() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {booting ? (
-            <div className="space-y-4">
-              <div className="h-4 w-2/3 rounded-full bg-field-2" />
-              <div className="ml-auto h-20 w-4/5 rounded-md bg-field-2" />
-              <div className="h-28 w-5/6 border-l border-ember bg-void" />
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex min-h-[320px] flex-col justify-center gap-3 text-sm leading-6 text-dim">
-              {starterTurns.map((turn) => (
-                <button
-                  key={turn}
-                  type="button"
-                  onClick={() => sendMessage(turn)}
-                  className="min-h-11 rounded-md border border-hairline bg-field px-4 py-3 text-left text-starlight transition hover:border-ember hover:bg-field-2"
-                >
-                  {turn}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {messages.map((message) => (
-                <motion.article
-                  key={message.localId}
-                  id={message.backendId}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                  className={message.role === "student" ? "flex justify-end" : "block"}
-                >
-                  {message.role === "student" ? (
-                    <div className="max-w-[88%] rounded-md bg-field-2 px-4 py-3 text-sm leading-6 text-starlight">
-                  {uiText(message.content)}
-                    </div>
-                  ) : (
-                    <div className="max-w-[92%] border-l-2 border-ember pl-4 text-sm leading-7 text-starlight">
-                      <p>{uiText(message.content) || (message.pending ? "Thinking" : "")}</p>
-                      {message.usedEngrams?.length ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
-                            drawing on
-                          </span>
-                          {message.usedEngrams.map((item) => (
-                            <button
-                              key={item.engram_id}
-                              type="button"
-                              className="rounded-full border border-hairline px-2 py-1 font-mono text-[10px] text-dim transition hover:border-ember hover:text-starlight"
-                              onMouseEnter={() => setHighlightedId(item.engram_id)}
-                              onMouseLeave={() => setHighlightedId(null)}
-                              onFocus={() => setHighlightedId(item.engram_id)}
-                              onBlur={() => setHighlightedId(null)}
-                              onClick={() => {
-                                selectEngramById(item.engram_id);
-                              }}
-                            >
-                              {item.type.replace("_", " ")}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </motion.article>
-              ))}
-              <div ref={scrollRef} />
-            </div>
-          )}
+          <div className="flex min-h-full flex-col justify-end">
+            {booting ? (
+              <div className="space-y-4 pb-4">
+                <div className="h-4 w-2/3 rounded-full bg-field-2" />
+                <div className="ml-auto h-20 w-4/5 rounded-md bg-field-2" />
+                <div className="h-28 w-5/6 bg-void" />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col gap-3 pb-4 text-sm leading-6 text-dim">
+                {starterTurns.map((turn) => (
+                  <button
+                    key={turn}
+                    type="button"
+                    onClick={() => sendMessage(turn)}
+                    className="min-h-11 rounded-[10px] bg-field-2 px-4 py-[14px] text-left text-starlight transition hover:text-glow"
+                  >
+                    {turn}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6 pb-4">
+                {messages.map((message) => (
+                  <motion.article
+                    key={message.localId}
+                    id={message.backendId}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    className={message.role === "student" ? "flex justify-end" : "block"}
+                  >
+                    {message.role === "student" ? (
+                      <div className="max-w-[72%] rounded-[10px] bg-field-2 px-4 py-[14px] text-sm leading-6 text-starlight">
+                        {uiText(message.content)}
+                      </div>
+                    ) : (
+                      <div className="max-w-[92%] border-l-2 border-ember pl-4 text-sm leading-7 text-starlight">
+                        <p>
+                          {uiText(message.content) || (message.pending ? "Thinking" : "")}
+                        </p>
+                        {message.usedEngrams?.length ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
+                              drawing on
+                            </span>
+                            {message.usedEngrams.map((item) => (
+                              <button
+                                key={item.engram_id}
+                                type="button"
+                                className="inline-flex min-h-7 items-center gap-1.5 rounded-full px-1 py-1 font-mono text-[11px] text-dim transition hover:text-starlight"
+                                onMouseEnter={() => setHighlightedId(item.engram_id)}
+                                onMouseLeave={() => setHighlightedId(null)}
+                                onFocus={() => setHighlightedId(item.engram_id)}
+                                onBlur={() => setHighlightedId(null)}
+                                onClick={() => {
+                                  selectEngramById(item.engram_id);
+                                }}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    memoryDotColors[item.type] ?? "bg-ember"
+                                  }`}
+                                />
+                                <span>{memoryLabel(item)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </motion.article>
+                ))}
+                <div ref={scrollRef} />
+              </div>
+            )}
+          </div>
         </div>
 
         <form
-          className="border-t border-hairline bg-field p-4"
+          className="bg-field p-4"
           onSubmit={(event) => {
             event.preventDefault();
             sendMessage();
@@ -530,7 +593,7 @@ export function SessionClient() {
                   }
                 }}
                 rows={2}
-                className="min-h-14 flex-1 resize-none rounded-md border border-hairline bg-void px-4 py-3 text-sm leading-6 text-starlight placeholder:text-faint disabled:cursor-not-allowed disabled:text-faint"
+                className="min-h-14 flex-1 resize-none rounded-md bg-field-2 px-4 py-3 text-sm leading-6 text-starlight placeholder:text-faint disabled:cursor-not-allowed disabled:text-faint"
                 placeholder="Ask about f(g(x))"
               />
               <button
@@ -538,7 +601,7 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-ember text-ember transition hover:bg-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-field-2 text-ember transition hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
               >
                 <Send aria-hidden="true" size={18} strokeWidth={1.8} />
               </button>
@@ -547,7 +610,7 @@ export function SessionClient() {
         </form>
       </section>
 
-      <section className="order-1 flex h-[46dvh] min-h-[360px] flex-col border-b border-hairline bg-void lg:order-2 lg:h-dvh lg:border-b-0">
+      <section className="order-1 flex h-[52dvh] min-h-[460px] flex-col bg-void lg:order-2 lg:h-dvh">
         <div className="relative flex-1">
           <ConstellationCanvas
             graph={graph}
@@ -567,19 +630,19 @@ export function SessionClient() {
           </div>
 
           {Object.keys(dreamStages).length ? (
-            <div className="absolute bottom-4 left-4 right-4 rounded-md border border-hairline bg-field/95 p-3">
+            <div className="absolute bottom-4 left-4 right-4 rounded-md bg-field/95 p-3">
               <div className="flex flex-wrap gap-2">
                 {stageList.map((stage) => {
                   const item = dreamStages[stage];
                   return (
                     <div
                       key={stage}
-                      className={`rounded-full border px-2 py-1 font-mono text-[10px] ${
+                      className={`rounded-full bg-field-2 px-2 py-1 font-mono text-[10px] ${
                         item?.status === "done"
-                          ? "border-sage text-sage"
+                          ? "text-sage"
                           : item
-                            ? "border-ember text-ember"
-                            : "border-hairline text-dim"
+                            ? "text-ember"
+                            : "text-dim"
                       }`}
                     >
                       {stage} {item ? stageSummary(item) : ""}
@@ -598,7 +661,7 @@ export function SessionClient() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute left-4 top-16 w-80 rounded-md border border-hairline bg-field p-3"
+                className="absolute left-4 top-16 w-80 rounded-md bg-field p-3"
               >
                 <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-ember">
                   {toast.eyebrow}

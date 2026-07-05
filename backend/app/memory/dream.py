@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import db, new_id, row_to_engram
 from app.llm import llm_client
 from app.memory.decay import DecayInput, compute_strength
+from app.memory.dedupe import find_duplicate_memory
 from app.memory.observer import quote_sources, quote_supported
 from app.memory.retrieval import cosine
 from app.models import CandidateEngram
@@ -146,7 +147,9 @@ async def add_session_level_engrams(session_id: str) -> int:
             continue
 
         embedding = await llm_client.embed(candidate.content, session_id=session_id)
-        duplicate = nearest_same_type_memory(candidate.type, embedding)
+        duplicate = nearest_same_type_memory(
+            candidate.model_dump(exclude={"source_quotes"}), embedding
+        )
         if duplicate:
             db.reinforce(duplicate["id"])
             await db.append_event(
@@ -177,17 +180,14 @@ async def add_session_level_engrams(session_id: str) -> int:
     return confirmed
 
 
-def nearest_same_type_memory(engram_type: str, embedding: list[float]) -> dict[str, Any] | None:
-    best: tuple[float, dict[str, Any]] | None = None
-    for engram in db.active_engrams():
-        if engram["type"] != engram_type:
-            continue
-        similarity = cosine(db.vector_for(engram["id"]), embedding)
-        if best is None or similarity > best[0]:
-            best = (similarity, engram)
-    if best and best[0] > settings.dream_dedupe_threshold:
-        return best[1]
-    return None
+def nearest_same_type_memory(candidate: dict[str, Any], embedding: list[float]) -> dict[str, Any] | None:
+    return find_duplicate_memory(
+        candidate,
+        embedding,
+        db.active_engrams(),
+        db.vector_for,
+        settings.dream_dedupe_threshold,
+    )
 
 
 async def deduplicate(session_id: str, stats: dict[str, Any]) -> None:

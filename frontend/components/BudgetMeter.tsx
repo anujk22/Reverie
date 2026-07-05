@@ -48,7 +48,7 @@ export function BudgetMeter({
   }
 
   return (
-    <section className="border-t border-hairline bg-field px-4 py-3 md:px-5">
+    <section className="bg-field px-4 py-3 md:px-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.08em] text-dim">
           Working memory
@@ -59,7 +59,7 @@ export function BudgetMeter({
       </div>
 
       <div
-        className="mt-3 flex h-3 overflow-visible rounded-full border border-hairline bg-void"
+        className="mt-3 flex h-2.5 overflow-visible rounded-full bg-void"
         aria-label={`Working memory budget ${used} of ${budget} tokens`}
       >
         {winners.length === 0 ? (
@@ -77,7 +77,7 @@ export function BudgetMeter({
                 onMouseLeave={() => updateHover(null)}
               >
                 {hovered === item.engram_id ? (
-                  <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-md border border-hairline bg-field-2 p-3 shadow-none">
+                  <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-md bg-field-2 p-3 shadow-none">
                     <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
                       {item.tokens} tokens · {item.type}
                     </p>
@@ -100,7 +100,7 @@ export function BudgetMeter({
           <button
             key={item.engram_id}
             type="button"
-            className="min-h-8 rounded-full border border-hairline px-3 py-1 text-left font-mono text-[11px] text-dim transition hover:border-ember hover:text-starlight"
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 py-1 text-left font-mono text-[11px] text-dim transition hover:text-starlight"
             onMouseEnter={() => updateHover(item.engram_id)}
             onMouseLeave={() => updateHover(null)}
             onFocus={() => updateHover(item.engram_id)}
@@ -109,7 +109,10 @@ export function BudgetMeter({
               onSelect?.(item.engram_id);
             }}
           >
-            {item.type.replace("_", " ")} · {item.tokens}
+            <span className={`h-1.5 w-1.5 rounded-full ${typeColors[item.type] ?? "bg-ember"}`} />
+            <span>
+              {item.type.replace("_", " ")} · {item.tokens}
+            </span>
           </button>
         ))}
       </div>

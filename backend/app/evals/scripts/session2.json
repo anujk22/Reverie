@@ -2,12 +2,24 @@
   "title": "Session 2 - chain rule mastery",
   "turns": [
     {
-      "student": "Can we start where I got chain rule wrong yesterday, with one worked example first?",
-      "expected_tags": ["worked_examples"]
+      "student": "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first.",
+      "expected_tags": ["worked_examples", "chain_rule", "product_rule"]
     },
     {
-      "student": "My session2 mastery quote is: outer derivative/inner derivative means take the outer derivative, leave the inside alone, times inner derivative.",
-      "expected_tags": ["chain_rule", "mastery"]
+      "student": "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?",
+      "expected_tags": ["chain_rule", "mastery", "composite_functions"]
+    },
+    {
+      "student": "It feels less panicky if I write outside first, then inside, almost like a checklist.",
+      "expected_tags": ["exam_anxiety", "strategy_outcome"]
+    },
+    {
+      "student": "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative.",
+      "expected_tags": ["trig_composites", "chain_rule"]
+    },
+    {
+      "student": "The power rule itself is fine now. It is recognizing that something is nested that slows me down.",
+      "expected_tags": ["power_rule", "composite_functions"]
     }
   ]
 }

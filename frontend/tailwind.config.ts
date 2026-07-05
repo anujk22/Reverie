@@ -29,7 +29,7 @@ const config: Config = {
         warning: "#E8A33D"
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
+        display: ["var(--font-sans)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "SFMono-Regular", "Consolas", "monospace"]
       }

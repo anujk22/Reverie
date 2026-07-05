@@ -31,6 +31,15 @@ type Tooltip = {
   engram: Engram;
 } | null;
 
+type StaticStar = {
+  x: number;
+  y: number;
+  radius: number;
+  alpha: number;
+  twinkle: boolean;
+  phase: number;
+};
+
 const colors: Record<string, string> = {
   misconception: "#E5534B",
   mastery: "#3FBFAD",
@@ -69,6 +78,18 @@ function resolveNode(value: string | CanvasNode) {
   return typeof value === "string" ? null : value;
 }
 
+function nodeLabel(engram: Engram) {
+  const text = engram.content.toLowerCase();
+  if (text.includes("worked example") || text.includes("example")) return "example first";
+  if (text.includes("anxious") || text.includes("anxiety")) return "exam nerves";
+  if (text.includes("product rule")) return "product rule mixup";
+  if (text.includes("power rule")) return "power rule";
+  if (text.includes("guiding") || text.includes("question")) return "guided prompts";
+  if (text.includes("outer") || text.includes("inner")) return "outer / inner";
+  if (text.includes("shorter") || text.includes("late")) return "short sets";
+  return engram.type.replace("_", " ");
+}
+
 export function ConstellationCanvas({
   graph,
   selectedId,
@@ -86,6 +107,7 @@ export function ConstellationCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const nodesRef = useRef<CanvasNode[]>([]);
   const linksRef = useRef<CanvasLink[]>([]);
+  const starfieldRef = useRef<StaticStar[]>([]);
   const animationRef = useRef<number | null>(null);
   const [size, setSize] = useState({ width: 720, height: 520 });
   const [tooltip, setTooltip] = useState<Tooltip>(null);
@@ -118,6 +140,20 @@ export function ConstellationCanvas({
     });
     observer.observe(wrapperRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    starfieldRef.current = Array.from({ length: 120 }, (_, index) => {
+      const seed = hashSeed(`static-${index}`);
+      return {
+        x: (seed * 997) % 1,
+        y: (seed * 1777) % 1,
+        radius: 0.5 + ((seed * 61) % 1),
+        alpha: 0.05 + ((seed * 31) % 0.15),
+        twinkle: index < 10,
+        phase: seed * Math.PI * 2
+      };
+    });
   }, []);
 
   useEffect(() => {
@@ -197,23 +233,19 @@ export function ConstellationCanvas({
       context.fillStyle = "#070B14";
       context.fillRect(0, 0, size.width, size.height);
 
-      drawStaticField(context, size.width, size.height);
-      drawArchiveBelt(context, size.width, size.height);
+      drawStaticField(context, size.width, size.height, starfieldRef.current, time, motionReduced);
+      if (nodesRef.current.some((node) => node.engram.status === "archived")) {
+        drawArchiveBelt(context, size.width, size.height);
+      }
 
       for (const link of linksRef.current) {
         const source = resolveNode(link.source);
         const target = resolveNode(link.target);
         if (!source || !target) continue;
-        const visible =
-          link.type !== "shared_tag" ||
-          highlightedId === source.id ||
-          highlightedId === target.id ||
-          selectedId === source.id ||
-          selectedId === target.id;
-        if (!visible) continue;
         context.beginPath();
-        context.strokeStyle = link.type === "shared_tag" ? "rgba(74,86,116,0.22)" : "rgba(232,163,61,0.42)";
-        context.lineWidth = 1;
+        context.strokeStyle =
+          link.type === "shared_tag" ? "rgba(30,42,68,0.68)" : "rgba(232,163,61,0.42)";
+        context.lineWidth = link.type === "shared_tag" ? 0.6 : 0.8;
         context.moveTo(source.x ?? 0, source.y ?? 0);
         context.lineTo(target.x ?? 0, target.y ?? 0);
         context.stroke();
@@ -231,6 +263,8 @@ export function ConstellationCanvas({
           time
         });
       }
+
+      drawStrongLabels(context, nodesRef.current, size.width, size.height, time, motionReduced);
 
       animationRef.current = window.requestAnimationFrame(draw);
     }
@@ -257,7 +291,7 @@ export function ConstellationCanvas({
   }
 
   return (
-    <div ref={wrapperRef} className="relative h-full min-h-[300px] overflow-hidden bg-void">
+    <div ref={wrapperRef} className="relative h-full min-h-[260px] overflow-hidden bg-void sm:min-h-[300px]">
       <canvas
         ref={canvasRef}
         className="h-full w-full cursor-crosshair"
@@ -283,14 +317,18 @@ export function ConstellationCanvas({
 
       {tooltip ? (
         <div
-          className="pointer-events-none absolute z-20 w-72 rounded-md border border-hairline bg-field-2 p-3 text-left"
+          className="pointer-events-none absolute z-20 w-72 rounded-md bg-field-2 p-3 text-left"
           style={{
             left: Math.min(size.width - 300, Math.max(12, tooltip.x + 14)),
             top: Math.min(size.height - 140, Math.max(12, tooltip.y + 14))
           }}
         >
           <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
-            {tooltip.engram.type.replace("_", " ")} · strength {tooltip.engram.strength.toFixed(2)}
+            <span style={{ color: nodeColor(tooltip.engram) }}>
+              {tooltip.engram.type.replace("_", " ")}
+            </span>
+            {" · strength "}
+            {tooltip.engram.strength.toFixed(2)}
           </p>
           <p className="mt-2 text-xs leading-5 text-starlight">
             {uiText(tooltip.engram.content)}
@@ -317,15 +355,24 @@ function ambientDrift(seed: number, time: number, reduced: boolean) {
   return Math.sin(time / 6000 + seed * Math.PI * 2) * 2;
 }
 
-function drawStaticField(context: CanvasRenderingContext2D, width: number, height: number) {
+function drawStaticField(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  stars: StaticStar[],
+  time: number,
+  reduced: boolean
+) {
   context.save();
-  for (let index = 0; index < 70; index += 1) {
-    const seed = hashSeed(`static-${index}`);
-    const x = (seed * 997) % width;
-    const y = ((seed * 1777) % 1) * height;
-    const alpha = 0.08 + ((seed * 31) % 0.14);
+  for (const star of stars) {
+    const x = star.x * width;
+    const y = star.y * height;
+    const twinkle = star.twinkle && !reduced ? 0.55 + Math.sin(time / 2600 + star.phase) * 0.35 : 1;
+    const alpha = Math.max(0.03, star.alpha * twinkle);
     context.fillStyle = `rgba(233,237,246,${alpha})`;
-    context.fillRect(x, y, 1, 1);
+    context.beginPath();
+    context.arc(x, y, star.radius, 0, Math.PI * 2);
+    context.fill();
   }
   context.restore();
 }
@@ -335,8 +382,44 @@ function drawArchiveBelt(context: CanvasRenderingContext2D, width: number, heigh
   context.strokeStyle = "rgba(74,86,116,0.28)";
   context.lineWidth = 1;
   context.beginPath();
-  context.ellipse(width / 2, height / 2, width * 0.46, height * 0.42, 0, 0, Math.PI * 2);
+  context.arc(width / 2, height / 2, Math.min(width, height) * 0.46, Math.PI * 0.1, Math.PI * 1.15);
   context.stroke();
+  context.restore();
+}
+
+function drawStrongLabels(
+  context: CanvasRenderingContext2D,
+  nodes: CanvasNode[],
+  width: number,
+  height: number,
+  time: number,
+  reduced: boolean
+) {
+  const strongest = nodes
+    .filter((node) => node.engram.status === "active")
+    .sort((left, right) => {
+      const leftScore = left.engram.strength * 0.65 + left.engram.importance * 0.35;
+      const rightScore = right.engram.strength * 0.65 + right.engram.importance * 0.35;
+      return rightScore - leftScore;
+    })
+    .slice(0, 3);
+
+  context.save();
+  context.font = "11px JetBrains Mono, monospace";
+  context.textBaseline = "middle";
+  for (const node of strongest) {
+    const x = (node.x ?? width / 2) + ambientDrift(node.seed, time, reduced);
+    const y = (node.y ?? height / 2) + ambientDrift((node.seed * 3) % 1, time + 1200, reduced);
+    const radius = nodeRadius(node.engram);
+    const label = nodeLabel(node.engram);
+    const textWidth = context.measureText(label).width;
+    const labelX = Math.min(width - textWidth - 14, Math.max(14, x + radius + 11));
+    const labelY = Math.min(height - 12, Math.max(12, y - radius - 9));
+    context.fillStyle = "rgba(7,11,20,0.62)";
+    context.fillRect(labelX - 5, labelY - 8, textWidth + 10, 16);
+    context.fillStyle = "rgba(138,148,173,0.82)";
+    context.fillText(label, labelX, labelY);
+  }
   context.restore();
 }
 
@@ -353,33 +436,61 @@ function drawNode(
   const pulse = state.pulse ? 1 + Math.sin(state.time / 160) * 0.12 : 1;
   const radius = baseRadius * scale * pulse;
   const alpha = alphaFor(engram);
-  const glow = Math.max(0.08, engram.strength) * 0.34;
+  const strength = Math.max(0.08, Math.min(1, engram.strength));
+  const breathing = 0.88 + Math.sin(state.time / 4000 + hashSeed(engram.id) * Math.PI * 2) * 0.12;
+  const haloOpacity = strength * 0.5 * breathing;
 
   context.save();
-  context.globalAlpha = alpha;
 
-  const gradient = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 3.2);
+  const gradient = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 3);
   gradient.addColorStop(0, color);
-  gradient.addColorStop(0.35, `${color}66`);
+  gradient.addColorStop(0.42, `${color}77`);
   gradient.addColorStop(1, "rgba(7,11,20,0)");
   context.fillStyle = gradient;
-  context.globalAlpha = glow;
+  context.globalAlpha = haloOpacity;
   context.beginPath();
-  context.arc(x, y, radius * 3.4, 0, Math.PI * 2);
+  context.arc(x, y, radius * 3, 0, Math.PI * 2);
+  context.fill();
+
+  context.globalAlpha = alpha * 0.46;
+  context.fillStyle = color;
+  context.beginPath();
+  context.arc(x, y, radius * 1.72, 0, Math.PI * 2);
   context.fill();
 
   context.globalAlpha = alpha;
-  context.fillStyle = color;
+  const core = context.createRadialGradient(
+    x - radius * 0.38,
+    y - radius * 0.38,
+    radius * 0.1,
+    x,
+    y,
+    radius
+  );
+  core.addColorStop(0, "#FFFFFF");
+  core.addColorStop(0.18, "#FFD9A0");
+  core.addColorStop(0.45, color);
+  core.addColorStop(1, color);
+  context.fillStyle = core;
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
   context.fill();
 
-  context.strokeStyle = state.selected ? "#FFD9A0" : color;
-  context.lineWidth = state.selected ? 1.5 : 1;
-  if (engram.provisional) context.setLineDash([3, 4]);
+  context.globalAlpha = Math.min(1, alpha + 0.2);
+  context.fillStyle = "rgba(255,255,255,0.62)";
   context.beginPath();
-  context.arc(x, y, radius + 5, 0, Math.PI * 2);
-  context.stroke();
+  context.arc(x - radius * 0.28, y - radius * 0.32, Math.max(1, radius * 0.22), 0, Math.PI * 2);
+  context.fill();
+
+  if (engram.provisional || state.selected || state.highlighted) {
+    context.globalAlpha = state.selected || state.highlighted ? 0.95 : 0.5;
+    context.strokeStyle = state.selected ? "#FFD9A0" : color;
+    context.lineWidth = state.selected || state.highlighted ? 1.1 : 0.8;
+    if (engram.provisional) context.setLineDash([3, 4]);
+    context.beginPath();
+    context.arc(x, y, radius + 5, 0, Math.PI * 2);
+    context.stroke();
+  }
 
   context.restore();
 }

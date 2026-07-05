@@ -8,7 +8,7 @@ export function GatedRoute({
   children?: ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-line bg-panel p-6">
+    <section className="rounded-md bg-panel p-6">
       <p className="font-mono text-xs uppercase tracking-widest text-muted">
         Gated until M0
       </p>

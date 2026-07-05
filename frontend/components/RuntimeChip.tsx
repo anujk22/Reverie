@@ -50,12 +50,12 @@ export function RuntimeChip() {
 
   return (
     <div
-      className={`min-w-12 rounded-full border px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
+      className={`min-w-12 rounded-full bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
         mock
-          ? "border-ember text-ember"
+          ? "text-ember"
           : state === "live"
-            ? "border-sage text-sage"
-            : "border-coral text-coral"
+            ? "text-sage"
+            : "text-coral"
       }`}
       title={healthUrl()}
     >
