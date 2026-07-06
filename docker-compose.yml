@@ -26,8 +26,11 @@ services:
     image: reverie-frontend:latest
     build:
       context: ./frontend
-    environment:
-      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000}
+      args:
+        # Build-time only: Next.js inlines NEXT_PUBLIC_* during `npm run build`.
+        # For a public deploy behind nginx, build with NEXT_PUBLIC_API_BASE=/
+        # so the browser uses relative /api URLs proxied by nginx.
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:

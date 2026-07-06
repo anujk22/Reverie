@@ -57,11 +57,11 @@ function countPhrase(key: string, value: number) {
   const safeValue = value.toLocaleString();
   switch (key) {
     case "loaded":
-      return `${plural(value, "memory")} replayed`;
+      return `${plural(value, "memory", "memories")} replayed`;
     case "confirmed":
-      return `${plural(value, "memory")} confirmed`;
+      return `${plural(value, "memory", "memories")} confirmed`;
     case "revised":
-      return `${plural(value, "memory")} revised`;
+      return `${plural(value, "memory", "memories")} revised`;
     case "rejected":
       return `${plural(value, "memory", "memories")} released`;
     case "merged":

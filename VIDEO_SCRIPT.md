@@ -9,7 +9,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 **Blockers before recording:**
 
 - [ ] Live eval run complete — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat
-- [ ] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified on camera)
+- [x] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified — commit 55d5bda)
 - [ ] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a plain generic chat mock blanking on a returning user)
 
 ---
@@ -56,7 +56,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** Session 2 opens. ZOOM on budget meter filling, then on the assistant's reply citing the misconception.
 
-> Lena returns. Reverie doesn't reload her transcript — it retrieves under a budget. Twelve hundred tokens, scored on relevance, strength, and recency. It knows what she got wrong last week — she never repeated it.
+> Lena returns. Reverie doesn't reload her transcript — it retrieves under a budget. Twelve hundred tokens, scored on relevance, strength, and recency. It knows what she got wrong days ago — she never repeated it.
 
 **Screen:** hold on the reply's gentle, low-pressure phrasing.
 
@@ -72,7 +72,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 > We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored [X] on personalization versus [Y], recalled [Z] percent of planted facts, and used [N] percent fewer tokens than full history. Measured, not asserted.
 
-*Fallback if the live numbers underwhelm: cut this beat down to the token-efficiency claim only.*
+*Fallback rule (decided in advance, not on edit night): if the personalization delta vs. no-memory is under 1 point OR planted-fact recall is under 80%, cut this beat down to the token-efficiency claim only. Token efficiency vs. full-history is structurally guaranteed to be large, so it is always safe to state.*
 
 ## [02:35 – 02:55] CLOSE
 
@@ -94,7 +94,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 - **Proof-listen** the ElevenLabs output at 1x before export (artifact check).
 - **Record big, punch in later:** capture at full display resolution; do zooms in post so text stays sharp.
 - **Test the export** at 1080p at Devpost-embed size — if the budget meter isn't readable, judges can't read it either.
-- **Spare line** if the video runs short (over the architecture card): "This is not a decorative visualization — every pixel on this screen is backed by a database event."
+- **Spare line** if the video runs short (over the architecture card): "This is not a decorative visualization — every node on this screen is backed by a database event."
 
 ## Order of operations
 
