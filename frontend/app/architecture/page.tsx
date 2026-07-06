@@ -1,32 +1,40 @@
-import { Brain, Cloud, Database, GitBranch, Network, Radio } from "lucide-react";
+import { ArrowRight, Brain, Cloud, Database, Network, Radio } from "lucide-react";
+import { Fragment } from "react";
 
 const layers = [
   {
     eyebrow: "person signal",
     title: "Session stream",
-    body: "Utterances, provenance quotes, and response turns enter as events.",
+    body: "The tutor hears what Maya says, preserves provenance, and turns each important turn into evidence.",
     icon: Radio
   },
   {
     eyebrow: "memory engine",
-    title: "Extract · dream · forget · recall",
-    body: "The core pipeline has no calculus rules. It stores typed memories about a person.",
+    title: "Memory engine",
+    body: "The product core forms durable memories, consolidates them between sessions, and keeps the graph honest.",
     icon: Brain,
-    featured: true
+    featured: true,
+    verbs: ["extract", "dream", "forget", "recall"]
   },
   {
     eyebrow: "working context",
     title: "Budgeted recall",
-    body: "Relevant memories compete for a fixed token budget before each response.",
+    body: "The most relevant memories compete for a fixed context budget before each response.",
     icon: Network
   }
 ];
 
+const storage = [
+  ["Memories", "Typed observations with confidence, strength, and lifecycle state."],
+  ["Memory timeline", "Every consolidation, merge, decay, and recall is preserved as evidence."],
+  ["Recall vectors", "Embeddings let the tutor retrieve the right memories without replaying everything."]
+];
+
 const stack = [
-  ["Frontend", "Next.js App Router · Canvas constellation · SSE event stream"],
-  ["Backend", "FastAPI · SQLite event store · dream worker · retrieval service"],
-  ["Qwen on Alibaba Cloud", "qwen-plus for chat, observer, judges · text-embedding-v4"],
-  ["Deployment", "Docker Compose · Nginx · ECS when identity access lands"]
+  ["Frontend", "Next.js App Router · live constellation canvas · streaming updates"],
+  ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
+  ["Qwen on Alibaba Cloud", "Chat, observer, judge, and embedding models"],
+  ["Deployment", "Docker Compose · Nginx · ECS-ready runtime"]
 ];
 
 export default function ArchitecturePage() {
@@ -46,91 +54,112 @@ export default function ArchitecturePage() {
           </p>
         </header>
 
-        <section className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-3">
-            {layers.map((layer) => {
+        <section className="stellar-panel rounded-lg p-5 md:p-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto_1.15fr_auto_1fr] lg:items-stretch">
+            {layers.map((layer, index) => {
               const Icon = layer.icon;
               return (
-                <div
-                  key={layer.title}
-                  className={`stellar-panel rounded-lg p-5 ${
-                    layer.featured ? "border-ember/40" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-                      {layer.eyebrow}
-                    </p>
-                    <Icon
-                      aria-hidden="true"
-                      className={layer.featured ? "text-ember" : "text-dim"}
-                      size={19}
-                      strokeWidth={1.8}
-                    />
+                <Fragment key={layer.title}>
+                  <div
+                    className={`rounded-lg border bg-field/70 p-5 ${
+                      layer.featured
+                        ? "border-ember/50 shadow-[0_0_30px_rgba(245,71,107,0.12)] lg:-my-2"
+                        : "border-hairline"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                        {layer.eyebrow}
+                      </p>
+                      <Icon
+                        aria-hidden="true"
+                        className={layer.featured ? "text-ember" : "text-dim"}
+                        size={20}
+                        strokeWidth={1.8}
+                      />
+                    </div>
+                    <h2
+                      className={`mt-5 font-semibold leading-snug text-starlight ${
+                        layer.featured ? "text-2xl" : "text-xl"
+                      }`}
+                    >
+                      {layer.title}
+                    </h2>
+                    <p className="mt-3 text-sm leading-6 text-dim">{layer.body}</p>
+                    {layer.verbs ? (
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {layer.verbs.map((verb) => (
+                          <span
+                            key={verb}
+                            className="rounded-full border border-ember/30 bg-field-2 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-glow"
+                          >
+                            {verb}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <h2 className="mt-5 text-xl font-semibold leading-snug text-starlight">
-                    {layer.title}
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-dim">{layer.body}</p>
-                </div>
+                  {index < layers.length - 1 ? (
+                    <div className="hidden items-center justify-center lg:flex">
+                      <div className="flex items-center gap-2 text-ember/80">
+                        <span className="h-px w-10 bg-hairline" />
+                        <ArrowRight aria-hidden="true" size={18} strokeWidth={1.8} />
+                        <span className="h-px w-10 bg-hairline" />
+                      </div>
+                    </div>
+                  ) : null}
+                </Fragment>
               );
             })}
           </div>
+        </section>
 
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-hairline" />
-            <GitBranch aria-hidden="true" className="text-ember" size={18} strokeWidth={1.8} />
-            <span className="h-px flex-1 bg-hairline" />
+        <section className="grid gap-4 lg:grid-cols-2">
+          <div className="stellar-panel rounded-lg p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                storage
+              </p>
+              <Database aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
+            </div>
+            <div className="mt-5 grid gap-3">
+              {storage.map(([name, detail]) => (
+                <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+                    {name}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-starlight">{detail}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-                  storage
-                </p>
-                <Database aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
-              </div>
-              <dl className="mt-5 grid gap-3 font-mono text-[11px] text-dim">
-                <div className="stellar-panel rounded-lg p-3">
-                  <dt>engrams</dt>
-                  <dd className="mt-1 text-starlight">typed memories with strength</dd>
+          <div className="stellar-panel rounded-lg p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                runtime stack
+              </p>
+              <Cloud aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
+            </div>
+            <div className="mt-5 grid gap-3">
+              {stack.map(([name, detail]) => (
+                <div
+                  key={name}
+                  className="grid gap-2 rounded-lg border border-hairline bg-field-2/80 p-3 md:grid-cols-[170px_1fr]"
+                >
+                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+                    {name}
+                  </p>
+                  <p className="text-sm leading-6 text-starlight">{detail}</p>
                 </div>
-                <div className="stellar-panel rounded-lg p-3">
-                  <dt>memory_events</dt>
-                  <dd className="mt-1 text-starlight">append-only lifecycle truth</dd>
-                </div>
-                <div className="stellar-panel rounded-lg p-3">
-                  <dt>engram_vectors</dt>
-                  <dd className="mt-1 text-starlight">1024-d embeddings for recall</dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-                  runtime stack
-                </p>
-                <Cloud aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
-              </div>
-              <div className="mt-5 grid gap-3">
-                {stack.map(([name, detail]) => (
-                  <div key={name} className="stellar-panel grid gap-2 rounded-lg p-3 md:grid-cols-[170px_1fr]">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
-                      {name}
-                    </p>
-                    <p className="text-sm leading-6 text-starlight">{detail}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
+              ))}
+            </div>
           </div>
         </section>
 
         <section className="stellar-panel rounded-lg p-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-            subject swap proof
+            Proof it is not a calculus app
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
             Spanish-conjugation tests exercise the duplicate guard outside the demo

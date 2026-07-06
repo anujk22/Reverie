@@ -4,13 +4,16 @@
 
 :root {
   color-scheme: dark;
-  --void: #050408;
-  --field: #10090f;
-  --field-2: #1a1018;
-  --hairline: #342031;
+  /* Neutrals carry a whisper of rose (the brand hue), never violet.
+     Purple (--moth) is reserved for constellation node tints and data-viz
+     series only — it must not appear in chrome, borders, or backgrounds. */
+  --void: #070509;
+  --field: #150d12;
+  --field-2: #1e1419;
+  --hairline: #2c1e26;
   --starlight: #f3ece3;
-  --dim: #a08d9b;
-  --faint: #5d4b58;
+  --dim: #ab9ca5;
+  --faint: #6e5c66;
   --ember: #f5476b;
   --glow: #ff93a8;
   --gold: #f2a65a;
@@ -40,10 +43,10 @@ body {
   color: var(--text);
   font-family: var(--font-sans), Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
+  /* one quiet rose wash from above; the only luminous thing is the memory */
   background-image:
-    radial-gradient(1000px 620px at 80% -10%, rgba(169, 139, 250, 0.08), transparent 62%),
-    radial-gradient(920px 620px at 10% 110%, rgba(245, 71, 107, 0.07), transparent 60%),
-    linear-gradient(180deg, #07050a 0%, #020103 100%);
+    radial-gradient(120% 70% at 50% 0%, rgba(245, 71, 107, 0.045), transparent 60%),
+    linear-gradient(180deg, #070509 0%, #030204 100%);
   background-attachment: fixed;
 }
 
@@ -73,9 +76,22 @@ canvas {
   display: block;
 }
 
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* every number in the app is data: keep columns steady */
+.font-mono,
+code,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
 /* the hot pink to orange thread that runs through the whole app */
 .brand-gradient {
-  background-image: linear-gradient(90deg, #ff4f72 0%, #ff6f5e 52%, #f2a65a 100%);
+  background-image: linear-gradient(90deg, #ff4f72 0%, #ff6268 56%, #ff9a58 100%);
 }
 
 .brand-gradient-text {
@@ -94,51 +110,62 @@ canvas {
 .cosmic-shell {
   position: relative;
   background:
-    radial-gradient(circle at 82% 13%, rgba(255, 147, 168, 0.13) 0 1px, transparent 2px),
-    radial-gradient(circle at 18% 24%, rgba(169, 139, 250, 0.11) 0 1px, transparent 2px),
-    radial-gradient(circle at 72% 66%, rgba(242, 166, 90, 0.1) 0 1px, transparent 2px),
-    linear-gradient(180deg, rgba(9, 6, 12, 0.96), rgba(3, 2, 5, 0.98));
-  background-size: 280px 260px, 360px 340px, 420px 380px, auto;
+    radial-gradient(110% 60% at 50% 0%, rgba(245, 71, 107, 0.05), transparent 58%),
+    radial-gradient(90% 70% at 88% 100%, rgba(242, 166, 90, 0.028), transparent 60%),
+    linear-gradient(180deg, rgba(7, 5, 9, 0.99), rgba(2, 1, 3, 0.99));
 }
 
+/* film grain instead of star-dot wallpaper: analog texture, no theme-park cosmos */
 .cosmic-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(620px 420px at 80% 34%, rgba(169, 139, 250, 0.065), transparent 68%),
-    radial-gradient(720px 480px at 88% 84%, rgba(245, 71, 107, 0.09), transparent 64%),
-    radial-gradient(360px 260px at 9% 16%, rgba(255, 147, 168, 0.035), transparent 66%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.04;
 }
 
+/* precision instrument, not neon sign: crisp hairline, top edge-light, deep soft drop */
 .stellar-panel {
-  border: 1px solid rgba(52, 32, 49, 0.92);
-  background:
-    linear-gradient(180deg, rgba(26, 16, 24, 0.72), rgba(8, 5, 10, 0.72)),
-    radial-gradient(480px 260px at 50% 0%, rgba(255, 147, 168, 0.055), transparent 68%);
+  border: 1px solid rgba(243, 236, 227, 0.07);
+  background: linear-gradient(180deg, rgba(24, 15, 20, 0.72), rgba(10, 6, 9, 0.85));
   box-shadow:
-    0 0 0 1px rgba(255, 147, 168, 0.025) inset,
-    0 18px 60px rgba(0, 0, 0, 0.32);
+    inset 0 1px 0 rgba(243, 236, 227, 0.045),
+    0 24px 48px -24px rgba(0, 0, 0, 0.6);
 }
 
 .transcript-rail {
   background: linear-gradient(180deg, #ff4f72, #ff7a62);
-  box-shadow:
-    0 0 14px rgba(245, 71, 107, 0.55),
-    0 0 2px rgba(255, 255, 255, 0.72) inset;
+  box-shadow: 0 0 8px rgba(245, 71, 107, 0.4);
 }
 
+/* glow is spent on memory, not on type — headlines carry weight instead */
 .display-glow {
-  text-shadow:
-    0 0 18px rgba(243, 236, 227, 0.23),
-    0 0 2px rgba(243, 236, 227, 0.52);
+  text-shadow: none;
+  letter-spacing: -0.015em;
 }
 
 .ember-glow {
   box-shadow:
-    0 0 16px rgba(245, 71, 107, 0.35),
-    0 0 42px rgba(245, 71, 107, 0.12);
+    0 0 10px rgba(245, 71, 107, 0.28),
+    0 0 28px rgba(245, 71, 107, 0.08);
+}
+
+@keyframes dream-shimmer {
+  0% {
+    background-position: -160px 0;
+  }
+  100% {
+    background-position: 160px 0;
+  }
+}
+
+.dream-shimmer {
+  background-image:
+    linear-gradient(90deg, rgba(16, 9, 15, 0.72), rgba(255, 147, 168, 0.22), rgba(16, 9, 15, 0.72));
+  background-size: 320px 100%;
+  animation: dream-shimmer 2.4s ease-in-out infinite;
 }
 
 /* KaTeX inside chat and cards: match surrounding rhythm, never overflow */

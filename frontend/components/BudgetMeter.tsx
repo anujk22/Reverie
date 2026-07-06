@@ -63,7 +63,7 @@ export function BudgetMeter({
         aria-label={`Working memory budget ${used} of ${budget} tokens`}
       >
         {winners.length === 0 ? (
-          <div className="brand-gradient h-full w-3/4 rounded-full" />
+          <div className="h-full w-full rounded-full bg-field-2/60" />
         ) : (
           <>
             {winners.map((item) => {

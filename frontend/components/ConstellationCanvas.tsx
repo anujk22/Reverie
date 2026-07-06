@@ -905,7 +905,7 @@ function ambientDrift(seed: number, time: number, reduced: boolean) {
 
 function starColor(star: StaticStar, alpha: number) {
   if (star.phase > Math.PI * 1.08) return `rgba(255,147,168,${alpha})`;
-  if (star.phase < Math.PI * 0.42) return `rgba(169,139,250,${alpha * 0.95})`;
+  if (star.phase < Math.PI * 0.42) return `rgba(242,166,90,${alpha * 0.85})`;
   return `rgba(243,236,227,${alpha})`;
 }
 
@@ -924,18 +924,18 @@ function buildScenery(width: number, height: number, dpr: number, stars: StaticS
   const base = Math.min(width, height);
   const random = mulberry32(511);
   const plumes: Array<[number, number, number, [number, number, number], number]> = [
-    [1.04, 1.08, 0.62, [104, 46, 176], 0.15],
-    [0.86, 1.06, 0.42, [148, 42, 152], 0.12],
-    [1.08, 0.87, 0.38, [86, 36, 160], 0.12],
-    [0.95, 0.95, 0.24, [214, 66, 148], 0.09]
+    [1.04, 1.08, 0.62, [168, 44, 78], 0.1],
+    [0.86, 1.06, 0.42, [150, 40, 70], 0.08],
+    [1.08, 0.87, 0.38, [158, 36, 64], 0.08],
+    [0.95, 0.95, 0.24, [214, 66, 110], 0.06]
   ];
   for (let index = 0; index < 16; index += 1) {
     plumes.push([
       0.78 + random() * 0.3,
       0.7 + random() * 0.4,
       0.05 + random() * 0.09,
-      mix([120, 52, 180], [214, 66, 148], random()),
-      0.03 + random() * 0.05
+      mix([176, 50, 88], [214, 66, 118], random()),
+      0.02 + random() * 0.035
     ]);
   }
   for (const [nx, ny, nr, color, alpha] of plumes) {
@@ -961,7 +961,7 @@ function buildScenery(width: number, height: number, dpr: number, stars: StaticS
   }
 
   drawGlint(context, width * 0.935, height * 0.42, base * 0.036, [255, 208, 224]);
-  drawGlint(context, width * 0.075, height * 0.18, base * 0.02, [216, 196, 255]);
+  drawGlint(context, width * 0.075, height * 0.18, base * 0.02, [255, 216, 226]);
   drawGlint(context, width * 0.16, height * 0.88, base * 0.014, [255, 188, 212]);
 
   return canvas;

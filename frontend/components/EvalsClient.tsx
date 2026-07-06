@@ -14,7 +14,15 @@ type MetricSpec = {
   title: string;
   rows: Array<Record<string, unknown>>;
   valueKeys: string[];
-  suffix?: string;
+  kind: "score" | "tokens";
+  lowerIsBetter?: boolean;
+};
+
+type HeadlineTile = {
+  label: string;
+  value: string;
+  note: string;
+  accent?: boolean;
 };
 
 const conditionTone: Record<string, string> = {
@@ -24,6 +32,12 @@ const conditionTone: Record<string, string> = {
   full_history: "bg-moth",
   reverie: "brand-gradient"
 };
+
+const legend = [
+  { label: "no memory", className: "bg-faint" },
+  { label: "full history", className: "bg-moth" },
+  { label: "reverie", className: "brand-gradient" }
+];
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -37,20 +51,121 @@ function rowValue(row: Record<string, unknown>, keys: string[]) {
   return null;
 }
 
+function normalizeCondition(value: unknown) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .trim();
+}
+
+function conditionKey(row: Record<string, unknown>) {
+  return normalizeCondition(row.condition ?? row.name ?? row.label);
+}
+
+function conditionLabel(row: Record<string, unknown>) {
+  const key = conditionKey(row);
+  if (key.includes("no memory")) return "no memory";
+  if (key.includes("full history")) return "full history";
+  if (key.includes("reverie")) return "reverie";
+  return key || "condition";
+}
+
 function rowLabel(row: Record<string, unknown>) {
-  const condition = String(row.condition ?? row.name ?? "condition");
-  const session = row.session ? `session ${row.session}` : String(row.label ?? "");
-  return [condition, session].filter(Boolean).join(" · ");
+  const session = row.session ? `session ${row.session}` : "";
+  return [conditionLabel(row), session].filter(Boolean).join(" · ");
 }
 
 function conditionClass(row: Record<string, unknown>) {
-  const condition = String(row.condition ?? "").toLowerCase();
+  const condition = conditionKey(row);
   return conditionTone[condition] ?? "bg-moth";
 }
 
-function ChartBlock({ title, rows, valueKeys, suffix = "" }: MetricSpec) {
-  const values = rows.map((row) => rowValue(row, valueKeys)).filter((value) => value !== null);
-  const max = Math.max(...values, 1);
+function formatScore(value: number | null) {
+  if (value === null) return "waiting on run";
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function formatTokens(value: number | null) {
+  if (value === null) return "waiting on run";
+  return value.toLocaleString();
+}
+
+function formatLatency(value: number | null) {
+  if (value === null) return "waiting on run";
+  if (value < 0) return "not reported";
+  return `${value.toLocaleString()}ms`;
+}
+
+function formatMetricValue(value: number, kind: MetricSpec["kind"]) {
+  if (kind === "tokens") return value.toLocaleString();
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function findConditionValue(
+  rows: Array<Record<string, unknown>> | undefined,
+  names: string[],
+  keys: string[]
+) {
+  const row = rows?.find((item) => {
+    const condition = conditionKey(item);
+    return names.some((name) => condition.includes(name));
+  });
+  return row ? rowValue(row, keys) : null;
+}
+
+function formatDelta(reverie: number | null, baseline: number | null) {
+  if (reverie === null || baseline === null) return "waiting on run";
+  if (baseline === 0) {
+    return `${(reverie - baseline).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+      signDisplay: "always"
+    })} vs no memory`;
+  }
+  const delta = ((reverie - baseline) / Math.abs(baseline)) * 100;
+  return `${delta.toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+    signDisplay: "always"
+  })}% vs no memory`;
+}
+
+function formatTokenSavings(reverie: number | null, fullHistory: number | null) {
+  if (reverie === null || fullHistory === null) return "waiting on run";
+  return `${Math.max(0, fullHistory - reverie).toLocaleString()} tokens saved`;
+}
+
+function smokeNumber(call: Record<string, unknown> | null, key: string) {
+  return asNumber(call?.[key]);
+}
+
+function modeLabel(value: string) {
+  return value === "mock" ? "mock" : value === "live" ? "live" : value;
+}
+
+function humanPurpose(value: string) {
+  const labels: Record<string, string> = {
+    chat: "Tutor replies",
+    consolidate: "Dream consolidation",
+    observer: "Memory observer",
+    observe: "Memory observation",
+    tutor: "Tutor replies",
+    embed: "Embeddings",
+    eval_judge: "Judge calls",
+    extract_session_level: "Dream extraction"
+  };
+  return labels[value] ?? value.replace(/_/g, " ");
+}
+
+function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: MetricSpec) {
+  const values = rows
+    .map((row) => rowValue(row, valueKeys))
+    .filter((value): value is number => value !== null);
+  const max = Math.max(1, ...values);
+  const winner = values.length
+    ? values.reduce((best, value) => {
+        if (lowerIsBetter) return value < best ? value : best;
+        return value > best ? value : best;
+      }, values[0])
+    : null;
 
   return (
     <section className="stellar-panel rounded-lg p-5">
@@ -60,25 +175,45 @@ function ChartBlock({ title, rows, valueKeys, suffix = "" }: MetricSpec) {
         </h2>
         <BarChart3 aria-hidden="true" className="text-dim" size={17} strokeWidth={1.8} />
       </div>
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+        {legend.map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.08em] text-dim"
+          >
+            <span className={`h-2.5 w-2.5 rounded-full ${item.className}`} />
+            {item.label}
+          </span>
+        ))}
+      </div>
       <div className="mt-5 space-y-3">
-        {rows.map((row, index) => {
-          const value = rowValue(row, valueKeys) ?? 0;
-          const width = `${Math.max(4, (value / max) * 100)}%`;
-          return (
-            <div key={`${title}-${index}`}>
-              <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[11px] text-dim">
-                <span>{rowLabel(row)}</span>
-                <span className="text-starlight">
-                  {value}
-                  {suffix}
-                </span>
+        {rows.length ? (
+          rows.map((row, index) => {
+            const value = rowValue(row, valueKeys) ?? 0;
+            const width = `${Math.max(4, (value / max) * 100)}%`;
+            const isWinner = winner !== null && Math.abs(value - winner) < 0.0001;
+            return (
+              <div key={`${title}-${index}`} className={isWinner ? "" : "opacity-60"}>
+                <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[11px] text-dim">
+                  <span>{rowLabel(row)}</span>
+                  <span className="min-w-[4.5rem] text-right text-starlight">
+                    {formatMetricValue(value, kind)}
+                  </span>
+                </div>
+                <div className="h-2.5 rounded-full bg-void">
+                  <div
+                    className={`h-full rounded-full ${conditionClass(row)} ${
+                      isWinner ? "shadow-[0_0_18px_rgba(245,71,107,0.28)]" : ""
+                    }`}
+                    style={{ width }}
+                  />
+                </div>
               </div>
-              <div className="h-2.5 rounded-full bg-void">
-                <div className={`h-full rounded-full ${conditionClass(row)}`} style={{ width }} />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <p className="text-sm leading-6 text-dim">Waiting on a real run.</p>
+        )}
       </div>
     </section>
   );
@@ -103,23 +238,59 @@ export function EvalsClient() {
     load();
   }, []);
 
+  const headlineTiles = useMemo<HeadlineTile[]>(() => {
+    const personalizationKeys = ["score", "value", "personalization"];
+    const tokenKeys = ["tokens", "value"];
+    const reverieScore = findConditionValue(results?.personalization, ["reverie"], personalizationKeys);
+    const noMemoryScore = findConditionValue(
+      results?.personalization,
+      ["no memory"],
+      personalizationKeys
+    );
+    const reverieTokens = findConditionValue(results?.tokens, ["reverie"], tokenKeys);
+    const fullHistoryTokens = findConditionValue(results?.tokens, ["full history"], tokenKeys);
+
+    return [
+      {
+        label: "Reverie personalization",
+        value: formatScore(reverieScore),
+        note: "score from the memory condition"
+      },
+      {
+        label: "Lift over baseline",
+        value: formatDelta(reverieScore, noMemoryScore),
+        note: "compared with no memory",
+        accent: true
+      },
+      {
+        label: "Context efficiency",
+        value: formatTokenSavings(reverieTokens, fullHistoryTokens),
+        note: "compared with full history"
+      }
+    ];
+  }, [results]);
+
   const chartSpecs = useMemo<MetricSpec[]>(() => {
     if (!results?.real_run) return [];
     return [
       {
         title: "personalization score",
         rows: results.personalization ?? [],
-        valueKeys: ["score", "value", "personalization"]
+        valueKeys: ["score", "value", "personalization"],
+        kind: "score"
       },
       {
         title: "recall precision",
         rows: results.recall_precision ?? [],
-        valueKeys: ["precision", "value", "recall_precision"]
+        valueKeys: ["precision", "value", "recall_precision"],
+        kind: "score"
       },
       {
         title: "tokens per session",
         rows: results.tokens ?? [],
-        valueKeys: ["tokens", "value"]
+        valueKeys: ["tokens", "value"],
+        kind: "tokens",
+        lowerIsBetter: true
       }
     ];
   }, [results]);
@@ -160,8 +331,7 @@ export function EvalsClient() {
               Does memory make the response more personal?
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
-              Charts appear only after a completed real run. Cached real JSON is allowed;
-              synthetic or hand-edited scores are not.
+              Scores come from real runs only. Nothing is staged.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -181,7 +351,7 @@ export function EvalsClient() {
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field-2/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
             >
               <ShieldCheck aria-hidden="true" size={17} strokeWidth={1.8} />
-              <span>smoke judge</span>
+              <span>run smoke judge</span>
             </button>
           </div>
         </header>
@@ -195,16 +365,35 @@ export function EvalsClient() {
 
         {results?.real_run ? (
           <div className="space-y-6">
+            <section className="grid gap-4 md:grid-cols-3">
+              {headlineTiles.map((tile) => (
+                <div key={tile.label} className="stellar-panel rounded-lg p-5">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                    {tile.label}
+                  </p>
+                  <p
+                    className={`mt-3 font-display text-[34px] leading-tight ${
+                      tile.accent ? "brand-gradient-text" : "text-starlight"
+                    }`}
+                  >
+                    {tile.value}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-dim">{tile.note}</p>
+                </div>
+              ))}
+            </section>
+
             {results.headline ? (
               <section className="stellar-panel rounded-lg p-6">
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-                  headline
+                  takeaway
                 </p>
-                <p className="brand-gradient-text mt-3 font-display text-[44px] leading-[1.05]">
+                <p className="mt-3 font-display text-[38px] leading-[1.05] text-starlight">
                   {results.headline}
                 </p>
               </section>
             ) : null}
+
             <div className="grid gap-4 lg:grid-cols-3">
               {chartSpecs.map((spec) => (
                 <ChartBlock key={spec.title} {...spec} />
@@ -214,15 +403,15 @@ export function EvalsClient() {
         ) : (
           <section className="stellar-panel rounded-lg p-6">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-              no real eval suite yet
+              waiting for real comparisons
             </p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
-              {results?.message ??
-                "No completed live eval JSON is available. The chart area stays empty by design."}
+              No live eval run yet. Run the suite to compare Reverie against no-memory
+              and full-history baselines.
             </p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-dim">
-              The smoke judge can test JSON stability and token cost, but it does not
-              populate `EVALS.md` or the comparison charts.
+              Scores come from real runs only, so this page stays quiet until the
+              comparison is ready.
             </p>
           </section>
         )}
@@ -236,33 +425,35 @@ export function EvalsClient() {
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{smoke.reason}</p>
               </div>
-              <p className="font-mono text-3xl text-ember">{smoke.score}</p>
+              <p className="font-mono text-3xl text-ember">
+                {formatScore(asNumber(smoke.score))}
+              </p>
             </div>
             {smoke.llm_call ? (
-              <dl className="mt-4 grid gap-3 rounded-lg border border-hairline bg-field-2/80 p-4 font-mono text-[11px] text-dim sm:grid-cols-4">
-                <div>
-                  <dt>mode</dt>
-                  <dd className="mt-1 text-starlight">{smoke.mode}</dd>
-                </div>
-                <div>
-                  <dt>prompt</dt>
-                  <dd className="mt-1 text-starlight">
-                    {String(smoke.llm_call.prompt_tokens ?? "n/a")}
-                  </dd>
-                </div>
-                <div>
-                  <dt>completion</dt>
-                  <dd className="mt-1 text-starlight">
-                    {String(smoke.llm_call.completion_tokens ?? "n/a")}
-                  </dd>
-                </div>
-                <div>
-                  <dt>latency</dt>
-                  <dd className="mt-1 text-starlight">
-                    {String(smoke.llm_call.latency_ms ?? "n/a")} ms
-                  </dd>
-                </div>
-              </dl>
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                {[
+                  { label: "mode", value: modeLabel(smoke.mode) },
+                  {
+                    label: "prompt tokens",
+                    value: formatTokens(smokeNumber(smoke.llm_call, "prompt_tokens"))
+                  },
+                  {
+                    label: "completion tokens",
+                    value: formatTokens(smokeNumber(smoke.llm_call, "completion_tokens"))
+                  },
+                  {
+                    label: "latency",
+                    value: formatLatency(smokeNumber(smoke.llm_call, "latency_ms"))
+                  }
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-hairline bg-field-2/80 p-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 font-mono text-lg text-starlight">{item.value}</p>
+                  </div>
+                ))}
+              </div>
             ) : null}
           </section>
         ) : null}
@@ -278,7 +469,7 @@ export function EvalsClient() {
                   key={purpose}
                   className="rounded-full border border-hairline bg-field-2 px-3 py-1 font-mono text-[11px] text-dim"
                 >
-                  {purpose} · {tokens}
+                  {humanPurpose(purpose)} · {tokens.toLocaleString()}
                 </span>
               ))}
             </div>

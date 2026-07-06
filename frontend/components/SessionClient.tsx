@@ -7,6 +7,7 @@ import { BudgetMeter } from "@/components/BudgetMeter";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { MemoryInspector } from "@/components/MemoryInspector";
 import { RichText } from "@/components/RichText";
+import { onDemoReload, onDemoSend } from "@/lib/demoBus";
 import {
   apiUrl,
   createSession,
@@ -89,19 +90,46 @@ function localId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function demoAbortError() {
+  const error = new Error("Demo send cancelled.");
+  error.name = "AbortError";
+  return error;
+}
+
+function throwIfDemoAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw demoAbortError();
+}
+
+function waitForDemoTyping(ms: number, signal?: AbortSignal) {
+  if (signal?.aborted) return Promise.reject(demoAbortError());
+
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      window.clearTimeout(timer);
+      reject(demoAbortError());
+    }
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 function shortDate(value?: string) {
-  if (!value) return "today";
   return new Intl.DateTimeFormat("en", {
     month: "long",
     day: "numeric"
-  }).format(new Date(value));
+  }).format(value ? new Date(value) : new Date());
 }
 
 function sessionEyebrow(session: SessionRecord | null) {
   const match = /session\s*(\d+)/i.exec(session?.title ?? "");
-  const parts = [shortDate(session?.started_at), "Maya Chen"];
-  if (match) parts.push(`Session ${match[1]}`);
-  return parts.join(" · ");
+  return [shortDate(session?.started_at), "Maya Chen", `Session ${match?.[1] ?? "1"}`].join(
+    " · "
+  );
 }
 
 function sessionHeadline(session: SessionRecord | null) {
@@ -207,6 +235,9 @@ export function SessionClient() {
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const hasChatRef = useRef(false);
+  const sendMessageRef = useRef<
+    ((message?: string, signal?: AbortSignal) => Promise<void>) | null
+  >(null);
 
   const loadGraph = useCallback(async () => {
     const data = await fetchGraph();
@@ -334,9 +365,10 @@ export function SessionClient() {
     [nodeById, pack?.winners]
   );
 
-  async function sendMessage(message = draft) {
+  async function sendMessage(message = draft, signal?: AbortSignal) {
     const text = message.trim();
     if (!text || !session || streaming || dreaming) return;
+    if (signal?.aborted) return;
 
     setDraft("");
     setError(null);
@@ -378,7 +410,8 @@ export function SessionClient() {
           Accept: "text/event-stream",
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text }),
+        signal
       });
       if (!response.ok || !response.body) {
         throw new Error(`${response.status} ${response.statusText}`);
@@ -424,6 +457,13 @@ export function SessionClient() {
 
       window.setTimeout(() => loadGraph().catch(() => undefined), 1800);
     } catch (err) {
+      if (signal?.aborted) {
+        patchMessage(tutorLocalId, {
+          pending: false,
+          content: ""
+        });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Tutor stream failed.");
       patchMessage(tutorLocalId, {
         pending: false,
@@ -433,6 +473,10 @@ export function SessionClient() {
       setStreaming(false);
     }
   }
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  });
 
   async function runDream() {
     if (!session || dreaming) return;
@@ -468,6 +512,60 @@ export function SessionClient() {
       setBooting(false);
     }
   }
+
+  useEffect(() => {
+    const unsubscribeSend = onDemoSend(async ({ text, signal, resolve, reject }) => {
+      try {
+        if (!session) throw new Error("Session page is not ready.");
+        if (streaming || dreaming) throw new Error("Session page is busy.");
+
+        throwIfDemoAborted(signal);
+        setDraft("");
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduceMotion) {
+          setDraft(text);
+        } else {
+          for (let index = 1; index <= text.length; index += 1) {
+            throwIfDemoAborted(signal);
+            setDraft(text.slice(0, index));
+            await waitForDemoTyping(25, signal);
+          }
+        }
+
+        throwIfDemoAborted(signal);
+        const currentSendMessage = sendMessageRef.current;
+        if (!currentSendMessage) throw new Error("Session page is not ready.");
+        await currentSendMessage(text, signal);
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    const unsubscribeReload = onDemoReload(async ({ resolve, reject }) => {
+      try {
+        setItems([]);
+        setDraft("");
+        setSelected(null);
+        setHighlightedId(null);
+        setPulseId(null);
+        setDreaming(false);
+        setDreamStages({});
+        setLastReport(null);
+        setError(null);
+        await boot();
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    return () => {
+      unsubscribeSend();
+      unsubscribeReload();
+    };
+  }, [boot, dreaming, session, streaming]);
 
   const stageList = ["replay", "distill", "deduplicate", "reconcile", "decay", "report"];
   const starterTurns = session?.title?.includes("Session 2")
@@ -700,9 +798,9 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="brand-gradient flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-[0_0_28px_rgba(255,111,94,0.38)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                className="brand-gradient flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#fffaf7] shadow-[0_0_30px_rgba(255,79,114,0.34)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Send aria-hidden="true" size={25} strokeWidth={2.35} />
+                <Send aria-hidden="true" size={27} strokeWidth={2.35} />
               </button>
             </div>
           )}

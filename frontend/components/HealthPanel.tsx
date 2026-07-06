@@ -5,6 +5,18 @@ import { healthUrl, isMockMode, type HealthStatus } from "@/lib/health";
 
 type LoadState = "loading" | "online" | "offline";
 
+function stateLabel(state: LoadState) {
+  if (state === "loading") return "checking";
+  return state;
+}
+
+function readiness(value: unknown) {
+  if (value === true) return "ready";
+  if (value === false) return "offline";
+  if (typeof value === "string" && value.trim()) return value;
+  return "waiting";
+}
+
 export function HealthPanel() {
   const [state, setState] = useState<LoadState>("loading");
   const [status, setStatus] = useState<HealthStatus | null>(null);
@@ -59,41 +71,39 @@ export function HealthPanel() {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-display text-2xl font-medium text-starlight">Backend health</h2>
         <span className="rounded-full border border-hairline bg-field-2 px-2 py-0.5 font-mono text-xs text-dim">
-          {state}
+          {stateLabel(state)}
         </span>
         {mock ? (
           <span className="rounded-full border border-ember/40 bg-field-2 px-2 py-0.5 font-mono text-xs text-warning">
-            MOCK
+            mock mode
           </span>
         ) : null}
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm text-starlight sm:grid-cols-2">
         <div>
-          <dt className="text-dim">Endpoint</dt>
-          <dd className="mt-1 break-all font-mono text-xs">{healthUrl()}</dd>
+          <dt className="text-dim">Service</dt>
+          <dd className="mt-1 font-mono text-xs">{state === "online" ? "reachable" : stateLabel(state)}</dd>
         </div>
         <div>
-          <dt className="text-dim">API status</dt>
-          <dd className="mt-1 font-mono text-xs">{String(status?.ok ?? false)}</dd>
+          <dt className="text-dim">Backend</dt>
+          <dd className="mt-1 font-mono text-xs">{readiness(status?.ok)}</dd>
         </div>
         <div>
-          <dt className="text-dim">Database</dt>
-          <dd className="mt-1 font-mono text-xs">{String(status?.db ?? "not reported")}</dd>
+          <dt className="text-dim">Memory store</dt>
+          <dd className="mt-1 font-mono text-xs">{readiness(status?.db)}</dd>
         </div>
         <div>
-          <dt className="text-dim">DashScope</dt>
-          <dd className="mt-1 font-mono text-xs">
-            {String(status?.dashscope_reachable ?? "not reported")}
-          </dd>
+          <dt className="text-dim">Model link</dt>
+          <dd className="mt-1 font-mono text-xs">{readiness(status?.dashscope_reachable)}</dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-dim">Models</dt>
+          <dt className="text-dim">Model routing</dt>
           <dd className="mt-1 break-words font-mono text-xs">{models}</dd>
         </div>
         {status?.error ? (
           <div className="sm:col-span-2">
-            <dt className="text-dim">Last error</dt>
+            <dt className="text-dim">Last signal</dt>
             <dd className="mt-1 font-mono text-xs text-warning">{status.error}</dd>
           </div>
         ) : null}

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BarChart3, Brain, Moon, Network, Radio } from "lucide-react";
+import { BarChart3, Brain, Clapperboard, Moon, Network, Radio } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { DemoDirectorProvider, useDemoDirector } from "@/components/DemoDirector";
 import { RuntimeChip } from "@/components/RuntimeChip";
 
 const routes = [
@@ -15,7 +16,17 @@ const routes = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <DemoDirectorProvider>
+      <AppShellFrame>{children}</AppShellFrame>
+    </DemoDirectorProvider>
+  );
+}
+
+function AppShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const director = useDemoDirector();
+  const directorActive = director.status !== "idle";
 
   return (
     <div className="min-h-dvh bg-void text-starlight md:p-3">
@@ -50,6 +61,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="flex flex-col items-center gap-3 py-4">
+          <button
+            type="button"
+            aria-label="Play the story"
+            title="Play the story"
+            onClick={() => director.start()}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline transition ${
+              directorActive
+                ? "bg-field-2 text-glow ember-glow"
+                : "bg-field-2/80 text-dim hover:text-starlight"
+            }`}
+          >
+            <Clapperboard aria-hidden="true" size={17} strokeWidth={1.8} />
+          </button>
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2/80 font-mono text-[11px] text-starlight">
             MC
           </div>
@@ -63,6 +87,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             Reverie
           </Link>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Play the story"
+              title="Play the story"
+              onClick={() => director.start()}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline ${
+                directorActive ? "bg-field-2 text-glow" : "bg-field text-dim"
+              }`}
+            >
+              <Clapperboard aria-hidden="true" size={17} strokeWidth={1.8} />
+            </button>
             {routes.slice(0, 3).map((route) => {
               const Icon = route.icon;
               return (
