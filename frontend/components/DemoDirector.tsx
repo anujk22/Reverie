@@ -13,6 +13,7 @@ import {
 import { Pause, Play, RotateCcw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  advanceClock,
   createSession,
   endSession,
   fetchMemoryPack,
@@ -21,8 +22,13 @@ import {
   type SessionRecord
 } from "@/lib/api";
 import {
+  closeDemoInspector,
+  hasDemoGraphRefreshListener,
   hasDemoSendListener,
+  hasDemoSelectEngramListener,
+  refreshDemoGraph,
   reloadDemoSession,
+  selectDemoEngram,
   sendDemoMessage
 } from "@/lib/demoBus";
 import { filmScript, type DemoBeat, type DemoPage } from "@/lib/filmScript";
@@ -44,6 +50,7 @@ type DemoDirectorContextValue = {
   exit: () => void;
   replay: () => void;
   advance: () => void;
+  replayBeat: () => void;
   toggleAutoplay: () => void;
 };
 
@@ -191,6 +198,24 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     throw new Error("Session page is not ready.");
   }, []);
 
+  const waitForGraphRefreshListener = useCallback(async (signal?: AbortSignal) => {
+    for (let index = 0; index < 24; index += 1) {
+      throwIfAborted(signal);
+      if (hasDemoGraphRefreshListener()) return;
+      await wait(120, signal);
+    }
+    throw new Error("Graph view is not ready.");
+  }, []);
+
+  const waitForSelectEngramListener = useCallback(async (signal?: AbortSignal) => {
+    for (let index = 0; index < 24; index += 1) {
+      throwIfAborted(signal);
+      if (hasDemoSelectEngramListener()) return;
+      await wait(120, signal);
+    }
+    throw new Error("Memory inspector is not ready.");
+  }, []);
+
   const executeBeat = useCallback(
     async (beat: DemoBeat, signal?: AbortSignal) => {
       const { action } = beat;
@@ -242,6 +267,25 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (action.type === "advance_clock") {
+        await waitForGraphRefreshListener(signal);
+        await advanceClock(action.days);
+        await refreshDemoGraph();
+        await wait(action.settleMs ?? 0, signal);
+        return;
+      }
+
+      if (action.type === "show_engram_inspector") {
+        await waitForSelectEngramListener(signal);
+        await selectDemoEngram({
+          type: action.engramType,
+          contains: action.contains
+        });
+        await wait(action.holdMs ?? 0, signal);
+        await closeDemoInspector();
+        return;
+      }
+
       if (action.type === "show_memory_pack") {
         if (!currentSessionRef.current) {
           throw new Error("No active session for memory pack.");
@@ -249,7 +293,13 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         await fetchMemoryPack(currentSessionRef.current.id);
       }
     },
-    [navigateTo, syncSessionPage, waitForSendListener]
+    [
+      navigateTo,
+      syncSessionPage,
+      waitForGraphRefreshListener,
+      waitForSelectEngramListener,
+      waitForSendListener
+    ]
   );
 
   const scheduleAutoAdvance = useCallback(
@@ -299,6 +349,8 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
 
         if (autoplayRef.current) {
           scheduleAutoAdvance(index, beat.autoAdvanceMs ?? 3500);
+        } else {
+          setStatus("paused");
         }
       } catch (err) {
         if (runTokenRef.current !== token) return;
@@ -349,35 +401,54 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     if (currentStatus === "idle" || currentStatus === "done") return;
 
     const currentIndex = beatIndexRef.current;
-    if (errorRef.current) {
-      runBeatRef.current(currentIndex);
-      return;
-    }
-
     runBeatRef.current(currentIndex + 1);
   }, [clearAutoTimer]);
 
+  const replayBeat = useCallback(() => {
+    if (busyRef.current) return;
+    clearAutoTimer();
+
+    const currentStatus = statusRef.current;
+    if (currentStatus === "idle" || currentStatus === "done") return;
+
+    runBeatRef.current(beatIndexRef.current);
+  }, [clearAutoTimer]);
+
+  const pauseAutoplay = useCallback(() => {
+    clearAutoTimer();
+    autoplayRef.current = false;
+    setAutoplay(false);
+    if (!busyRef.current && statusRef.current === "playing") {
+      setStatus("paused");
+    }
+  }, [clearAutoTimer]);
+
+  const resumeAutoplay = useCallback(() => {
+    if (statusRef.current === "idle" || statusRef.current === "done") return;
+    autoplayRef.current = true;
+    setAutoplay(true);
+    setStatus("playing");
+
+    if (
+      !busyRef.current &&
+      !errorRef.current &&
+      beatIndexRef.current < filmScript.length - 1
+    ) {
+      scheduleAutoAdvance(
+        beatIndexRef.current,
+        filmScript[beatIndexRef.current]?.autoAdvanceMs ?? 3500
+      );
+    }
+  }, [scheduleAutoAdvance]);
+
   const toggleAutoplay = useCallback(() => {
-    setAutoplay((current) => {
-      const next = !current;
-      autoplayRef.current = next;
-      clearAutoTimer();
+    if (autoplayRef.current) {
+      pauseAutoplay();
+      return;
+    }
 
-      if (
-        next &&
-        !busyRef.current &&
-        statusRef.current === "playing" &&
-        beatIndexRef.current < filmScript.length - 1
-      ) {
-        scheduleAutoAdvance(
-          beatIndexRef.current,
-          filmScript[beatIndexRef.current]?.autoAdvanceMs ?? 3500
-        );
-      }
-
-      return next;
-    });
-  }, [clearAutoTimer, scheduleAutoAdvance]);
+    resumeAutoplay();
+  }, [pauseAutoplay, resumeAutoplay]);
 
   const replay = useCallback(() => {
     start({ autoplay: autoplayRef.current });
@@ -405,19 +476,25 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
 
       if (event.code === "Space") {
         event.preventDefault();
+        toggleAutoplay();
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
         advance();
         return;
       }
 
-      if (event.key.toLowerCase() === "a") {
+      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "r") {
         event.preventDefault();
-        toggleAutoplay();
+        replayBeat();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [advance, exit, toggleAutoplay]);
+  }, [advance, exit, replayBeat, toggleAutoplay]);
 
   useEffect(() => {
     return () => {
@@ -438,9 +515,10 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
       exit,
       replay,
       advance,
+      replayBeat,
       toggleAutoplay
     }),
-    [advance, autoplay, beatIndex, busy, exit, replay, start, status, toggleAutoplay]
+    [advance, autoplay, beatIndex, busy, exit, replay, replayBeat, start, status, toggleAutoplay]
   );
 
   return (
@@ -467,19 +545,22 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
   if (status === "idle" || !currentBeat) return null;
 
   const caption = error ? `Error: ${error}` : currentBeat.caption;
+  const stateLabel = status === "done" ? "done" : busy ? "running" : autoplay ? "playing" : "paused";
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-void/88 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur md:right-5 md:top-5">
         <span className="text-starlight">film</span>
         <span className="text-faint">·</span>
-        <span>{autoplay ? "autoplay on" : "space to advance"}</span>
+        <span>{stateLabel}</span>
         <span className="text-faint">·</span>
-        <span>esc to exit</span>
+        <span>
+          {currentBeatIndex + 1}/{totalBeats}
+        </span>
         <button
           type="button"
-          aria-label={autoplay ? "Pause autoplay" : "Start autoplay"}
-          title={autoplay ? "Pause autoplay" : "Start autoplay"}
+          aria-label={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
+          title={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
           onClick={toggleAutoplay}
           className="ml-1 flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-ember transition hover:text-glow"
         >
@@ -514,7 +595,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
               </p>
               {error ? (
                 <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                  Space retries beat {currentBeatIndex + 1}
+                  R retries beat {currentBeatIndex + 1}
                 </p>
               ) : null}
             </div>

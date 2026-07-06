@@ -661,7 +661,9 @@ def mock_tutor_reply(
     lower = student_message.lower()
     remembers_chain = any("chain" in item.get("content", "").lower() for item in memory_pack)
     prefers_examples = any("example" in item.get("content", "").lower() for item in memory_pack)
-    if remembers_chain and "start" in lower:
+    if remembers_chain and (
+        "start" in lower or "where were we" in lower or "pick up" in lower
+    ):
         return (
             "Last time, f(g(x)) was tempting to treat like a product. Let's start with one "
             "worked example: if y = (3x + 1)^4, what is the outside function doing?"

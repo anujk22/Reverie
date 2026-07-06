@@ -126,13 +126,13 @@ export function MemoryInspector({
       </div>
 
       {detail?.provenance?.[0] ? (
-        <p className="mt-4 font-display text-lg italic leading-snug text-glow">
+        <div className="mt-4 font-display text-lg italic leading-snug text-glow">
           <RichText
             text={`'${trimQuote(detail.provenance[0].content)}' - said ${shortDate(
               detail.provenance[0].created_at
             ).toLowerCase()}`}
           />
-        </p>
+        </div>
       ) : null}
 
       <div className="mt-6">

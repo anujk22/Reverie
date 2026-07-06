@@ -7,7 +7,14 @@ import { BudgetMeter } from "@/components/BudgetMeter";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { MemoryInspector } from "@/components/MemoryInspector";
 import { RichText } from "@/components/RichText";
-import { onDemoReload, onDemoSend } from "@/lib/demoBus";
+import {
+  onDemoCloseInspector,
+  onDemoGraphRefresh,
+  onDemoReload,
+  onDemoSelectEngram,
+  onDemoSend,
+  type DemoEngramCriteria
+} from "@/lib/demoBus";
 import {
   apiUrl,
   createSession,
@@ -175,6 +182,17 @@ function memoryLabel(item: MemoryPackItem) {
   return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
 }
 
+function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
+  const contains = criteria.contains?.toLowerCase();
+  return (
+    nodes.find((node) => {
+      if (criteria.type && node.type !== criteria.type) return false;
+      if (contains && !node.content.toLowerCase().includes(contains)) return false;
+      return true;
+    }) ?? null
+  );
+}
+
 function sessionNumber(session: SessionRecord | null) {
   const match = /session\s*(\d+)/i.exec(session?.title ?? "");
   return match?.[1] ?? "1";
@@ -256,6 +274,7 @@ export function SessionClient() {
       if (!current) return current;
       return data.nodes.find((node) => node.id === current.id) ?? current;
     });
+    return data;
   }, []);
 
   const startSession = useCallback(async (title?: string) => {
@@ -579,11 +598,46 @@ export function SessionClient() {
       }
     });
 
+    const unsubscribeGraphRefresh = onDemoGraphRefresh(async ({ resolve, reject }) => {
+      try {
+        await loadGraph();
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    const unsubscribeSelectEngram = onDemoSelectEngram(
+      async ({ type, contains, resolve, reject }) => {
+        try {
+          const criteria = { type, contains };
+          let node = findDemoEngram(graph.nodes, criteria);
+          if (!node) {
+            const nextGraph = await loadGraph();
+            node = findDemoEngram(nextGraph.nodes, criteria);
+          }
+          if (!node) throw new Error("No matching memory for the film inspector.");
+          setSelected(node);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      }
+    );
+
+    const unsubscribeCloseInspector = onDemoCloseInspector(({ resolve }) => {
+      setSelected(null);
+      resolve();
+    });
+
     return () => {
       unsubscribeSend();
       unsubscribeReload();
+      unsubscribeGraphRefresh();
+      unsubscribeSelectEngram();
+      unsubscribeCloseInspector();
     };
-  }, [boot, dreaming, session, streaming]);
+  }, [boot, dreaming, graph.nodes, loadGraph, session, streaming]);
 
   const stageList = ["replay", "distill", "deduplicate", "reconcile", "decay", "report"];
   const starterTurns = session?.title?.includes("Session 2")

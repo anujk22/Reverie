@@ -13,6 +13,7 @@ import {
   type MemoryGraph,
   type RuntimeEvent
 } from "@/lib/api";
+import { onDemoGraphRefresh } from "@/lib/demoBus";
 
 type DreamStage = {
   stage: string;
@@ -196,11 +197,27 @@ export function DreamClient() {
   const load = useCallback(async () => {
     const [graphData, latest] = await Promise.all([fetchGraph(), fetchLatestDreamReport()]);
     setGraph(graphData);
+    setSelected((current) => {
+      if (!current) return current;
+      return graphData.nodes.find((node) => node.id === current.id) ?? current;
+    });
     setReport(latest.report);
+    return graphData;
   }, []);
 
   useEffect(() => {
     load().catch((err: Error) => setError(humanError(err)));
+  }, [load]);
+
+  useEffect(() => {
+    return onDemoGraphRefresh(async ({ resolve, reject }) => {
+      try {
+        await load();
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
   }, [load]);
 
   useEffect(() => {

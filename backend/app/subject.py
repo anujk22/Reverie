@@ -41,8 +41,9 @@ STUDENT MODEL (from semantic memory, believed true with stated confidence):
 SESSION CONTEXT:
 {session_context}
 
-At the start of a session (first reply only), you may reference at most ONE specific
-past struggle or win, concretely and briefly, to orient the session.
+At the start of a session (first reply only), if the retrieved memory pack contains
+a relevant past struggle or win, ground the opening in exactly ONE of those memories,
+concretely and briefly. If no relevant memory exists, skip this.
 
 CURRENT STUDENT MESSAGE:
 {student_message}
