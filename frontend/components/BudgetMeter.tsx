@@ -65,11 +65,11 @@ export function BudgetMeter({
       </div>
 
       <div
-        className="mt-3 flex h-3 max-w-[560px] gap-[3px] overflow-visible rounded-full bg-field-2/70 p-[1px]"
+        className="mt-3 flex h-3 max-w-[560px] gap-[3px] overflow-visible rounded-full bg-hairline/70 p-[1px]"
         aria-label={`Working memory budget ${used} of ${budget} tokens`}
       >
         {winners.length === 0 ? (
-          <div className="h-full w-full rounded-full bg-field-2/60" />
+          <div className="h-full w-full rounded-full bg-field" />
         ) : (
           <>
             {winners.map((item) => {
@@ -84,7 +84,7 @@ export function BudgetMeter({
                   onMouseLeave={() => updateHover(null)}
                 >
                   {hovered === item.engram_id ? (
-                    <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-lg border border-hairline bg-field-2 p-3">
+                    <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-lg border border-hairline bg-field-2 p-3 shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)]">
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
                         {item.tokens} tokens · {item.type}
                       </p>
@@ -100,7 +100,7 @@ export function BudgetMeter({
               );
             })}
             <div
-              className="h-full rounded-full bg-field-2"
+              className="h-full rounded-full bg-field"
               style={{
                 width: `${Math.max(0, 100 - (used / Math.max(budget, 1)) * 100)}%`
               }}
@@ -114,7 +114,7 @@ export function BudgetMeter({
           <button
             key={item.engram_id}
             type="button"
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 py-1 text-left font-mono text-[11px] text-dim transition hover:text-starlight"
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 py-1 text-left font-mono text-[11px] text-dim transition hover:bg-field-2 hover:text-starlight"
             onMouseEnter={() => updateHover(item.engram_id)}
             onMouseLeave={() => updateHover(null)}
             onFocus={() => updateHover(item.engram_id)}

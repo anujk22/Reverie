@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MoreHorizontal, Moon, Plus, RefreshCcw, Send, Sparkles } from "lucide-react";
+import {
+  MessageCircle,
+  MoreHorizontal,
+  Moon,
+  Plus,
+  RefreshCcw,
+  Send,
+  Sparkles
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BudgetMeter } from "@/components/BudgetMeter";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
@@ -198,46 +206,93 @@ function sessionNumber(session: SessionRecord | null) {
   return match?.[1] ?? "1";
 }
 
+function sortedSessions(sessions: SessionRecord[], session: SessionRecord | null) {
+  const byId = new Map(sessions.map((item) => [item.id, item]));
+  if (session && !byId.has(session.id)) byId.set(session.id, session);
+  return [...byId.values()].sort(
+    (left, right) =>
+      new Date(left.started_at).getTime() - new Date(right.started_at).getTime()
+  );
+}
+
 function SessionTimeline({
+  sessions,
   session,
   dreaming
 }: {
+  sessions: SessionRecord[];
   session: SessionRecord | null;
   dreaming: boolean;
 }) {
-  const active = sessionNumber(session);
+  const ordered = sortedSessions(sessions, session);
+  const stops = ordered.flatMap((item, index) => {
+    const dreamComplete =
+      Boolean(item.ended_at) || Boolean(item.dream_completed) || index < ordered.length - 1;
+    return [
+      {
+        key: item.id,
+        kind: "session" as const,
+        label: `S${index + 1}`,
+        current: session?.id === item.id && !dreaming,
+        complete: index < ordered.findIndex((candidate) => candidate.id === session?.id)
+      },
+      ...(dreamComplete || (dreaming && session?.id === item.id)
+        ? [
+            {
+              key: `${item.id}-dream`,
+              kind: "dream" as const,
+              label: "dream",
+              current: dreaming && session?.id === item.id,
+              complete: dreamComplete
+            }
+          ]
+        : [])
+    ];
+  });
+
+  const visibleStops = stops.length ? stops : [{ key: "session-1", kind: "session" as const, label: "S1", current: true, complete: false }];
+
   return (
     <section className="flex h-full items-center border-l border-hairline px-8">
       <div className="w-full">
-        <div className="flex items-center justify-between font-mono text-[15px] text-starlight">
-          <span className={active === "1" ? "text-starlight" : "text-dim"}>S1</span>
-          <span className="text-dim">-</span>
-          <span className={`inline-flex items-center gap-2 ${dreaming ? "text-glow" : "text-dim"}`}>
-            <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
-            dream
-          </span>
-          <span className="text-dim">-</span>
-          <span className={active === "2" ? "text-glow" : "text-ember"}>S2</span>
+        <div className="flex items-center justify-between gap-3 font-mono text-[15px] text-starlight">
+          {visibleStops.map((stop, index) => (
+            <div key={stop.key} className="flex min-w-0 flex-1 items-center gap-3">
+              <span
+                className={`inline-flex items-center gap-2 whitespace-nowrap ${
+                  stop.current ? "text-ember" : stop.complete ? "text-starlight" : "text-dim"
+                }`}
+              >
+                {stop.kind === "dream" ? (
+                  <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
+                ) : null}
+                {stop.label}
+              </span>
+              {index < visibleStops.length - 1 ? <span className="h-px flex-1 bg-hairline" /> : null}
+            </div>
+          ))}
         </div>
-        <div className="relative mt-5 h-8">
-          <div className="absolute left-3 right-3 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-sage/60 via-dim/50 to-ember/70" />
-          <div
-            className={`absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ${
-              active === "1" ? "bg-glow ember-glow" : "bg-dim"
-            }`}
-            style={{ left: "5%" }}
-          />
-          <div
-            className={`absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ${
-              dreaming ? "bg-glow ember-glow" : "bg-faint"
-            }`}
-          />
-          <div
-            className={`absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full ${
-              active === "2" ? "bg-ember ember-glow" : "bg-faint"
-            }`}
-            style={{ right: "5%" }}
-          />
+        <div
+          className="mt-5 grid items-center gap-0"
+          style={{ gridTemplateColumns: `repeat(${visibleStops.length}, minmax(0, 1fr))` }}
+        >
+          {visibleStops.map((stop, index) => (
+            <div
+              key={`${stop.key}-dot`}
+              className={`relative flex ${visibleStops.length === 1 ? "justify-start" : "justify-center"}`}
+            >
+              {index > 0 ? <span className="absolute right-1/2 top-1/2 h-px w-full -translate-y-1/2 bg-hairline" /> : null}
+              <span
+                className={`relative z-10 h-3 w-3 rounded-full border ${
+                  stop.current
+                    ? "border-ember bg-field-2"
+                    : stop.complete
+                      ? "border-starlight bg-starlight"
+                      : "border-faint bg-field-2"
+                }`}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -257,6 +312,7 @@ export function SessionClient() {
   const [dreaming, setDreaming] = useState(false);
   const [dreamStages, setDreamStages] = useState<Record<string, DreamStage>>({});
   const [lastReport, setLastReport] = useState<DreamReport | null>(null);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +322,7 @@ export function SessionClient() {
   const sendMessageRef = useRef<
     ((message?: string, signal?: AbortSignal) => Promise<void>) | null
   >(null);
+  const initialBootStartedRef = useRef(false);
 
   const loadGraph = useCallback(async () => {
     const data = await fetchGraph();
@@ -280,6 +337,7 @@ export function SessionClient() {
   const startSession = useCallback(async (title?: string) => {
     const created = await createSession(title);
     setSession(created);
+    setSessions((current) => sortedSessions(current, created));
     setPack(created.memory_pack ?? null);
     setItems([]);
     setDreamStages({});
@@ -292,6 +350,7 @@ export function SessionClient() {
     setError(null);
     try {
       const [sessions, graphData] = await Promise.all([listSessions(), fetchGraph()]);
+      setSessions(sessions.sessions);
       const latest = sessions.sessions[sessions.sessions.length - 1] ?? null;
       const active = latest && !latest.ended_at ? latest : await startSession("Session 1 - chain rule");
       setSession(active);
@@ -309,6 +368,8 @@ export function SessionClient() {
   }, [startSession]);
 
   useEffect(() => {
+    if (initialBootStartedRef.current) return;
+    initialBootStartedRef.current = true;
     boot();
   }, [boot]);
 
@@ -521,6 +582,8 @@ export function SessionClient() {
     try {
       const report = await endSession(session.id);
       setLastReport(report);
+      const refreshed = await listSessions();
+      setSessions(refreshed.sessions);
       await loadGraph();
       const next = await startSession("Session 2 - chain rule recall");
       setPack(next.memory_pack ?? (await fetchMemoryPack(next.id)));
@@ -538,6 +601,7 @@ export function SessionClient() {
       await resetDemo();
       setGraph(emptyGraph);
       setItems([]);
+      setSessions([]);
       setSelected(null);
       setPack(null);
       await startSession("Session 1 - chain rule");
@@ -647,8 +711,8 @@ export function SessionClient() {
 
   return (
     <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
-      <section className="order-2 flex min-h-[66dvh] flex-col border-hairline bg-void/72 lg:order-1 lg:h-full lg:min-h-0 lg:border-r">
-        <header className="border-b border-hairline bg-void/62 px-7 py-6">
+      <section className="order-2 flex min-h-[66dvh] flex-col border-hairline bg-field lg:order-1 lg:h-full lg:min-h-0 lg:border-r">
+        <header className="border-b border-hairline bg-field px-7 py-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
@@ -663,7 +727,7 @@ export function SessionClient() {
                 type="button"
                 disabled={!session || dreaming || streaming}
                 onClick={() => runDream()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ember bg-transparent px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:bg-ember hover:text-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
               >
                 <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
                 <span>End session</span>
@@ -673,7 +737,7 @@ export function SessionClient() {
                 aria-label="More session actions"
                 title="More session actions"
                 onClick={() => setMenuOpen((open) => !open)}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field/80 text-dim transition hover:text-starlight"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field-2 text-dim transition hover:text-starlight"
               >
                 <MoreHorizontal aria-hidden="true" size={18} strokeWidth={1.8} />
               </button>
@@ -737,7 +801,7 @@ export function SessionClient() {
             ) : !hasMessages ? (
               <div className="flex flex-col gap-6 pb-8">
                 <div>
-                  <p className="max-w-md font-display text-[30px] italic leading-snug text-starlight/90">
+                  <p className="max-w-md font-display text-[30px] italic leading-snug text-starlight">
                     {sessionNumber(session) === "1"
                       ? "Reverie knows nothing about Lena yet."
                       : "Reverie has been dreaming about last time."}
@@ -746,15 +810,21 @@ export function SessionClient() {
                     Start with what Lena would say, or write your own below.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2.5">
-                  {starterTurns.slice(0, 3).map((turn) => (
+                <div className="flex flex-col gap-3">
+                  {starterTurns.map((turn) => (
                     <button
                       key={turn}
                       type="button"
                       onClick={() => sendMessage(turn)}
-                      className="max-w-xl rounded-2xl border border-hairline bg-field/50 px-5 py-3 text-left text-[13.5px] leading-6 text-dim transition hover:border-ember/40 hover:bg-field hover:text-starlight"
+                      className="relative flex max-w-xl items-start gap-4 rounded-2xl border border-hairline bg-field-2 px-5 py-3.5 text-left text-[13.5px] leading-6 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.22)] transition hover:border-ember/40 hover:text-starlight"
                     >
-                      <RichText text={turn} />
+                      <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
+                        <MessageCircle aria-hidden="true" size={16} strokeWidth={1.7} />
+                      </span>
+                      <span className="min-w-0">
+                        <RichText text={turn} />
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -790,12 +860,17 @@ export function SessionClient() {
                       className={item.role === "student" ? "flex justify-end" : "block"}
                     >
                       {item.role === "student" ? (
-                        <div className="max-w-[76%] rounded-2xl border border-hairline bg-field-2/70 px-5 py-3.5 text-[15px] leading-7 text-starlight">
-                          <RichText text={item.content} />
+                        <div className="relative flex max-w-[82%] items-start gap-4 rounded-2xl border border-hairline bg-field-2 px-5 py-3.5 text-[15px] leading-7 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.18)]">
+                          <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
+                            <MessageCircle aria-hidden="true" size={16} strokeWidth={1.7} />
+                          </span>
+                          <span className="min-w-0">
+                            <RichText text={item.content} />
+                          </span>
                         </div>
                       ) : (
-                        <div className="relative max-w-[94%] pl-6 text-[15.5px] leading-8 text-starlight">
-                          <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
+                        <div className="relative max-w-[94%] text-[15.5px] leading-8 text-starlight">
                           {item.content ? (
                             <RichText text={item.content} />
                           ) : (
@@ -841,7 +916,7 @@ export function SessionClient() {
         </div>
 
         <form
-          className="border-t border-hairline bg-void/72 px-7 py-4"
+          className="border-t border-hairline bg-field px-7 py-4"
           onSubmit={(event) => {
             event.preventDefault();
             sendMessage();
@@ -856,7 +931,7 @@ export function SessionClient() {
               <span className="hairline-divider h-px flex-1" />
             </div>
           ) : (
-            <div className="stellar-panel flex items-end gap-3 rounded-[18px] px-4 py-2.5 focus-within:border-ember/50">
+            <div className="stellar-panel flex items-end gap-3 rounded-[22px] px-4 py-2.5 focus-within:border-ember/50">
               <label className="sr-only" htmlFor="message">
                 Message
               </label>
@@ -880,7 +955,7 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#fffaf7] shadow-[0_0_18px_rgba(255,79,114,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-field-2 shadow-[0_8px_20px_-12px_rgba(93,64,35,0.42)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Send aria-hidden="true" size={20} strokeWidth={2} />
               </button>
@@ -910,7 +985,7 @@ export function SessionClient() {
           </div>
 
           {Object.keys(dreamStages).length ? (
-            <div className="stellar-panel absolute bottom-5 left-8 right-8 rounded-lg p-3 backdrop-blur">
+            <div className="stellar-panel absolute bottom-5 left-8 right-8 rounded-lg p-3">
               <div className="flex flex-wrap gap-2">
                 {stageList.map((stage) => {
                   const item = dreamStages[stage];
@@ -934,14 +1009,14 @@ export function SessionClient() {
           ) : null}
         </div>
 
-        <div className="grid min-h-[136px] shrink-0 border-t border-hairline bg-void/78 lg:grid-cols-[55%_45%]">
+        <div className="grid min-h-[136px] shrink-0 border-t border-hairline bg-field lg:grid-cols-[55%_45%]">
           <BudgetMeter
             pack={pack}
             engrams={graph.nodes}
             onHover={setHighlightedId}
             onSelect={selectEngramById}
           />
-          <SessionTimeline session={session} dreaming={dreaming} />
+          <SessionTimeline sessions={sessions} session={session} dreaming={dreaming} />
         </div>
       </section>
 

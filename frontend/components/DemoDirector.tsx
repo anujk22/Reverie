@@ -549,7 +549,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
-      <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-void/88 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur md:right-5 md:top-5">
+      <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-field-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)] md:right-5 md:top-5">
         <span className="text-starlight">film</span>
         <span className="text-faint">·</span>
         <span>{stateLabel}</span>
@@ -582,7 +582,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
       </div>
 
       <div className="fixed inset-x-3 bottom-4 flex justify-center md:inset-x-6 md:bottom-6">
-        <div className="stellar-panel pointer-events-auto relative w-full max-w-3xl overflow-hidden rounded-lg px-4 py-3 backdrop-blur md:px-6 md:py-4">
+        <div className="stellar-panel pointer-events-auto relative w-full max-w-3xl overflow-hidden rounded-lg px-4 py-3 md:px-6 md:py-4">
           {busy ? <div className="dream-shimmer absolute inset-x-0 top-0 h-px" /> : null}
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">

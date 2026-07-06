@@ -18,6 +18,8 @@ type CanvasNode = SimulationNodeDatum & {
   id: string;
   engram: Engram;
   seed: number;
+  anchorX?: number;
+  anchorY?: number;
 };
 
 type CanvasLink = SimulationLinkDatum<CanvasNode> & {
@@ -52,15 +54,6 @@ type Synapse = {
   phase: number;
 };
 
-type StaticStar = {
-  x: number;
-  y: number;
-  radius: number;
-  alpha: number;
-  twinkle: boolean;
-  phase: number;
-};
-
 type TransientEvent = {
   id: string;
   eventType: string;
@@ -71,16 +64,16 @@ type TransientEvent = {
 };
 
 const colors: Record<string, string> = {
-  misconception: "#FF6F5E",
-  mastery: "#F2A65A",
-  preference: "#A98BFA",
-  affect: "#A98BFA",
-  goal: "#F5476B",
-  fact: "#F5476B",
-  strategy_outcome: "#F5476B"
+  misconception: "#E26345",
+  mastery: "#D78B09",
+  preference: "#946A49",
+  affect: "#946A49",
+  goal: "#D85C3F",
+  fact: "#D85C3F",
+  strategy_outcome: "#D85C3F"
 };
 
-const BRAIN_IMAGE_SRC = "/assets/reverie-brain.png";
+const BRAIN_IMAGE_SRC = "/brain-paper.png";
 
 type ArtNode = {
   x: number;
@@ -158,9 +151,9 @@ const typeRegionX: Record<string, number> = {
   mastery: 0.72
 };
 
-const VIOLET: [number, number, number] = [169, 139, 250];
-const PINK: [number, number, number] = [245, 71, 107];
-const AMBER: [number, number, number] = [242, 166, 90];
+const SEPIA: [number, number, number] = [151, 101, 66];
+const EMBER: [number, number, number] = [216, 92, 63];
+const OCHRE: [number, number, number] = [215, 139, 9];
 
 function mix(a: [number, number, number], b: [number, number, number], t: number) {
   return [
@@ -173,8 +166,8 @@ function mix(a: [number, number, number], b: [number, number, number], t: number
 // back of the brain is violet, the core burns pink, the frontal lobe warms to amber
 function regionColor(fraction: number): [number, number, number] {
   const t = Math.max(0, Math.min(1, fraction));
-  if (t < 0.45) return mix(VIOLET, PINK, t / 0.45);
-  return mix(PINK, AMBER, (t - 0.45) / 0.55);
+  if (t < 0.45) return mix(SEPIA, EMBER, t / 0.45);
+  return mix(EMBER, OCHRE, (t - 0.45) / 0.55);
 }
 
 function rgba(rgb: [number, number, number], alpha: number) {
@@ -213,10 +206,10 @@ function createBrainCutout(image: HTMLImageElement): BrainArt {
   return { source: image, nodes: lights.nodes, core: lights.core };
 }
 
-// locate the bright synapse dots baked into the artwork so the live twinkle
-// lands exactly where the painting already glows
+// Locate colored node masses baked into the artwork so live graph nodes land
+// on the same visual language instead of floating over unrelated spots.
 function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: number) {
-  const cell = 14;
+  const cell = 18;
   const cols = Math.ceil(width / cell);
   const score = new Float32Array(cols * Math.ceil(height / cell));
   const sumX = new Float32Array(score.length);
@@ -225,10 +218,20 @@ function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: num
   for (let y = 0; y < height; y += 2) {
     for (let x = 0; x < width; x += 2) {
       const index = (y * width + x) * 4;
-      const whiteness = Math.min(pixels[index], pixels[index + 1], pixels[index + 2]);
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
       const alpha = pixels[index + 3];
-      if (whiteness < 198 || alpha < 150) continue;
-      const value = ((whiteness - 198) / 57) * (alpha / 255);
+      if (alpha < 90) continue;
+      const max = Math.max(red, green, blue);
+      const min = Math.min(red, green, blue);
+      const brightness = (red + green + blue) / 3;
+      const saturation = max - min;
+      if (brightness > 246 || brightness < 42) continue;
+      if (saturation < 18 && brightness > 215) continue;
+      const paperDistance = Math.max(0, 245 - brightness) / 245;
+      const colorMass = saturation / 255;
+      const value = (paperDistance * 0.75 + colorMass * 1.55) * (alpha / 255);
       const bucket = Math.floor(y / cell) * cols + Math.floor(x / cell);
       score[bucket] += value;
       sumX[bucket] += x * value;
@@ -238,7 +241,7 @@ function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: num
 
   const candidates: number[] = [];
   for (let bucket = 0; bucket < score.length; bucket += 1) {
-    if (score[bucket] > 1.4) candidates.push(bucket);
+    if (score[bucket] > 2.1) candidates.push(bucket);
   }
   candidates.sort((left, right) => score[right] - score[left]);
 
@@ -247,7 +250,7 @@ function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: num
   for (const bucket of candidates) {
     const px = sumX[bucket] / score[bucket];
     const py = sumY[bucket] / score[bucket];
-    if (picked.some((node) => (node.px - px) ** 2 + (node.py - py) ** 2 < 34 ** 2)) continue;
+    if (picked.some((node) => (node.px - px) ** 2 + (node.py - py) ** 2 < 40 ** 2)) continue;
     picked.push({
       x: px / width,
       y: py / height,
@@ -260,8 +263,8 @@ function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: num
   }
   if (!picked.length) return { nodes: [] as ArtNode[], core: null };
 
-  // the starburst core is the largest white mass; cluster it out of the
-  // twinkle list so it breathes as one light instead of shimmering in pieces
+  // Cluster the largest node mass out of the anchor list so the central
+  // starburst does not receive normal memory dots.
   const brightest = picked[0];
   const coreReach = Math.max(width, height) * 0.055;
   const coreCluster = picked.filter(
@@ -285,15 +288,15 @@ function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: num
 }
 
 function nodeColor(engram: Engram) {
-  if (engram.status !== "active") return "#5D4B58";
-  return colors[engram.type] ?? "#F5476B";
+  if (engram.status !== "active") return "#B7A691";
+  return colors[engram.type] ?? "#D85C3F";
 }
 
 function alphaFor(engram: Engram) {
   if (engram.status === "archived") return 0.15;
-  if (engram.status === "superseded") return 0.34;
-  if (engram.provisional) return 0.62;
-  return 0.72 + Math.max(0, Math.min(1, engram.strength)) * 0.28;
+  if (engram.status === "superseded") return 0.28;
+  if (engram.provisional) return 0.58;
+  return 0.68 + Math.max(0, Math.min(1, engram.strength)) * 0.28;
 }
 
 function resolveNode(value: string | CanvasNode) {
@@ -551,8 +554,6 @@ export function ConstellationCanvas({
   const brainArtRef = useRef<BrainArt | null>(null);
   const nodesRef = useRef<CanvasNode[]>([]);
   const linksRef = useRef<CanvasLink[]>([]);
-  const starfieldRef = useRef<StaticStar[]>([]);
-  const sceneryRef = useRef<HTMLCanvasElement | null>(null);
   const transientsRef = useRef<TransientEvent[]>([]);
   const fibersRef = useRef<{ fibers: Fiber[]; synapses: Synapse[] }>({
     fibers: [],
@@ -628,50 +629,40 @@ export function ConstellationCanvas({
   }, []);
 
   useEffect(() => {
-    const random = mulberry32(4271);
-    starfieldRef.current = Array.from({ length: 1320 }, (_, index) => {
-      const major = index % 79 === 0;
-      const seed = random();
-      return {
-        x: seed,
-        y: random(),
-        radius: major ? 1 + random() * 0.58 : 0.3 + random() * 0.74,
-        alpha: major ? 0.42 + random() * 0.18 : 0.09 + random() * 0.32,
-        twinkle: index < 72 || major,
-        phase: random() * Math.PI * 2
-      };
-    });
-  }, []);
-
-  useEffect(() => {
     const frame = computeFrame(size.width, size.height);
     frameRef.current = frame;
     fibersRef.current = buildFibers(frame);
-    sceneryRef.current = buildScenery(
-      size.width,
-      size.height,
-      window.devicePixelRatio || 1,
-      starfieldRef.current
-    );
   }, [size.height, size.width]);
 
   useEffect(() => {
     const frame = frameRef.current ?? computeFrame(size.width, size.height);
+    const art = brainArtRef.current;
+    const artRect = art ? artworkRect(frame, art.source) : null;
+    const artNodes = art?.nodes ?? [];
     const existing = new Map(nodesRef.current.map((node) => [node.id, node]));
     const nextNodes = graph.nodes.map((engram) => {
       const prior = existing.get(engram.id);
+      const seed = hashSeed(engram.id);
+      const artNode = artNodes.length
+        ? artNodes[Math.floor(seed * artNodes.length) % artNodes.length]
+        : null;
+      const anchorX = artNode && artRect ? artRect.x + artNode.x * artRect.w : undefined;
+      const anchorY = artNode && artRect ? artRect.y + artNode.y * artRect.h : undefined;
       if (prior) {
         prior.engram = engram;
+        prior.anchorX = anchorX;
+        prior.anchorY = anchorY;
         return prior;
       }
-      const seed = hashSeed(engram.id);
       const regionX = typeRegionX[engram.type] ?? 0.5;
-      const [x, y] = toCanvas(
+      const [fallbackX, fallbackY] = toCanvas(
         frame,
         regionX + (seed - 0.5) * 0.24,
         0.34 + ((seed * 7) % 1) * 0.26
       );
-      return { id: engram.id, engram, seed, x, y };
+      const x = anchorX ?? fallbackX;
+      const y = anchorY ?? fallbackY;
+      return { id: engram.id, engram, seed, anchorX, anchorY, x, y };
     });
 
     const tagLinks: CanvasLink[] = [];
@@ -718,10 +709,13 @@ export function ConstellationCanvas({
         "x",
         forceX<CanvasNode>((node) => {
           const regionX = typeRegionX[node.engram.type] ?? 0.5;
-          return toCanvas(frame, regionX, 0)[0];
+          return node.anchorX ?? toCanvas(frame, regionX, 0)[0];
         }).strength(0.05)
       )
-      .force("y", forceY<CanvasNode>(toCanvas(frame, 0, 0.38)[1]).strength(0.04))
+      .force(
+        "y",
+        forceY<CanvasNode>((node) => node.anchorY ?? toCanvas(frame, 0, 0.38)[1]).strength(0.04)
+      )
       .alpha(0.9)
       .alphaDecay(0.07);
 
@@ -748,7 +742,7 @@ export function ConstellationCanvas({
       }
     }
     simulation.stop();
-  }, [graphKey, graph.links, graph.nodes, size.height, size.width]);
+  }, [brainImageReady, graphKey, graph.links, graph.nodes, size.height, size.width]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -767,16 +761,11 @@ export function ConstellationCanvas({
       if (!context) return;
       const frame = frameRef.current;
       context.clearRect(0, 0, size.width, size.height);
-      context.fillStyle = "#020104";
+      context.fillStyle = "#F3EADC";
       context.fillRect(0, 0, size.width, size.height);
-      if (sceneryRef.current) {
-        context.drawImage(sceneryRef.current, 0, 0, size.width, size.height);
-      }
-      drawTwinkleStars(context, size.width, size.height, starfieldRef.current, time, motionReduced);
 
       if (frame) {
-        // the mind wakes up: dormant at zero memories, fully lit around six
-        const wakefulness = Math.min(1, 0.3 + nodesRef.current.length * 0.14);
+        const wakefulness = Math.min(1, 0.46 + nodesRef.current.length * 0.12);
         const vitality = dormant ? 0.88 : 1;
         const art = brainImageReady ? brainArtRef.current : null;
         if (art) {
@@ -785,6 +774,9 @@ export function ConstellationCanvas({
           context.globalAlpha = wakefulness;
           drawBrainArtwork(context, rect, art.source);
           context.restore();
+          if (!dormant) {
+            drawArtworkLife(context, rect, art, time, motionReduced, vitality);
+          }
         } else {
           drawBrainBase(context, frame, time, motionReduced, vitality);
           drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
@@ -897,8 +889,8 @@ export function ConstellationCanvas({
       />
 
       {graph.nodes.length === 0 ? (
-        <div className="pointer-events-none absolute inset-x-0 top-[72%] flex justify-center px-8 text-center">
-          <p className="max-w-xl font-display text-[27px] italic leading-snug text-[#d9aec2]">
+        <div className="pointer-events-none absolute inset-x-0 top-[64%] flex justify-center px-8 text-center sm:top-[72%]">
+          <p className="max-w-xl font-display text-[23px] italic leading-snug text-starlight sm:text-[27px]">
             Reverie has not met Lena yet.
             <br />
             Everything she tells it will appear here.
@@ -908,7 +900,7 @@ export function ConstellationCanvas({
 
       {tooltip ? (
         <div
-          className="pointer-events-none absolute z-20 w-72 rounded-lg border border-hairline bg-field-2/95 p-3 text-left backdrop-blur"
+          className="pointer-events-none absolute z-20 w-72 rounded-lg border border-hairline bg-field-2 p-3 text-left shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)]"
           style={{
             left: Math.min(size.width - 300, Math.max(12, tooltip.x + 14)),
             top: Math.min(size.height - 140, Math.max(12, tooltip.y + 14))
@@ -962,7 +954,7 @@ function drawTransientEvents(
     const targetY = target?.y ?? height / 2;
 
     context.save();
-    context.globalCompositeOperation = "lighter";
+    context.globalCompositeOperation = "source-over";
     context.lineCap = "round";
 
     if (event.eventType === "engram.merged" && event.mergedFrom) {
@@ -972,13 +964,13 @@ function drawTransientEvents(
         const sy = source.y ?? targetY;
         const x = sx + (targetX - sx) * progress;
         const y = sy + (targetY - sy) * progress;
-        context.strokeStyle = `rgba(255,147,168,${0.5 * fade})`;
+        context.strokeStyle = `rgba(216,92,63,${0.42 * fade})`;
         context.lineWidth = 1;
         context.beginPath();
         context.moveTo(sx, sy);
         context.lineTo(targetX, targetY);
         context.stroke();
-        context.fillStyle = `rgba(255,147,168,${0.85 * fade})`;
+        context.fillStyle = `rgba(216,92,63,${0.45 * fade})`;
         context.beginPath();
         context.arc(x, y, 5 + 10 * (1 - fade), 0, Math.PI * 2);
         context.fill();
@@ -991,7 +983,7 @@ function drawTransientEvents(
       context.arc(targetX, targetY, 18 + progress * 10, 0, Math.PI * 2);
       context.stroke();
       if (successor) {
-        context.strokeStyle = `rgba(255,147,168,${0.36 * fade})`;
+        context.strokeStyle = `rgba(216,92,63,${0.3 * fade})`;
         context.beginPath();
         context.moveTo(targetX, targetY);
         context.lineTo(successor.x ?? targetX, successor.y ?? targetY);
@@ -1002,23 +994,23 @@ function drawTransientEvents(
       const edgeY = Math.min(height - 18, Math.max(18, targetY + (targetY - height / 2) * 0.55));
       const x = targetX + (edgeX - targetX) * progress;
       const y = targetY + (edgeY - targetY) * progress;
-      context.strokeStyle = `rgba(110,92,102,${0.7 * fade})`;
+      context.strokeStyle = `rgba(155,138,123,${0.62 * fade})`;
       context.lineWidth = 1;
       context.beginPath();
       context.moveTo(targetX, targetY);
       context.lineTo(x, y);
       context.stroke();
-      context.fillStyle = `rgba(110,92,102,${0.55 * fade})`;
+      context.fillStyle = `rgba(155,138,123,${0.5 * fade})`;
       context.beginPath();
       context.arc(x, y, 4 + 4 * progress, 0, Math.PI * 2);
       context.fill();
     } else {
       const color =
         event.eventType === "engram.reinforced"
-          ? "99,201,165"
+          ? "119,130,103"
           : event.eventType === "engram.observed"
-            ? "255,147,168"
-            : "242,166,90";
+            ? "216,92,63"
+            : "215,139,9";
       context.strokeStyle = `rgba(${color},${0.72 * fade})`;
       context.lineWidth = 1.5;
       context.beginPath();
@@ -1037,145 +1029,6 @@ function nodeRadius(engram: Engram, scale = 1) {
 function ambientDrift(seed: number, time: number, reduced: boolean) {
   if (reduced) return 0;
   return Math.sin(time / 6000 + seed * Math.PI * 2) * 2;
-}
-
-function starColor(star: StaticStar, alpha: number) {
-  if (star.phase > Math.PI * 1.08) return `rgba(255,147,168,${alpha})`;
-  if (star.phase < Math.PI * 0.42) return `rgba(242,166,90,${alpha * 0.85})`;
-  return `rgba(243,236,227,${alpha})`;
-}
-
-// everything that never moves (fixed stars, nebula, diffraction glints) is
-// burned onto one offscreen plate so the animation loop just blits it
-function buildScenery(width: number, height: number, dpr: number, stars: StaticStar[]) {
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.floor(width * dpr));
-  canvas.height = Math.max(1, Math.floor(height * dpr));
-  const context = canvas.getContext("2d");
-  if (!context) return canvas;
-  context.scale(dpr, dpr);
-  context.globalCompositeOperation = "lighter";
-
-  // nebula bank rolling in from the lower-right corner
-  const base = Math.min(width, height);
-  const random = mulberry32(511);
-  const plumes: Array<[number, number, number, [number, number, number], number]> = [
-    [1.04, 1.08, 0.62, [168, 44, 78], 0.1],
-    [0.86, 1.06, 0.42, [150, 40, 70], 0.08],
-    [1.08, 0.87, 0.38, [158, 36, 64], 0.08],
-    [0.95, 0.95, 0.24, [214, 66, 110], 0.06]
-  ];
-  for (let index = 0; index < 16; index += 1) {
-    plumes.push([
-      0.78 + random() * 0.3,
-      0.7 + random() * 0.4,
-      0.05 + random() * 0.09,
-      mix([176, 50, 88], [214, 66, 118], random()),
-      0.02 + random() * 0.035
-    ]);
-  }
-  for (const [nx, ny, nr, color, alpha] of plumes) {
-    const x = nx * width;
-    const y = ny * height;
-    const radius = nr * base * 1.5;
-    const cloud = context.createRadialGradient(x, y, 0, x, y, radius);
-    cloud.addColorStop(0, rgba(color, alpha));
-    cloud.addColorStop(0.55, rgba(color, alpha * 0.45));
-    cloud.addColorStop(1, "rgba(5,4,8,0)");
-    context.fillStyle = cloud;
-    context.beginPath();
-    context.arc(x, y, radius, 0, Math.PI * 2);
-    context.fill();
-  }
-
-  for (const star of stars) {
-    if (star.twinkle) continue;
-    context.fillStyle = starColor(star, star.alpha);
-    context.beginPath();
-    context.arc(star.x * width, star.y * height, star.radius, 0, Math.PI * 2);
-    context.fill();
-  }
-
-  drawGlint(context, width * 0.935, height * 0.42, base * 0.036, [255, 208, 224]);
-  drawGlint(context, width * 0.075, height * 0.18, base * 0.02, [255, 216, 226]);
-  drawGlint(context, width * 0.16, height * 0.88, base * 0.014, [255, 188, 212]);
-
-  return canvas;
-}
-
-function drawGlint(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  tint: [number, number, number]
-) {
-  const halo = context.createRadialGradient(x, y, 0, x, y, size * 0.9);
-  halo.addColorStop(0, rgba(tint, 0.5));
-  halo.addColorStop(0.35, rgba(tint, 0.14));
-  halo.addColorStop(1, "rgba(5,4,8,0)");
-  context.fillStyle = halo;
-  context.beginPath();
-  context.arc(x, y, size * 0.9, 0, Math.PI * 2);
-  context.fill();
-
-  const spikes: Array<[number, number, number]> = [
-    [1, 0, size],
-    [-1, 0, size],
-    [0, 1, size * 0.8],
-    [0, -1, size * 0.8]
-  ];
-  for (const [dx, dy, reach] of spikes) {
-    const spike = context.createLinearGradient(x, y, x + dx * reach, y + dy * reach);
-    spike.addColorStop(0, "rgba(255,255,255,0.9)");
-    spike.addColorStop(1, "rgba(255,255,255,0)");
-    context.strokeStyle = spike;
-    context.lineWidth = 1.3;
-    context.beginPath();
-    context.moveTo(x, y);
-    context.lineTo(x + dx * reach, y + dy * reach);
-    context.stroke();
-  }
-
-  context.fillStyle = "rgba(255,255,255,0.95)";
-  context.beginPath();
-  context.arc(x, y, 1.6, 0, Math.PI * 2);
-  context.fill();
-}
-
-function drawTwinkleStars(
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  stars: StaticStar[],
-  time: number,
-  reduced: boolean
-) {
-  context.save();
-  context.globalCompositeOperation = "lighter";
-  for (const star of stars) {
-    if (!star.twinkle) continue;
-    const x = star.x * width;
-    const y = star.y * height;
-    const twinkle = reduced ? 1 : 0.55 + Math.sin(time / 2600 + star.phase) * 0.35;
-    const alpha = Math.max(0.03, star.alpha * twinkle);
-    context.fillStyle = starColor(star, alpha);
-    context.beginPath();
-    context.arc(x, y, star.radius, 0, Math.PI * 2);
-    context.fill();
-
-    if (star.radius > 0.8) {
-      context.strokeStyle = `rgba(255,147,168,${alpha * 0.42})`;
-      context.lineWidth = 0.7;
-      context.beginPath();
-      context.moveTo(x - star.radius * 5, y);
-      context.lineTo(x + star.radius * 5, y);
-      context.moveTo(x, y - star.radius * 5);
-      context.lineTo(x, y + star.radius * 5);
-      context.stroke();
-    }
-  }
-  context.restore();
 }
 
 function artworkRect(frame: BrainFrame, image: HTMLCanvasElement | HTMLImageElement): ArtRect {
@@ -1216,7 +1069,7 @@ function drawArtworkLife(
   vitality: number
 ) {
   context.save();
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = "source-over";
   const unit = rect.w / 900;
 
   for (const node of art.nodes) {
@@ -1230,13 +1083,13 @@ function drawArtworkLife(
     const halo = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 6);
     halo.addColorStop(0, rgba(color, alpha));
     halo.addColorStop(0.4, rgba(color, alpha * 0.4));
-    halo.addColorStop(1, "rgba(5,4,8,0)");
+    halo.addColorStop(1, "rgba(243,234,220,0)");
     context.fillStyle = halo;
     context.beginPath();
     context.arc(x, y, radius * 6, 0, Math.PI * 2);
     context.fill();
 
-    context.fillStyle = `rgba(255,255,255,${alpha * 0.85})`;
+    context.fillStyle = `rgba(255,253,248,${alpha * 0.7})`;
     context.beginPath();
     context.arc(x, y, radius * 0.55, 0, Math.PI * 2);
     context.fill();
@@ -1248,9 +1101,9 @@ function drawArtworkLife(
     const breath = reduced ? 0.8 : 0.65 + Math.sin(time / 2600) * 0.35;
     const radius = rect.w * 0.05 * (0.8 + breath * 0.25);
     const halo = context.createRadialGradient(x, y, radius * 0.1, x, y, radius * 2.6);
-    halo.addColorStop(0, `rgba(255,196,210,${0.22 * breath * vitality})`);
-    halo.addColorStop(0.4, `rgba(245,71,107,${0.12 * breath * vitality})`);
-    halo.addColorStop(1, "rgba(5,4,8,0)");
+    halo.addColorStop(0, `rgba(255,239,220,${0.2 * breath * vitality})`);
+    halo.addColorStop(0.4, `rgba(216,92,63,${0.12 * breath * vitality})`);
+    halo.addColorStop(1, "rgba(243,234,220,0)");
     context.fillStyle = halo;
     context.beginPath();
     context.arc(x, y, radius * 2.6, 0, Math.PI * 2);
@@ -1279,15 +1132,15 @@ function drawBrainBase(
     frame.coreY,
     frame.scale * 0.62
   );
-  wash.addColorStop(0, `rgba(245,71,107,${0.18 * vitality * breath})`);
-  wash.addColorStop(0.42, `rgba(169,139,250,${0.055 * vitality})`);
-  wash.addColorStop(1, "rgba(5,4,8,0)");
+  wash.addColorStop(0, `rgba(216,92,63,${0.12 * vitality * breath})`);
+  wash.addColorStop(0.42, `rgba(151,101,66,${0.05 * vitality})`);
+  wash.addColorStop(1, "rgba(243,234,220,0)");
   context.fillStyle = wash;
   context.fill();
 
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = "source-over";
   context.lineWidth = 1.2;
-  context.strokeStyle = `rgba(169,139,250,${0.18 * vitality})`;
+  context.strokeStyle = `rgba(151,101,66,${0.22 * vitality})`;
   traceBrainPath(context, frame);
   context.stroke();
   context.restore();
@@ -1302,21 +1155,20 @@ function drawBrainRim(
 ) {
   const shimmer = reduced ? 1 : 0.75 + Math.sin(time / 3600) * 0.25;
   context.save();
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = "source-over";
 
   const outline = context.createLinearGradient(frame.minX, frame.coreY, frame.maxX, frame.coreY);
-  outline.addColorStop(0, `rgba(169,139,250,${0.72 * vitality * shimmer})`);
-  outline.addColorStop(0.5, `rgba(255,76,169,${0.8 * vitality})`);
-  outline.addColorStop(1, `rgba(255,128,69,${0.72 * vitality * shimmer})`);
+  outline.addColorStop(0, `rgba(151,101,66,${0.42 * vitality * shimmer})`);
+  outline.addColorStop(0.5, `rgba(216,92,63,${0.44 * vitality})`);
+  outline.addColorStop(1, `rgba(215,139,9,${0.38 * vitality * shimmer})`);
 
   context.strokeStyle = outline;
   context.lineWidth = Math.max(1, frame.scale * 0.0022);
   traceBrainPath(context, frame);
   context.stroke();
 
-  context.shadowColor = "rgba(245,71,107,0.62)";
-  context.shadowBlur = frame.scale * 0.018;
-  context.strokeStyle = `rgba(255,147,168,${0.34 * vitality})`;
+  context.shadowBlur = 0;
+  context.strokeStyle = `rgba(216,92,63,${0.2 * vitality})`;
   context.lineWidth = Math.max(1, frame.scale * 0.0012);
   traceBrainPath(context, frame);
   context.stroke();
@@ -1339,7 +1191,7 @@ function drawFibers(
   context.save();
   traceBrainPath(context, frame);
   context.clip();
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = "source-over";
 
   for (const fiber of bundle.fibers) {
     const breath = reduced ? 1 : 0.75 + Math.sin(time / 3400 + fiber.phase) * 0.25;
@@ -1373,7 +1225,7 @@ function drawFibers(
     );
     glow.addColorStop(0, rgba(color, alpha * 0.45));
     glow.addColorStop(0.34, rgba(color, alpha * 0.22));
-    glow.addColorStop(1, "rgba(5,4,8,0)");
+    glow.addColorStop(1, "rgba(243,234,220,0)");
     context.fillStyle = glow;
     context.beginPath();
     context.arc(synapse.x, synapse.y, radius * 5.4, 0, Math.PI * 2);
@@ -1384,7 +1236,7 @@ function drawFibers(
     context.arc(synapse.x, synapse.y, radius, 0, Math.PI * 2);
     context.fill();
 
-    context.fillStyle = `rgba(255,255,255,${Math.min(0.72, alpha * 0.8)})`;
+    context.fillStyle = `rgba(255,253,248,${Math.min(0.56, alpha * 0.65)})`;
     context.beginPath();
     context.arc(
       synapse.x - radius * 0.28,
@@ -1409,7 +1261,7 @@ function drawCore(
   const breath = reduced ? 1 : 0.85 + Math.sin(time / 2600) * 0.15;
   const radius = frame.scale * 0.058 * breath;
   context.save();
-  context.globalCompositeOperation = "lighter";
+  context.globalCompositeOperation = "source-over";
 
   const halo = context.createRadialGradient(
     frame.coreX,
@@ -1419,9 +1271,9 @@ function drawCore(
     frame.coreY,
     radius * 3.2
   );
-  halo.addColorStop(0, `rgba(255,214,224,${0.5 * vitality})`);
-  halo.addColorStop(0.28, `rgba(245,71,107,${0.3 * vitality})`);
-  halo.addColorStop(1, "rgba(5,4,8,0)");
+  halo.addColorStop(0, `rgba(255,239,220,${0.42 * vitality})`);
+  halo.addColorStop(0.28, `rgba(216,92,63,${0.25 * vitality})`);
+  halo.addColorStop(1, "rgba(243,234,220,0)");
   context.fillStyle = halo;
   context.beginPath();
   context.arc(frame.coreX, frame.coreY, radius * 3.2, 0, Math.PI * 2);
@@ -1435,9 +1287,9 @@ function drawCore(
     frame.coreY,
     radius
   );
-  core.addColorStop(0, `rgba(255,255,255,${0.95 * vitality})`);
-  core.addColorStop(0.45, `rgba(255,183,197,${0.75 * vitality})`);
-  core.addColorStop(1, "rgba(245,71,107,0)");
+  core.addColorStop(0, `rgba(255,253,248,${0.95 * vitality})`);
+  core.addColorStop(0.45, `rgba(255,200,160,${0.72 * vitality})`);
+  core.addColorStop(1, "rgba(216,92,63,0)");
   context.fillStyle = core;
   context.beginPath();
   context.arc(frame.coreX, frame.coreY, radius, 0, Math.PI * 2);
@@ -1464,8 +1316,8 @@ function drawCurvedLink(
   const cy = midY + (frame.coreY - midY) * 0.24;
   context.save();
   context.strokeStyle =
-    type === "shared_tag" ? "rgba(169,139,250,0.16)" : "rgba(245,71,107,0.4)";
-  context.lineWidth = type === "shared_tag" ? 0.6 : 0.9;
+    type === "shared_tag" ? "rgba(151,101,66,0.32)" : "rgba(216,92,63,0.42)";
+  context.lineWidth = type === "shared_tag" ? 0.7 : 0.95;
   context.beginPath();
   context.moveTo(x1, y1);
   context.quadraticCurveTo(cx, cy, x2, y2);
@@ -1502,9 +1354,9 @@ function drawStrongLabels(
     const textWidth = context.measureText(label).width;
     const labelX = Math.min(width - textWidth - 14, Math.max(14, x + radius + 11));
     const labelY = Math.min(height - 12, Math.max(12, y - radius - 9));
-    context.fillStyle = "rgba(5,4,8,0.72)";
+    context.fillStyle = "rgba(255,253,248,0.86)";
     context.fillRect(labelX - 5, labelY - 8, textWidth + 10, 16);
-    context.fillStyle = "rgba(224,206,216,0.95)";
+    context.fillStyle = "rgba(43,33,25,0.95)";
     context.fillText(label, labelX, labelY);
   }
   context.restore();
@@ -1530,27 +1382,24 @@ function drawNode(
 
   context.save();
 
-  if (state.pulse) {
+  if (state.pulse || state.selected || state.highlighted) {
     const ripple = ((state.time % 1500) / 1500) * radius * 4;
-    context.globalAlpha = Math.max(0, 0.5 - ripple / (radius * 8));
-    context.strokeStyle = color;
-    context.lineWidth = 1.2;
+    const haloRadius = Math.max(24, Math.min(40, radius * 4 + ripple * 0.25));
+    const halo = context.createRadialGradient(x, y, radius * 0.4, x, y, haloRadius);
+    halo.addColorStop(0, "rgba(216,92,63,0.35)");
+    halo.addColorStop(0.45, "rgba(216,92,63,0.16)");
+    halo.addColorStop(1, "rgba(243,234,220,0)");
+    context.globalAlpha = state.pulse ? Math.max(0.2, 1 - ripple / (radius * 8)) : 0.72;
+    context.fillStyle = halo;
     context.beginPath();
-    context.arc(x, y, radius + ripple, 0, Math.PI * 2);
-    context.stroke();
+    context.arc(x, y, haloRadius, 0, Math.PI * 2);
+    context.fill();
   }
-
-  // dark backing disc separates the orb from the bright artwork behind it
-  context.globalAlpha = 0.5;
-  context.fillStyle = "#050408";
-  context.beginPath();
-  context.arc(x, y, radius * 1.9, 0, Math.PI * 2);
-  context.fill();
 
   const gradient = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 3);
   gradient.addColorStop(0, color);
   gradient.addColorStop(0.42, `${color}77`);
-  gradient.addColorStop(1, "rgba(5,4,8,0)");
+  gradient.addColorStop(1, "rgba(243,234,220,0)");
   context.fillStyle = gradient;
   context.globalAlpha = haloOpacity;
   context.beginPath();
@@ -1572,8 +1421,8 @@ function drawNode(
     y,
     radius
   );
-  core.addColorStop(0, "#FFFFFF");
-  core.addColorStop(0.18, "#FFD3DC");
+  core.addColorStop(0, "#FFFDF8");
+  core.addColorStop(0.18, "#FCE0CB");
   core.addColorStop(0.45, color);
   core.addColorStop(1, color);
   context.fillStyle = core;
@@ -1582,14 +1431,21 @@ function drawNode(
   context.fill();
 
   context.globalAlpha = Math.min(1, alpha + 0.2);
-  context.fillStyle = "rgba(255,255,255,0.62)";
+  context.fillStyle = "rgba(255,253,248,0.52)";
   context.beginPath();
   context.arc(x - radius * 0.28, y - radius * 0.32, Math.max(1, radius * 0.22), 0, Math.PI * 2);
   context.fill();
 
+  context.globalAlpha = Math.min(1, alpha + 0.2);
+  context.strokeStyle = color;
+  context.lineWidth = 1;
+  context.beginPath();
+  context.arc(x, y, radius + 0.5, 0, Math.PI * 2);
+  context.stroke();
+
   if (engram.provisional || state.selected || state.highlighted) {
     context.globalAlpha = state.selected || state.highlighted ? 0.95 : 0.5;
-    context.strokeStyle = state.selected ? "#FF93A8" : color;
+    context.strokeStyle = state.selected ? "#D85C3F" : color;
     context.lineWidth = state.selected || state.highlighted ? 1.1 : 0.8;
     if (engram.provisional) context.setLineDash([3, 4]);
     context.beginPath();

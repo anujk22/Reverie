@@ -214,7 +214,7 @@ function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: Met
                 <div className="h-2.5 rounded-full bg-void">
                   <div
                     className={`h-full rounded-full ${conditionClass(row)} ${
-                      isWinner ? "shadow-[0_0_18px_rgba(245,71,107,0.28)]" : ""
+                      isWinner ? "shadow-[0_8px_18px_-12px_rgba(93,64,35,0.28)]" : ""
                     }`}
                     style={{ width }}
                   />

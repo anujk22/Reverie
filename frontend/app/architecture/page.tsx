@@ -94,7 +94,7 @@ export default function ArchitecturePage() {
                   <div
                     className={`rounded-lg border bg-field/70 p-5 ${
                       layer.featured
-                        ? "border-ember/50 shadow-[0_0_30px_rgba(245,71,107,0.12)] lg:-my-2"
+                        ? "border-ember/50 shadow-[0_8px_28px_-12px_rgba(93,64,35,0.16)] lg:-my-2"
                         : "border-hairline"
                     }`}
                   >

@@ -30,10 +30,10 @@ function AppShellFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-void text-starlight md:p-3">
-      <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-16 rounded-l-lg border border-hairline bg-void/95 md:flex md:flex-col md:items-center">
+      <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-[72px] rounded-l-lg border border-hairline bg-field md:flex md:flex-col md:items-center">
         <Link
           href="/"
-          className="flex h-28 w-full items-center justify-center border-b border-hairline font-display text-[21px] italic text-starlight [writing-mode:vertical-rl]"
+          className="flex h-32 w-full items-center justify-center border-b border-hairline font-display text-[22px] italic leading-none text-starlight [writing-mode:vertical-rl]"
           title="Reverie"
         >
           Reverie
@@ -51,8 +51,8 @@ function AppShellFrame({ children }: { children: ReactNode }) {
                 title={route.label}
                 className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
                   active
-                    ? "bg-field-2 text-glow ember-glow"
-                    : "text-dim hover:bg-field-2 hover:text-starlight"
+                    ? "rounded-[14px] border border-ember/30 bg-ember/10 text-ember"
+                    : "text-starlight hover:bg-field-2 hover:text-ember"
                 }`}
               >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
@@ -68,20 +68,20 @@ function AppShellFrame({ children }: { children: ReactNode }) {
             onClick={() => director.start()}
             className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline transition ${
               directorActive
-                ? "bg-field-2 text-glow ember-glow"
-                : "bg-field-2/80 text-dim hover:text-starlight"
+                ? "bg-ember/10 text-ember"
+                : "bg-field-2 text-starlight hover:text-ember"
             }`}
           >
             <Clapperboard aria-hidden="true" size={17} strokeWidth={1.8} />
           </button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2/80 font-mono text-[11px] text-starlight">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-sage/30 bg-sage/20 font-mono text-[11px] text-starlight">
             LP
           </div>
           <RuntimeChip />
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-hairline bg-void/90 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-20 border-b border-hairline bg-field/95 backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/" className="font-display text-xl italic">
             Reverie
@@ -93,7 +93,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
               title="Play the story"
               onClick={() => director.start()}
               className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline ${
-                directorActive ? "bg-field-2 text-glow" : "bg-field text-dim"
+                directorActive ? "bg-ember/10 text-ember" : "bg-field-2 text-starlight"
               }`}
             >
               <Clapperboard aria-hidden="true" size={17} strokeWidth={1.8} />
@@ -106,7 +106,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
                   href={route.href}
                   aria-label={route.label}
                   title={route.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field text-dim"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 text-starlight"
                 >
                   <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
                 </Link>
@@ -116,7 +116,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-dvh md:ml-16 md:min-h-[calc(100dvh-1.5rem)] md:rounded-r-lg md:border-y md:border-r md:border-hairline md:bg-void">
+      <main className="min-h-dvh md:ml-[72px] md:min-h-[calc(100dvh-1.5rem)] md:rounded-r-lg md:border-y md:border-r md:border-hairline md:bg-void">
         {children}
       </main>
     </div>

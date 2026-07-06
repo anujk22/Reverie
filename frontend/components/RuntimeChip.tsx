@@ -78,12 +78,12 @@ export function RuntimeChip() {
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className={`min-w-12 rounded-full border border-hairline bg-field-2/80 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
+        className={`min-w-12 rounded-full border bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
           mock
-            ? "text-ember"
+            ? "border-gold/50 text-gold"
             : state === "live"
-              ? "text-sage"
-              : "text-coral"
+              ? "border-sage/40 text-sage"
+              : "border-coral/40 text-coral"
         }`}
         title="Runtime status"
       >
@@ -91,7 +91,7 @@ export function RuntimeChip() {
       </div>
       {offset ? (
         <div
-          className="min-w-12 rounded-full border border-hairline bg-field-2/80 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none text-dim"
+          className="min-w-12 rounded-full border border-hairline bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none text-dim"
           title="Simulated demo date"
         >
           {status?.simulated_date ?? "shifted"}
@@ -99,7 +99,7 @@ export function RuntimeChip() {
       ) : null}
       {degraded ? (
         <div
-          className="w-20 rounded-full border border-gold/40 bg-field-2/90 px-2 py-1 text-center font-mono text-[10px] uppercase leading-tight text-gold"
+          className="w-20 rounded-full border border-gold/40 bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-tight text-gold"
           title="A live model call degraded and fell back"
         >
           live model degraded
