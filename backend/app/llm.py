@@ -464,7 +464,7 @@ class LLMClient:
             return result
 
         prompt = (
-            "You are consolidating a tutoring session into long-term memory. Given a candidate memory\n"
+            "You are consolidating a conversation session into long-term memory. Given a candidate memory\n"
             "and the exact transcript excerpts it came from, return STRICT JSON:\n"
             "{\"verdict\":\"confirm|revise|reject\",\"content\":\"(final one-sentence content if confirm/revise)\",\n"
             " \"confidence\":0.0,\"reason\":\"one short sentence\"}\n"
