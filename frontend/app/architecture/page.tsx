@@ -33,7 +33,10 @@ const storage = [
 const stack = [
   ["Frontend", "Next.js App Router · live constellation canvas · streaming updates"],
   ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
-  ["Qwen on Alibaba Cloud", "Chat, observer, judge, and embedding models"],
+  [
+    "Qwen on Alibaba Cloud",
+    "qwen-flash observer · qwen-plus tutor · qwen-max dreams and judges · text-embedding-v4"
+  ],
   ["Deployment", "Docker Compose · Nginx · ECS-ready runtime"]
 ];
 

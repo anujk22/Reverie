@@ -1,5 +1,11 @@
 {
   "title": "Session 2 - chain rule mastery",
+  "probes": [
+    {
+      "expected_tags": ["chain_rule", "worked_examples"],
+      "absent_tags": []
+    }
+  ],
   "turns": [
     {
       "student": "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first.",

@@ -1,15 +1,17 @@
 # Reverie
 
-Reverie is a memory engine wearing a tutoring skin. It extracts durable observations, dreams over the evidence between sessions, forgets stale memories, and recalls only the memories that fit a fixed context budget.
+![Reverie session screen](docs/screenshots/final-session-recall-desktop.png)
 
-The engine contains zero calculus knowledge. The subject lives in two prompt surfaces: the tutor prompt and the demo scripts. The memory pipeline itself is subject-agnostic, including extraction, dreaming, forgetting, duplicate detection, and budgeted recall. The clearest proof is the Spanish-conjugation duplicate-guard test in [`backend/tests/test_dedupe.py`](./backend/tests/test_dedupe.py), which exercises the memory machinery without the demo subject.
+Reverie is a memory engine wearing a tutoring skin: it observes how a learner thinks, dreams over the evidence between sessions, forgets stale memories, and recalls only what fits a fixed context budget.
 
 What is inside:
 
-- Event-sourced memory: every observed, reinforced, merged, superseded, decayed, and archived memory is an immutable event.
-- Dream cycle: session memories are consolidated, deduplicated, reconciled, decayed, and reported.
-- Budgeted retrieval: the working-memory pack is scored under a fixed token budget and rendered on screen.
-- Visible proof: the Session, Dream, Evals, Conductor, and Architecture screens are built for the hackathon demo flow.
+- Dream cycle with schema-gated Qwen judges for distillation, duplicate/refinement checks, contradiction handling, and deterministic memory updates.
+- Budgeted retrieval with visible winner chips, token usage, and excluded memories.
+- Event-sourced memory with provenance-verified extraction, visible consolidation, reinforcement, decay, archive, and supersession events.
+- Eval harness for no-memory, full-history, and Reverie conditions. Live runs write `EVALS.md`; mock runs stay marked `real_run=false`.
+
+![Architecture diagram](docs/diagram.svg)
 
 ## Quickstart
 
@@ -18,15 +20,18 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Local development without a DashScope key can use deterministic fallback mode:
+Set `DASHSCOPE_API_KEY` in `.env` for live Qwen calls. Local deterministic fallback:
 
 ```bash
 MOCK_LLM=true docker compose up --build
 ```
 
-Frontend: http://localhost:3000
+Frontend: http://localhost:3000<br>
 Backend health: http://localhost:8000/api/health
 
-## Project Status
+## Useful Links
 
-See [PROGRESS.md](./PROGRESS.md). Live M0 DashScope/ECS discovery is blocked until credentials and an Alibaba ECS target are provided.
+- Demo video: `<PLACEHOLDER>`
+- Eval results: [EVALS.md](./EVALS.md)
+- Build log and verification: [PROGRESS.md](./PROGRESS.md)
+- Architecture: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)

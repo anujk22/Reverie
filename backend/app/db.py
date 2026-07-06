@@ -11,6 +11,7 @@ from typing import Any, Iterator
 
 from . import clock
 from .config import settings
+from .subject import STUDENT_ID, STUDENT_NAME, default_session_title
 
 
 def new_id(prefix: str) -> str:
@@ -65,7 +66,7 @@ class Database:
     def seed_demo(self, conn: sqlite3.Connection) -> None:
         conn.execute(
             "INSERT OR IGNORE INTO students(id, name, created_at) VALUES (?, ?, ?)",
-            ("stu_maya", "Maya Chen", clock.iso_now(conn)),
+            (STUDENT_ID, STUDENT_NAME, clock.iso_now(conn)),
         )
         conn.execute(
             "INSERT OR IGNORE INTO app_state(key, value) VALUES (?, ?)",
@@ -147,14 +148,14 @@ class Database:
     def create_session(self, title: str | None = None) -> dict[str, Any]:
         with self._lock, self.connection() as conn:
             count = conn.execute("SELECT COUNT(*) AS c FROM sessions").fetchone()["c"] + 1
-            title = title or f"Session {count} - chain rule"
+            title = title or default_session_title(count)
             session_id = new_id("ses")
             conn.execute(
                 """
                 INSERT INTO sessions(id, student_id, started_at, title)
                 VALUES (?, ?, ?, ?)
                 """,
-                (session_id, "stu_maya", clock.iso_now(conn), title),
+                (session_id, STUDENT_ID, clock.iso_now(conn), title),
             )
             return dict(conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone())
 
@@ -246,7 +247,7 @@ class Database:
                 """,
                 (
                     engram_id,
-                    "stu_maya",
+                    STUDENT_ID,
                     candidate["type"],
                     candidate["content"],
                     json.dumps(candidate.get("subject_tags", [])),
@@ -281,6 +282,13 @@ class Database:
             conn.execute(f"UPDATE engrams SET {names} WHERE id = ?", values)
             row = conn.execute("SELECT * FROM engrams WHERE id = ?", (engram_id,)).fetchone()
             return row_to_engram(row) if row else None
+
+    def upsert_vector(self, engram_id: str, embedding: list[float]) -> None:
+        with self._lock, self.connection() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO engram_vectors(engram_id, embedding_json) VALUES (?, ?)",
+                (engram_id, json.dumps(embedding)),
+            )
 
     def reinforce(self, engram_id: str) -> dict[str, Any] | None:
         with self._lock, self.connection() as conn:

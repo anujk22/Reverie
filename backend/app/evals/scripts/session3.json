@@ -1,13 +1,31 @@
 {
   "title": "Session 3 - recall probe",
+  "probes": [
+    {
+      "expected_tags": ["chain_rule", "worked_examples"],
+      "absent_tags": ["limits"]
+    }
+  ],
   "turns": [
     {
-      "student": "Before another problem, use my example-first preference and start with an example first.",
+      "student": "Before another problem, can we keep the example-first thing? It helps me settle in before the rule talk.",
       "expected_tags": ["worked_examples"]
     },
     {
       "student": "I can explain the chain rule now: outer derivative/inner derivative means take the outer derivative, leave the inside alone, times inner derivative.",
       "expected_tags": ["chain_rule", "mastery"]
+    },
+    {
+      "student": "For sin(5x^2), I think the outside derivative is cos(5x^2), and then I multiply by 10x for the inside. Is that the full move?",
+      "expected_tags": ["trig_composites", "chain_rule", "mastery"]
+    },
+    {
+      "student": "Also, the shorter late-night practice sets worked better than the long worksheet. I actually did them after work.",
+      "expected_tags": ["study_schedule", "short_practice"]
+    },
+    {
+      "student": "I still want one small question at a time, but the chain-rule panic is way lower now.",
+      "expected_tags": ["guiding_questions", "exam_anxiety", "chain_rule"]
     }
   ]
 }

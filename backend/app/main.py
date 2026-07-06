@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.config import settings
+from app import clock
 from app.db import db
 from app.llm import llm_client
 from app.routes import chat, conductor, dream, evals, memory, sessions
@@ -31,6 +32,13 @@ async def startup() -> None:
 @app.get("/api/health")
 async def health():
     dashscope = await llm_client.health()
+    with db.connection() as conn:
+        offset = int(
+            conn.execute(
+                "SELECT value FROM app_state WHERE key = 'clock_offset_seconds'"
+            ).fetchone()["value"]
+        )
+        simulated_date = clock.now(conn).date().isoformat() if offset else None
     return {
         "ok": True,
         "db": True,
@@ -38,11 +46,15 @@ async def health():
         "dashscope": dashscope,
         "model_ids": {
             "chat": settings.chat_model,
+            "observer": settings.observer_model,
+            "dream": settings.dream_model,
             "embed": settings.embed_model,
             "judge": settings.judge_model,
         },
         "mock": not settings.live_llm_enabled,
         "demo_mode": settings.demo_mode,
+        "clock_offset_seconds": offset,
+        "simulated_date": simulated_date,
     }
 
 

@@ -15,8 +15,14 @@ const typeColors: Record<string, string> = {
 };
 
 function scoreLine(item: MemoryPackItem) {
+  const labels: Record<string, string> = {
+    sim: "match",
+    strength: "strength",
+    recency: "recency",
+    prior: "priority"
+  };
   const parts = Object.entries(item.breakdown ?? {}).map(
-    ([key, value]) => `${key} ${value.toFixed(2)}`
+    ([key, value]) => `${labels[key] ?? key.replace(/_/g, " ")} ${value.toFixed(2)}`
   );
   return parts.length ? parts.join(" · ") : `score ${item.score.toFixed(2)}`;
 }

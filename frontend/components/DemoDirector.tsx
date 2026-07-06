@@ -25,7 +25,7 @@ import {
   reloadDemoSession,
   sendDemoMessage
 } from "@/lib/demoBus";
-import { demoScript, type DemoBeat, type DemoPage } from "@/lib/demoScript";
+import { filmScript, type DemoBeat, type DemoPage } from "@/lib/filmScript";
 
 type DirectorStatus = "idle" | "playing" | "paused" | "done";
 
@@ -94,8 +94,8 @@ function isTypingTarget(target: EventTarget | null) {
 
 function removeDirectorParam() {
   const url = new URL(window.location.href);
-  if (!url.searchParams.has("director")) return;
-  url.searchParams.delete("director");
+  if (!url.searchParams.has("film")) return;
+  url.searchParams.delete("film");
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
@@ -268,7 +268,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
       clearAutoTimer();
       abortRef.current?.abort();
 
-      if (index >= demoScript.length) {
+      if (index >= filmScript.length) {
         setStatus("done");
         setBusy(false);
         setError(null);
@@ -286,13 +286,13 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const beat = demoScript[index];
+        const beat = filmScript[index];
         await executeBeat(beat, abortController.signal);
         if (runTokenRef.current !== token) return;
         abortRef.current = null;
         setBusy(false);
 
-        if (index === demoScript.length - 1) {
+        if (index === filmScript.length - 1) {
           setStatus("done");
           return;
         }
@@ -367,11 +367,11 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         next &&
         !busyRef.current &&
         statusRef.current === "playing" &&
-        beatIndexRef.current < demoScript.length - 1
+        beatIndexRef.current < filmScript.length - 1
       ) {
         scheduleAutoAdvance(
           beatIndexRef.current,
-          demoScript[beatIndexRef.current]?.autoAdvanceMs ?? 3500
+          filmScript[beatIndexRef.current]?.autoAdvanceMs ?? 3500
         );
       }
 
@@ -386,7 +386,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    if (!urlStartRef.current && url.searchParams.get("director") === "1") {
+    if (!urlStartRef.current && url.searchParams.get("film") === "1") {
       urlStartRef.current = true;
       start();
     }
@@ -429,9 +429,9 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
   const context = useMemo<DemoDirectorContextValue>(
     () => ({
       status,
-      currentBeat: demoScript[beatIndex] ?? null,
+      currentBeat: filmScript[beatIndex] ?? null,
       currentBeatIndex: beatIndex,
-      totalBeats: demoScript.length,
+      totalBeats: filmScript.length,
       busy,
       autoplay,
       start,
@@ -471,7 +471,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-void/88 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur md:right-5 md:top-5">
-        <span className="text-starlight">director mode</span>
+        <span className="text-starlight">film</span>
         <span className="text-faint">·</span>
         <span>{autoplay ? "autoplay on" : "space to advance"}</span>
         <span className="text-faint">·</span>
@@ -491,8 +491,8 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
         </button>
         <button
           type="button"
-          aria-label="Exit director mode"
-          title="Exit director mode"
+          aria-label="Exit film mode"
+          title="Exit film mode"
           onClick={exit}
           className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-dim transition hover:text-starlight"
         >
@@ -521,7 +521,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
 
             <div className="flex shrink-0 items-center gap-3">
               <div className="flex items-center gap-1.5" aria-label="Demo beat progress">
-                {demoScript.map((beat, index) => (
+                {filmScript.map((beat, index) => (
                   <span
                     key={beat.id}
                     className={`h-1.5 rounded-full transition-all ${

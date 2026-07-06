@@ -43,7 +43,10 @@ export function HealthPanel() {
         if (!cancelled) {
           setStatus({
             ok: false,
-            error: error instanceof Error ? error.message : "backend unavailable"
+            error:
+              error instanceof Error && error.message.toLowerCase().includes("failed to fetch")
+                ? "memory engine unreachable"
+                : "memory engine unavailable"
           });
           setState("offline");
         }

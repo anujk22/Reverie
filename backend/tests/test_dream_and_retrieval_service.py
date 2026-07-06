@@ -279,3 +279,96 @@ def test_newer_mastery_supersedes_older_misconception(tmp_path, monkeypatch):
         for node in nodes
     )
     assert any(node["type"] == "mastery" and node["status"] == "active" for node in nodes)
+
+
+def test_distill_revise_updates_provisional_memory(tmp_path, monkeypatch):
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("revise verdict")
+    utterance = database.insert_utterance(
+        session["id"],
+        "student",
+        "I like concrete examples before abstract grammar tables.",
+    )
+
+    async def fake_distill(engram, quotes, session_id=None):
+        return {
+            "verdict": "revise",
+            "content": "Prefers concrete examples before abstract rules.",
+            "confidence": 0.91,
+            "reason": "The quote supports a tighter preference.",
+        }
+
+    monkeypatch.setattr(dream_module.llm_client, "distill_engram", fake_distill)
+
+    async def run():
+        memory = "Likes examples before rules."
+        engram = database.insert_engram(
+            {
+                "type": "preference",
+                "content": memory,
+                "subject_tags": ["examples"],
+                "confidence": 0.72,
+                "importance": 0.75,
+            },
+            [utterance["id"]],
+            await llm_module.llm_client.embed(memory, session["id"]),
+            provisional=True,
+        )
+        await database.append_event(
+            "engram.observed",
+            engram["id"],
+            {"provisional": True},
+            session_id=session["id"],
+        )
+        return await dream_module.run_dream(session["id"])
+
+    report = asyncio.run(run())
+    nodes = database.graph()["nodes"]
+
+    assert report["stats"]["distill"]["revised"] == 1
+    assert any(
+        node["content"] == "Prefers concrete examples before abstract rules."
+        and not node["provisional"]
+        and node["confidence"] == 0.91
+        for node in nodes
+    )
+
+
+def test_deduplicate_distinct_verdict_does_not_merge(tmp_path, monkeypatch):
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("distinct verdict")
+    utterance = database.insert_utterance(
+        session["id"],
+        "student",
+        "Examples help, and pacing matters too.",
+    )
+
+    async def fake_judge(left, right, session_id=None, relation="dedupe"):
+        return {"verdict": "distinct", "reason": "The memories can coexist."}
+
+    monkeypatch.setattr(dream_module.llm_client, "judge_pair", fake_judge)
+
+    async def run():
+        content = "Prefers examples before abstract rules."
+        embedding = await llm_module.llm_client.embed(content, session["id"])
+        for importance in (0.75, 0.8):
+            database.insert_engram(
+                {
+                    "type": "preference",
+                    "content": content,
+                    "subject_tags": ["examples"],
+                    "confidence": 0.8,
+                    "importance": importance,
+                },
+                [utterance["id"]],
+                embedding,
+                provisional=False,
+            )
+        return await dream_module.run_dream(session["id"])
+
+    report = asyncio.run(run())
+    nodes = database.graph()["nodes"]
+
+    assert report["stats"]["deduplicate"]["judged_distinct"] == 1
+    assert report["stats"]["deduplicate"]["merged"] == 0
+    assert len([node for node in nodes if node["status"] == "active"]) == 2

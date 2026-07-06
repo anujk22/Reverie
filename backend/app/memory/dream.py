@@ -14,9 +14,11 @@ from app.memory.dedupe import find_duplicate_memory
 from app.memory.observer import quote_sources, quote_supported
 from app.memory.retrieval import cosine
 from app.models import CandidateEngram
+from app.subject import memory_toast
 
 
 STAGES = ("replay", "distill", "deduplicate", "reconcile", "decay", "report")
+JUDGE_CONCURRENCY = 4
 
 
 async def emit_stage(stage: str, status: str, counts: dict[str, Any]) -> None:
@@ -90,9 +92,19 @@ async def replay(session_id: str, stats: dict[str, Any]) -> list[dict[str, Any]]
 async def distill(
     session_id: str, provisional: list[dict[str, Any]], stats: dict[str, Any]
 ) -> None:
-    counts = {"confirmed": 0, "revised": 0, "rejected": 0}
+    counts = {
+        "confirmed": 0,
+        "revised": 0,
+        "rejected": 0,
+        "judged_confirm": 0,
+        "judged_revise": 0,
+        "judged_reject": 0,
+        "skipped": 0,
+    }
     await emit_stage("distill", "running", counts)
-    for item in provisional:
+    semaphore = asyncio.Semaphore(JUDGE_CONCURRENCY)
+
+    async def process(item: dict[str, Any]) -> None:
         confidence = float(item["confidence"])
         if confidence < 0.35:
             db.update_engram(item["id"], status="archived", provisional=0)
@@ -103,17 +115,60 @@ async def distill(
                 {"reason": "dream rejected low-confidence provisional memory"},
                 session_id=session_id,
             )
-        else:
-            db.update_engram(item["id"], provisional=0)
-            counts["confirmed"] += 1
+            await emit_stage("distill", "running", counts)
+            return
+
+        try:
+            detail = db.engram_detail(item["id"])
+            quotes = [source["content"] for source in detail["provenance"]] if detail else []
+            async with semaphore:
+                verdict = await llm_client.distill_engram(item, quotes, session_id=session_id)
+        except Exception:
+            counts["skipped"] += 1
+            await emit_stage("distill", "running", counts)
+            return
+
+        verdict_name = str(verdict.get("verdict", "confirm"))
+        counts[f"judged_{verdict_name}"] = counts.get(f"judged_{verdict_name}", 0) + 1
+        if verdict_name == "reject":
+            db.update_engram(item["id"], status="archived", provisional=0)
+            counts["rejected"] += 1
             await db.append_event(
-                "engram.consolidated",
+                "engram.archived",
                 item["id"],
-                {"confidence": confidence},
+                {"reason": verdict.get("reason", "dream rejected provisional memory")},
                 session_id=session_id,
             )
+            await emit_stage("distill", "running", counts)
+            return
+
+        updates: dict[str, Any] = {
+            "provisional": 0,
+            "confidence": float(verdict.get("confidence", item["confidence"])),
+        }
+        content = str(verdict.get("content") or item["content"])
+        if content != item["content"]:
+            updates["content"] = content
+            db.upsert_vector(item["id"], await llm_client.embed(content, session_id=session_id))
+        db.update_engram(item["id"], **updates)
+        if verdict_name == "revise":
+            counts["revised"] += 1
+        else:
+            counts["confirmed"] += 1
+        await db.append_event(
+            "engram.consolidated",
+            item["id"],
+            {
+                "confidence": updates["confidence"],
+                "verdict": verdict_name,
+                "reason": verdict.get("reason", ""),
+            },
+            session_id=session_id,
+        )
         await emit_stage("distill", "running", counts)
         await asyncio.sleep(0.02)
+
+    await asyncio.gather(*(process(item) for item in provisional))
 
     session_level_confirmed = await add_session_level_engrams(session_id)
     counts["confirmed"] += session_level_confirmed
@@ -191,10 +246,20 @@ def nearest_same_type_memory(candidate: dict[str, Any], embedding: list[float]) 
 
 
 async def deduplicate(session_id: str, stats: dict[str, Any]) -> None:
-    counts = {"merged": 0, "distinct": 0}
+    counts = {
+        "merged": 0,
+        "refined": 0,
+        "distinct": 0,
+        "judged_duplicate": 0,
+        "judged_refinement": 0,
+        "judged_contradiction": 0,
+        "judged_distinct": 0,
+        "skipped": 0,
+    }
     await emit_stage("deduplicate", "running", counts)
     engrams = [item for item in db.active_engrams() if not item["provisional"]]
     seen: set[tuple[str, str]] = set()
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
     for left in engrams:
         for right in engrams:
             if left["id"] == right["id"] or left["type"] != right["type"]:
@@ -205,60 +270,134 @@ async def deduplicate(session_id: str, stats: dict[str, Any]) -> None:
             seen.add(pair)
             similarity = cosine(db.vector_for(left["id"]), db.vector_for(right["id"]))
             if similarity > settings.dream_dedupe_threshold:
-                winner, loser = choose_winner(left, right)
+                pairs.append((left, right))
+    semaphore = asyncio.Semaphore(JUDGE_CONCURRENCY)
+
+    async def judge(left: dict[str, Any], right: dict[str, Any]):
+        try:
+            async with semaphore:
+                verdict = await llm_client.judge_pair(
+                    left, right, session_id=session_id, relation="dedupe"
+                )
+            return left, right, verdict
+        except Exception:
+            return left, right, {"verdict": "distinct", "reason": "judge failed"}
+
+    for left, right, verdict in await asyncio.gather(*(judge(left, right) for left, right in pairs)):
+        verdict_name = str(verdict.get("verdict", "distinct"))
+        counts[f"judged_{verdict_name}"] = counts.get(f"judged_{verdict_name}", 0) + 1
+        if verdict_name == "duplicate":
+            winner, loser = choose_winner(left, right)
+            db.update_engram(
+                loser["id"],
+                status="superseded",
+                superseded_by=winner["id"],
+                provisional=0,
+            )
+            db.reinforce(winner["id"])
+            counts["merged"] += 1
+            await db.append_event(
+                "engram.merged",
+                winner["id"],
+                {"merged_from": loser["id"], "toast": "Merged duplicate memories."},
+                session_id=session_id,
+            )
+        elif verdict_name == "refinement":
+            winner, loser = choose_refinement_winner(left, right)
+            db.update_engram(
+                loser["id"],
+                status="superseded",
+                superseded_by=winner["id"],
+                provisional=0,
+            )
+            counts["refined"] += 1
+            await db.append_event(
+                "engram.superseded",
+                loser["id"],
+                {
+                    "superseded_by": winner["id"],
+                    "reason": verdict.get("reason", ""),
+                    "toast": memory_toast("Updated memory", winner),
+                },
+                session_id=session_id,
+            )
+        elif verdict_name == "distinct":
+            counts["distinct"] += 1
+        else:
+            counts["skipped"] += 1
+        await emit_stage("deduplicate", "running", counts)
+    stats["deduplicate"] = counts
+    await emit_stage("deduplicate", "done", counts)
+
+
+async def reconcile(session_id: str, stats: dict[str, Any]) -> None:
+    counts = {
+        "superseded": 0,
+        "coexist": 0,
+        "judged_duplicate": 0,
+        "judged_refinement": 0,
+        "judged_contradiction": 0,
+        "judged_distinct": 0,
+        "skipped": 0,
+    }
+    await emit_stage("reconcile", "running", counts)
+    engrams = [item for item in db.active_engrams() if not item["provisional"]]
+    misconceptions = [item for item in engrams if item["type"] == "misconception"]
+    masteries = [item for item in engrams if item["type"] == "mastery"]
+    pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for misconception in misconceptions:
+        for mastery in masteries:
+            tag_overlap = set(misconception["subject_tags"]) & set(mastery["subject_tags"])
+            similarity = cosine(db.vector_for(misconception["id"]), db.vector_for(mastery["id"]))
+            if tag_overlap or similarity > 0.42:
+                pairs.append((misconception, mastery))
+    semaphore = asyncio.Semaphore(JUDGE_CONCURRENCY)
+
+    async def judge(misconception: dict[str, Any], mastery: dict[str, Any]):
+        try:
+            async with semaphore:
+                verdict = await llm_client.judge_pair(
+                    misconception,
+                    mastery,
+                    session_id=session_id,
+                    relation="reconcile",
+                )
+            return misconception, mastery, verdict
+        except Exception:
+            return misconception, mastery, {"verdict": "distinct", "reason": "judge failed"}
+
+    for misconception, mastery, verdict in await asyncio.gather(
+        *(judge(misconception, mastery) for misconception, mastery in pairs)
+    ):
+        verdict_name = str(verdict.get("verdict", "distinct"))
+        counts[f"judged_{verdict_name}"] = counts.get(f"judged_{verdict_name}", 0) + 1
+        if verdict_name == "contradiction":
+            winner, loser = choose_contradiction_winner(mastery, misconception)
+            if float(winner["confidence"]) >= 0.6:
                 db.update_engram(
                     loser["id"],
                     status="superseded",
                     superseded_by=winner["id"],
                     provisional=0,
                 )
-                db.reinforce(winner["id"])
-                counts["merged"] += 1
+                counts["superseded"] += 1
                 await db.append_event(
-                    "engram.merged",
-                    winner["id"],
-                    {"merged_from": loser["id"], "toast": "Merged duplicate memories."},
+                    "engram.superseded",
+                    loser["id"],
+                    {
+                        "superseded_by": winner["id"],
+                        "reason": verdict.get("reason", ""),
+                        "toast": memory_toast("Updated memory", winner),
+                    },
                     session_id=session_id,
                 )
             else:
-                counts["distinct"] += 1
-            await emit_stage("deduplicate", "running", counts)
-    stats["deduplicate"] = counts
-    await emit_stage("deduplicate", "done", counts)
-
-
-async def reconcile(session_id: str, stats: dict[str, Any]) -> None:
-    counts = {"superseded": 0, "coexist": 0}
-    await emit_stage("reconcile", "running", counts)
-    engrams = [item for item in db.active_engrams() if not item["provisional"]]
-    misconceptions = [item for item in engrams if item["type"] == "misconception"]
-    masteries = [item for item in engrams if item["type"] == "mastery"]
-    for misconception in misconceptions:
-        for mastery in masteries:
-            tag_overlap = set(misconception["subject_tags"]) & set(mastery["subject_tags"])
-            similarity = cosine(db.vector_for(misconception["id"]), db.vector_for(mastery["id"]))
-            if tag_overlap or similarity > 0.42:
-                winner, loser = choose_contradiction_winner(mastery, misconception)
-                if float(winner["confidence"]) >= 0.6:
-                    db.update_engram(
-                        loser["id"],
-                        status="superseded",
-                        superseded_by=winner["id"],
-                        provisional=0,
-                    )
-                    counts["superseded"] += 1
-                    await db.append_event(
-                        "engram.superseded",
-                        loser["id"],
-                        {
-                            "superseded_by": winner["id"],
-                            "toast": "Updated Maya's chain-rule memory.",
-                        },
-                        session_id=session_id,
-                    )
-                else:
-                    counts["coexist"] += 1
-            await emit_stage("reconcile", "running", counts)
+                counts["coexist"] += 1
+        elif verdict_name == "distinct":
+            counts["coexist"] += 1
+        else:
+            counts["skipped"] += 1
+        await emit_stage("reconcile", "running", counts)
     stats["reconcile"] = counts
     await emit_stage("reconcile", "done", counts)
 
@@ -306,6 +445,14 @@ def choose_winner(left: dict[str, Any], right: dict[str, Any]) -> tuple[dict[str
     left_score = (left["confidence"], left["created_at"], len(left["content"]))
     right_score = (right["confidence"], right["created_at"], len(right["content"]))
     if right_score > left_score:
+        return right, left
+    return left, right
+
+
+def choose_refinement_winner(
+    left: dict[str, Any], right: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if right["created_at"] >= left["created_at"]:
         return right, left
     return left, right
 

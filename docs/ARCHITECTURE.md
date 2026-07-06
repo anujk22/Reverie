@@ -8,6 +8,8 @@ knowledge; the subject lives in prompts and scripts. The Spanish-conjugation
 acceptance tests in [`backend/tests/test_dedupe.py`](../backend/tests/test_dedupe.py)
 prove the duplicate guard without relying on the demo subject.
 
+![Reverie architecture diagram](./diagram.svg)
+
 ```mermaid
 flowchart LR
   subgraph Browser
@@ -21,15 +23,21 @@ flowchart LR
     BE --> RET[Budgeted retrieval\nscore + knapsack]
   end
   subgraph "Qwen Cloud (DashScope)"
-    QP[qwen-plus — tutor · observer · judges]
+    QP[qwen-plus — tutor]
+    QF[qwen-flash — observer]
+    QM[qwen-max — dreams · judges]
     QE[text-embedding-v4]
   end
   BE <--> QP
+  BE <--> QF
+  BE <--> QM
   BE <--> QE
   UI --> NG
 ```
 
 The frontend never invents memory state. It renders initial graph state from `/api/memory/graph` and then animates the append-only event stream from `/api/events/stream`.
+
+Model routing matches depth to cognitive function: `qwen-flash` handles the high-frequency observer pass after each turn, `qwen-plus` stays focused on tutor conversation, `qwen-max` is reserved for slower dream consolidation and judge calls, and `text-embedding-v4` powers retrieval. The health endpoint reports all role model IDs so a demo can prove which model served each function.
 
 ## Product Center
 

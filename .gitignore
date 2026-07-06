@@ -1,9 +1,12 @@
 .env
 .DS_Store
+.venv/
 .pytest_cache/
 data/*.db
 data/*.db-*
+backend/data/
 backend/app/evals/results/*.json
+backend/.venv311/
 backend/.venv*/
 backend/__pycache__/
 backend/app/**/__pycache__/

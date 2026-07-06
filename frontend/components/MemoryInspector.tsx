@@ -29,6 +29,19 @@ function shortDate(value?: string) {
   }).format(new Date(value));
 }
 
+function eventLabel(value: string) {
+  const labels: Record<string, string> = {
+    "engram.observed": "observed",
+    "engram.consolidated": "consolidated",
+    "engram.merged": "merged",
+    "engram.superseded": "rewritten",
+    "engram.reinforced": "recalled",
+    "engram.decayed": "softened",
+    "engram.archived": "let go"
+  };
+  return labels[value] ?? value.replace(/^engram\./, "").replace(/_/g, " ");
+}
+
 export function MemoryInspector({
   engram,
   onClose
@@ -166,7 +179,7 @@ export function MemoryInspector({
 
       {current.superseded_by ? (
         <div className="mt-5 rounded-lg border border-coral/40 bg-field-2 p-3 text-sm leading-5 text-coral">
-          overwritten by {current.superseded_by}
+          overwritten by a newer memory
         </div>
       ) : null}
 
@@ -214,7 +227,9 @@ export function MemoryInspector({
             detail.events.map((event) => (
               <li key={event.id} className="relative pb-4 pl-4">
                 <span className="absolute left-0 top-1 h-2 w-2 rounded-full bg-ember" />
-                <p className="font-mono text-[11px] text-starlight">{event.event_type}</p>
+                <p className="font-mono text-[11px] text-starlight">
+                  {eventLabel(event.event_type)}
+                </p>
                 <p className="mt-1 font-mono text-[10px] text-dim">
                   {shortDate(event.created_at)}
                 </p>

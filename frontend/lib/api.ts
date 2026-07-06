@@ -47,6 +47,9 @@ export type MemoryPackItem = {
   engram_id: string;
   content: string;
   type: EngramType | string;
+  subject_tags?: string[];
+  confidence?: number;
+  strength?: number;
   tokens: number;
   score: number;
   breakdown: Record<string, number>;
@@ -138,6 +141,19 @@ export type RuntimeEvent =
       stage: string;
       status: string;
       counts: Record<string, unknown>;
+    }
+  | {
+      kind: "runtime_degraded";
+      purpose: string;
+      session_id?: string | null;
+      error: string;
+      at: string;
+    }
+  | {
+      kind: "eval_progress";
+      condition: string;
+      session: number;
+      at: string;
     };
 
 export function apiUrl(path: string) {
@@ -225,4 +241,17 @@ export function resetDemo() {
     method: "POST",
     body: JSON.stringify({})
   });
+}
+
+export function advanceClock(days: number) {
+  return jsonRequest<{ ok: boolean; clock_offset_seconds: number }>("/api/conductor/advance-clock", {
+    method: "POST",
+    body: JSON.stringify({ days })
+  });
+}
+
+export function fetchConductorScript(name: string) {
+  return jsonRequest<{ title: string; turns: Array<{ student: string }> }>(
+    `/api/conductor/scripts/${name}`
+  );
 }

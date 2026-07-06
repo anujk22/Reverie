@@ -175,12 +175,22 @@ function strengthWidth(value: number) {
   return `${Math.max(4, Math.min(100, value * 100))}%`;
 }
 
+function humanError(error: unknown) {
+  const raw = error instanceof Error ? error.message : "Dream run failed.";
+  if (raw.toLowerCase().includes("failed to fetch")) {
+    return "Can't reach the memory engine. Is the backend running?";
+  }
+  if (/^\d{3}\s/.test(raw)) return "The memory engine could not run the dream cycle.";
+  return raw;
+}
+
 export function DreamClient() {
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
   const [report, setReport] = useState<DreamReport | null>(null);
   const [stages, setStages] = useState<Record<string, DreamStage>>({});
   const [running, setRunning] = useState(false);
   const [selected, setSelected] = useState<Engram | null>(null);
+  const [canvasEvent, setCanvasEvent] = useState<RuntimeEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -190,7 +200,7 @@ export function DreamClient() {
   }, []);
 
   useEffect(() => {
-    load().catch((err: Error) => setError(err.message));
+    load().catch((err: Error) => setError(humanError(err)));
   }, [load]);
 
   useEffect(() => {
@@ -206,6 +216,7 @@ export function DreamClient() {
           }
         }
         if (event.kind === "memory_event") {
+          setCanvasEvent(event);
           window.setTimeout(() => fetchGraph().then(setGraph).catch(() => undefined), 350);
         }
       } catch {
@@ -238,7 +249,7 @@ export function DreamClient() {
       setReport(nextReport);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Dream run failed.");
+      setError(humanError(err));
     } finally {
       setRunning(false);
     }
@@ -290,6 +301,7 @@ export function DreamClient() {
               selectedId={selected?.id ?? null}
               highlightedId={selected?.id ?? null}
               pulseId={running ? selected?.id ?? null : null}
+              event={canvasEvent}
               onSelect={setSelected}
             />
           </div>

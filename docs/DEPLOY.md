@@ -35,3 +35,12 @@ ECS Docker stack and returns `ok` plus live DashScope model ids.
 - Alibaba Cloud console showing the running instance and region.
 - Terminal on the instance showing `docker compose ps`.
 - One live chat turn in the deployed app.
+
+## ECS Status - Honest Note
+
+Verification is currently blocked by Alibaba Cloud ECS account access, not by the app build.
+
+- Timeline: `<PLACEHOLDER: add Anuj screenshot/date of identity verification issue>`
+- Ticket references: `<PLACEHOLDER: hackathon Discord or Alibaba support ticket>`
+- Fallback of record: include a permalink to `backend/app/llm.py` proving DashScope OpenAI-compatible usage, plus a live local recording that shows model-call token logs and `/api/health`.
+- Execution plan: when access lands, run `DEPLOY_HOST=ubuntu@YOUR_ECS_IP ./deploy.sh`; the stack is already configured for Docker Compose, Nginx, FastAPI, Next.js, SQLite volume persistence, and Qwen environment variables.

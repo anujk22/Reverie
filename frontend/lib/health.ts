@@ -7,6 +7,8 @@ export type HealthStatus = {
   mock_mode?: boolean;
   mock_llm?: boolean;
   demo_mode?: boolean;
+  clock_offset_seconds?: number;
+  simulated_date?: string | null;
   mode?: string;
   error?: string;
   [key: string]: unknown;

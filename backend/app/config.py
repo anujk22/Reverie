@@ -56,8 +56,10 @@ class Settings:
         "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     )
     chat_model: str = os.getenv("CHAT_MODEL", "qwen-plus")
+    observer_model: str = os.getenv("OBSERVER_MODEL", "qwen-flash")
+    dream_model: str = os.getenv("DREAM_MODEL", "qwen-max")
     embed_model: str = os.getenv("EMBED_MODEL", "text-embedding-v4")
-    judge_model: str = os.getenv("JUDGE_MODEL", "qwen-plus")
+    judge_model: str = os.getenv("JUDGE_MODEL", "qwen-max")
     db_path: str = os.getenv("DB_PATH", "./data/reverie.db")
     demo_mode: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
     mock_llm: bool = os.getenv("MOCK_LLM", "").lower() == "true"

@@ -36,6 +36,27 @@ class ObserverResult(BaseModel):
     engrams: list[CandidateEngram] = Field(default_factory=list, max_length=3)
 
 
+class SessionLevelEngramResult(BaseModel):
+    engrams: list[CandidateEngram] = Field(default_factory=list, max_length=2)
+
+
+class DistillVerdict(BaseModel):
+    verdict: Literal["confirm", "revise", "reject"]
+    content: str = Field(default="", max_length=500)
+    confidence: float = Field(ge=0, le=1)
+    reason: str = Field(default="", max_length=240)
+
+
+class PairJudgeVerdict(BaseModel):
+    verdict: Literal["duplicate", "refinement", "contradiction", "distinct"]
+    reason: str = Field(default="", max_length=240)
+
+
+class EvalJudgeVerdict(BaseModel):
+    score: int = Field(ge=1, le=5)
+    reason: str = Field(default="", max_length=240)
+
+
 class Engram(BaseModel):
     id: str
     student_id: str

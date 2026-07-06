@@ -19,6 +19,8 @@ async def assemble_memory_pack(
     for item in db.active_engrams():
         if item["provisional"]:
             continue
+        if item["type"] != "goal" and float(item["strength"]) < 0.05:
+            continue
         engrams.append(
             RetrievalEngram(
                 id=item["id"],

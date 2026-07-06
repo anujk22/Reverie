@@ -7,8 +7,10 @@ services:
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
       DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
       CHAT_MODEL: ${CHAT_MODEL:-qwen-plus}
+      OBSERVER_MODEL: ${OBSERVER_MODEL:-qwen-flash}
+      DREAM_MODEL: ${DREAM_MODEL:-qwen-max}
       EMBED_MODEL: ${EMBED_MODEL:-text-embedding-v4}
-      JUDGE_MODEL: ${JUDGE_MODEL:-qwen-plus}
+      JUDGE_MODEL: ${JUDGE_MODEL:-qwen-max}
       DB_PATH: /app/data/reverie.db
       DEMO_MODE: ${DEMO_MODE:-true}
       MOCK_LLM: ${MOCK_LLM:-false}

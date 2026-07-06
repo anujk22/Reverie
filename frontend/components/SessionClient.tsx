@@ -126,17 +126,15 @@ function shortDate(value?: string) {
 }
 
 function sessionEyebrow(session: SessionRecord | null) {
-  const match = /session\s*(\d+)/i.exec(session?.title ?? "");
-  return [shortDate(session?.started_at), "Maya Chen", `Session ${match?.[1] ?? "1"}`].join(
+  const title = session?.title ?? "Session 1 - chain rule";
+  const subject = title.split(" - ")[1] ?? "chain rule";
+  return [shortDate(session?.started_at), `Session ${sessionNumber(session)}`, subject].join(
     " · "
   );
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  const title = session?.title ?? "Session - chain rule";
-  const subject = title.split(" - ")[1] ?? title;
-  const sentence = subject.charAt(0).toUpperCase() + subject.slice(1);
-  return /[.?!]$/.test(sentence) ? sentence : `${sentence}.`;
+  return sessionNumber(session) === "1" ? "Maya meets Reverie." : "Maya returns.";
 }
 
 function stageSummary(stage: DreamStage) {
@@ -152,6 +150,17 @@ function markerContent(event: RuntimeEvent) {
   if (event.toast) return String(event.toast);
   if (event.engram) return event.engram.content;
   return null;
+}
+
+function humanError(error: unknown) {
+  const raw = error instanceof Error ? error.message : "Reverie could not complete that.";
+  if (raw.toLowerCase().includes("failed to fetch")) {
+    return "Can't reach the memory engine. Is the backend running?";
+  }
+  if (/^\d{3}\s/.test(raw)) {
+    return "The memory engine could not complete that request.";
+  }
+  return raw;
 }
 
 function memoryLabel(item: MemoryPackItem) {
@@ -226,6 +235,7 @@ export function SessionClient() {
   const [selected, setSelected] = useState<Engram | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
+  const [canvasEvent, setCanvasEvent] = useState<RuntimeEvent | null>(null);
   const [dreaming, setDreaming] = useState(false);
   const [dreamStages, setDreamStages] = useState<Record<string, DreamStage>>({});
   const [lastReport, setLastReport] = useState<DreamReport | null>(null);
@@ -273,7 +283,7 @@ export function SessionClient() {
         setPack(await fetchMemoryPack(active.id));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start Reverie.");
+      setError(humanError(err));
     } finally {
       setBooting(false);
     }
@@ -293,6 +303,7 @@ export function SessionClient() {
       try {
         const event = JSON.parse(message.data) as RuntimeEvent;
         if (event.kind === "memory_event") {
+          setCanvasEvent(event);
           if (event.engram) {
             setPulseId(event.engram.id);
             window.setTimeout(() => setPulseId(null), 1400);
@@ -439,6 +450,12 @@ export function SessionClient() {
             const nextPack = payload as MemoryPack;
             setPack(nextPack);
             patchMessage(tutorLocalId, { usedEngrams: nextPack.winners });
+            nextPack.winners.slice(0, 6).forEach((winner, index) => {
+              window.setTimeout(() => {
+                setPulseId(winner.engram_id);
+              }, index * 120);
+            });
+            window.setTimeout(() => setPulseId(null), nextPack.winners.length * 120 + 500);
           }
           if (payload.kind === "token") {
             reply += payload.token;
@@ -464,7 +481,7 @@ export function SessionClient() {
         });
         return;
       }
-      setError(err instanceof Error ? err.message : "Tutor stream failed.");
+      setError(humanError(err));
       patchMessage(tutorLocalId, {
         pending: false,
         content: "The tutor stream is unavailable. The memory state is still intact."
@@ -489,7 +506,7 @@ export function SessionClient() {
       const next = await startSession("Session 2 - chain rule recall");
       setPack(next.memory_pack ?? (await fetchMemoryPack(next.id)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Dream cycle failed.");
+      setError(humanError(err));
     } finally {
       setDreaming(false);
     }
@@ -507,7 +524,7 @@ export function SessionClient() {
       await startSession("Session 1 - chain rule");
       await loadGraph();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Reset failed.");
+      setError(humanError(err));
     } finally {
       setBooting(false);
     }
@@ -550,6 +567,7 @@ export function SessionClient() {
         setSelected(null);
         setHighlightedId(null);
         setPulseId(null);
+        setCanvasEvent(null);
         setDreaming(false);
         setDreamStages({});
         setLastReport(null);
@@ -637,7 +655,9 @@ export function SessionClient() {
           </div>
           {lastReport ? (
             <p className="mt-3 font-mono text-[11px] text-dim">
-              last dream: {lastReport.duration_ms ?? "recorded"} ms
+              {lastReport.duration_ms
+                ? `last dream finished in ${(lastReport.duration_ms / 1000).toFixed(1)}s`
+                : "last dream complete"}
             </p>
           ) : null}
           {error ? (
@@ -651,7 +671,7 @@ export function SessionClient() {
         <div className="flex-1 overflow-y-auto px-7 py-5">
           <div
             className={`flex min-h-full flex-col ${
-              hasMessages ? "justify-end" : "justify-start"
+              hasMessages ? "justify-end" : "justify-center"
             }`}
           >
             {booting ? (
@@ -661,21 +681,29 @@ export function SessionClient() {
                 <div className="h-28 w-5/6 bg-void" />
               </div>
             ) : !hasMessages ? (
-              <div className="flex flex-col gap-3 pb-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-                  pick up the thread
-                </p>
-                {starterTurns.map((turn) => (
-                  <button
-                    key={turn}
-                    type="button"
-                    onClick={() => sendMessage(turn)}
-                    className="stellar-panel group relative min-h-[64px] overflow-hidden rounded-lg px-7 py-3.5 text-left font-mono text-[13px] leading-6 text-starlight/90 transition hover:border-ember/50 hover:text-starlight"
-                  >
-                    <span className="transcript-rail absolute bottom-5 left-0 top-5 w-[3px] rounded-full opacity-95" />
-                    <RichText text={turn} />
-                  </button>
-                ))}
+              <div className="flex flex-col gap-6 pb-8">
+                <div>
+                  <p className="max-w-md font-display text-[30px] italic leading-snug text-starlight/90">
+                    {sessionNumber(session) === "1"
+                      ? "Reverie knows nothing about Maya yet."
+                      : "Reverie has been dreaming about last time."}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-dim">
+                    Start with what Maya would say, or write your own below.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {starterTurns.slice(0, 3).map((turn) => (
+                    <button
+                      key={turn}
+                      type="button"
+                      onClick={() => sendMessage(turn)}
+                      className="max-w-xl rounded-2xl border border-hairline bg-field/50 px-5 py-3 text-left text-[13.5px] leading-6 text-dim transition hover:border-ember/40 hover:bg-field hover:text-starlight"
+                    >
+                      <RichText text={turn} />
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-7 pb-4">
@@ -708,11 +736,11 @@ export function SessionClient() {
                       className={item.role === "student" ? "flex justify-end" : "block"}
                     >
                       {item.role === "student" ? (
-                        <div className="stellar-panel max-w-[76%] rounded-lg px-6 py-4 font-mono text-[15px] leading-7 text-starlight">
+                        <div className="max-w-[76%] rounded-2xl border border-hairline bg-field-2/70 px-5 py-3.5 text-[15px] leading-7 text-starlight">
                           <RichText text={item.content} />
                         </div>
                       ) : (
-                        <div className="relative max-w-[94%] pl-6 font-mono text-[15px] leading-8 text-starlight">
+                        <div className="relative max-w-[94%] pl-6 text-[15.5px] leading-8 text-starlight">
                           <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
                           {item.content ? (
                             <RichText text={item.content} />
@@ -790,7 +818,7 @@ export function SessionClient() {
                   }
                 }}
                 rows={1}
-                className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 font-display text-[24px] leading-8 text-starlight outline-none placeholder:text-dim disabled:cursor-not-allowed disabled:text-faint"
+                className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[16px] leading-7 text-starlight outline-none placeholder:text-dim disabled:cursor-not-allowed disabled:text-faint"
                 placeholder="Type your message…"
               />
               <button
@@ -798,9 +826,9 @@ export function SessionClient() {
                 aria-label="Send message"
                 title="Send message"
                 disabled={streaming || !draft.trim() || !session}
-                className="brand-gradient flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#fffaf7] shadow-[0_0_30px_rgba(255,79,114,0.34)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#fffaf7] shadow-[0_0_18px_rgba(255,79,114,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Send aria-hidden="true" size={27} strokeWidth={2.35} />
+                <Send aria-hidden="true" size={20} strokeWidth={2} />
               </button>
             </div>
           )}
@@ -814,12 +842,13 @@ export function SessionClient() {
             selectedId={selected?.id ?? null}
             highlightedId={highlightedId}
             pulseId={pulseId}
+            event={canvasEvent}
             onSelect={setSelected}
           />
 
           <div className="pointer-events-none absolute left-8 top-7 max-w-[calc(100%-4rem)]">
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-              the constellation
+              the mind
             </p>
             <p className="mt-1 max-w-sm font-mono text-[11px] leading-5 text-dim">
               {graph.nodes.length} memories · {graph.nodes.filter((node) => node.provisional).length} provisional

@@ -11,7 +11,7 @@ import {
   type SimulationNodeDatum
 } from "d3-force";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Engram, MemoryGraph } from "@/lib/api";
+import type { Engram, MemoryGraph, RuntimeEvent } from "@/lib/api";
 import { uiText } from "@/lib/text";
 
 type CanvasNode = SimulationNodeDatum & {
@@ -59,6 +59,15 @@ type StaticStar = {
   alpha: number;
   twinkle: boolean;
   phase: number;
+};
+
+type TransientEvent = {
+  id: string;
+  eventType: string;
+  engramId: string | null;
+  mergedFrom?: string;
+  supersededBy?: string;
+  start: number;
 };
 
 const colors: Record<string, string> = {
@@ -527,12 +536,14 @@ export function ConstellationCanvas({
   selectedId,
   highlightedId,
   pulseId,
+  event,
   onSelect
 }: {
   graph: MemoryGraph;
   selectedId: string | null;
   highlightedId: string | null;
   pulseId: string | null;
+  event?: RuntimeEvent | null;
   onSelect: (engram: Engram) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -542,6 +553,7 @@ export function ConstellationCanvas({
   const linksRef = useRef<CanvasLink[]>([]);
   const starfieldRef = useRef<StaticStar[]>([]);
   const sceneryRef = useRef<HTMLCanvasElement | null>(null);
+  const transientsRef = useRef<TransientEvent[]>([]);
   const fibersRef = useRef<{ fibers: Fiber[]; synapses: Synapse[] }>({
     fibers: [],
     synapses: []
@@ -552,6 +564,23 @@ export function ConstellationCanvas({
   const [tooltip, setTooltip] = useState<Tooltip>(null);
   const [motionReduced, setMotionReduced] = useState(false);
   const [brainImageReady, setBrainImageReady] = useState(false);
+
+  useEffect(() => {
+    if (!event || event.kind !== "memory_event") return;
+    const payload = event.event.payload_json ?? {};
+    transientsRef.current = [
+      ...transientsRef.current.slice(-10),
+      {
+        id: `${event.event.id}-${performance.now()}`,
+        eventType: event.event_type,
+        engramId: event.event.engram_id,
+        mergedFrom: typeof payload.merged_from === "string" ? payload.merged_from : undefined,
+        supersededBy:
+          typeof payload.superseded_by === "string" ? payload.superseded_by : undefined,
+        start: performance.now()
+      }
+    ];
+  }, [event]);
 
   const graphKey = useMemo(
     () =>
@@ -746,11 +775,16 @@ export function ConstellationCanvas({
       drawTwinkleStars(context, size.width, size.height, starfieldRef.current, time, motionReduced);
 
       if (frame) {
+        // the mind wakes up: dormant at zero memories, fully lit around six
+        const wakefulness = Math.min(1, 0.3 + nodesRef.current.length * 0.14);
         const vitality = dormant ? 0.88 : 1;
         const art = brainImageReady ? brainArtRef.current : null;
         if (art) {
           const rect = artworkRect(frame, art.source);
+          context.save();
+          context.globalAlpha = wakefulness;
           drawBrainArtwork(context, rect, art.source);
+          context.restore();
         } else {
           drawBrainBase(context, frame, time, motionReduced, vitality);
           drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
@@ -782,6 +816,19 @@ export function ConstellationCanvas({
           time
         });
       }
+
+      drawTransientEvents(
+        context,
+        nodesRef.current,
+        transientsRef.current,
+        time,
+        size.width,
+        size.height,
+        motionReduced
+      );
+      transientsRef.current = transientsRef.current.filter(
+        (item) => time - item.start < 2400
+      );
 
       if (size.width > 460) {
         drawStrongLabels(
@@ -892,6 +939,95 @@ export function ConstellationCanvas({
       </ul>
     </div>
   );
+}
+
+function drawTransientEvents(
+  context: CanvasRenderingContext2D,
+  nodes: CanvasNode[],
+  events: TransientEvent[],
+  time: number,
+  width: number,
+  height: number,
+  reduced: boolean
+) {
+  if (!events.length) return;
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  for (const event of events) {
+    const age = Math.max(0, time - event.start);
+    const duration = reduced ? 450 : event.eventType === "engram.archived" ? 2200 : 1300;
+    const progress = Math.min(1, age / duration);
+    const fade = 1 - progress;
+    const target = event.engramId ? byId.get(event.engramId) : null;
+    const targetX = target?.x ?? width / 2;
+    const targetY = target?.y ?? height / 2;
+
+    context.save();
+    context.globalCompositeOperation = "lighter";
+    context.lineCap = "round";
+
+    if (event.eventType === "engram.merged" && event.mergedFrom) {
+      const source = byId.get(event.mergedFrom);
+      if (source && target) {
+        const sx = source.x ?? targetX;
+        const sy = source.y ?? targetY;
+        const x = sx + (targetX - sx) * progress;
+        const y = sy + (targetY - sy) * progress;
+        context.strokeStyle = `rgba(255,147,168,${0.5 * fade})`;
+        context.lineWidth = 1;
+        context.beginPath();
+        context.moveTo(sx, sy);
+        context.lineTo(targetX, targetY);
+        context.stroke();
+        context.fillStyle = `rgba(255,147,168,${0.85 * fade})`;
+        context.beginPath();
+        context.arc(x, y, 5 + 10 * (1 - fade), 0, Math.PI * 2);
+        context.fill();
+      }
+    } else if (event.eventType === "engram.superseded") {
+      const successor = event.supersededBy ? byId.get(event.supersededBy) : null;
+      context.strokeStyle = `rgba(255,111,94,${0.72 * fade})`;
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.arc(targetX, targetY, 18 + progress * 10, 0, Math.PI * 2);
+      context.stroke();
+      if (successor) {
+        context.strokeStyle = `rgba(255,147,168,${0.36 * fade})`;
+        context.beginPath();
+        context.moveTo(targetX, targetY);
+        context.lineTo(successor.x ?? targetX, successor.y ?? targetY);
+        context.stroke();
+      }
+    } else if (event.eventType === "engram.archived") {
+      const edgeX = targetX < width / 2 ? 18 : width - 18;
+      const edgeY = Math.min(height - 18, Math.max(18, targetY + (targetY - height / 2) * 0.55));
+      const x = targetX + (edgeX - targetX) * progress;
+      const y = targetY + (edgeY - targetY) * progress;
+      context.strokeStyle = `rgba(110,92,102,${0.7 * fade})`;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(targetX, targetY);
+      context.lineTo(x, y);
+      context.stroke();
+      context.fillStyle = `rgba(110,92,102,${0.55 * fade})`;
+      context.beginPath();
+      context.arc(x, y, 4 + 4 * progress, 0, Math.PI * 2);
+      context.fill();
+    } else {
+      const color =
+        event.eventType === "engram.reinforced"
+          ? "99,201,165"
+          : event.eventType === "engram.observed"
+            ? "255,147,168"
+            : "242,166,90";
+      context.strokeStyle = `rgba(${color},${0.72 * fade})`;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.arc(targetX, targetY, 12 + progress * 18, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    context.restore();
+  }
 }
 
 function nodeRadius(engram: Engram, scale = 1) {

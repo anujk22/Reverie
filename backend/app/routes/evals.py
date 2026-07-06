@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/evals", tags=["evals"])
 
 @router.post("/run")
 async def run():
-    return run_eval_suite()
+    return await run_eval_suite()
 
 
 @router.get("/results")

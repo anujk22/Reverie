@@ -3,10 +3,12 @@
 import { BarChart3, Play, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  apiUrl,
   fetchEvalResults,
   runEvalSuite,
   runSmokeEval,
   type EvalResults,
+  type RuntimeEvent,
   type SmokeEvalResult
 } from "@/lib/api";
 
@@ -155,6 +157,15 @@ function humanPurpose(value: string) {
   return labels[value] ?? value.replace(/_/g, " ");
 }
 
+function humanError(error: unknown) {
+  const raw = error instanceof Error ? error.message : "Eval run failed.";
+  if (raw.toLowerCase().includes("failed to fetch")) {
+    return "Can't reach the memory engine. Is the backend running?";
+  }
+  if (/^\d{3}\s/.test(raw)) return "The eval run could not complete.";
+  return raw;
+}
+
 function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: MetricSpec) {
   const values = rows
     .map((row) => rowValue(row, valueKeys))
@@ -222,6 +233,7 @@ function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: Met
 export function EvalsClient() {
   const [results, setResults] = useState<EvalResults | null>(null);
   const [smoke, setSmoke] = useState<SmokeEvalResult | null>(null);
+  const [progress, setProgress] = useState<{ condition: string; session: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -230,12 +242,28 @@ export function EvalsClient() {
     try {
       setResults(await fetchEvalResults());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load eval state.");
+      setError(humanError(err));
     }
   }
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const source = new EventSource(apiUrl("/api/events/stream"));
+    source.onmessage = (message) => {
+      try {
+        const event = JSON.parse(message.data) as RuntimeEvent;
+        if (event.kind === "eval_progress") {
+          setProgress({ condition: event.condition, session: event.session });
+        }
+      } catch {
+        return;
+      }
+    };
+    source.onerror = () => undefined;
+    return () => source.close();
   }, []);
 
   const headlineTiles = useMemo<HeadlineTile[]>(() => {
@@ -300,8 +328,9 @@ export function EvalsClient() {
     setError(null);
     try {
       setResults(await runEvalSuite());
+      setProgress(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Eval run failed.");
+      setError(humanError(err));
     } finally {
       setLoading(false);
     }
@@ -313,7 +342,7 @@ export function EvalsClient() {
     try {
       setSmoke(await runSmokeEval());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Smoke judge failed.");
+      setError(humanError(err));
     } finally {
       setLoading(false);
     }
@@ -363,6 +392,17 @@ export function EvalsClient() {
           </p>
         ) : null}
 
+        {loading && progress ? (
+          <section className="stellar-panel rounded-lg p-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+              live eval progress
+            </p>
+            <p className="mt-2 text-sm leading-6 text-starlight">
+              {progress.condition.replace(/_/g, " ")} · session {progress.session}
+            </p>
+          </section>
+        ) : null}
+
         {results?.real_run ? (
           <div className="space-y-6">
             <section className="grid gap-4 md:grid-cols-3">
@@ -399,6 +439,20 @@ export function EvalsClient() {
                 <ChartBlock key={spec.title} {...spec} />
               ))}
             </div>
+
+            {results.forgetting_check ? (
+              <section className="stellar-panel rounded-lg p-5">
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                  forgetting check
+                </p>
+                <p className="mt-2 text-sm leading-6 text-starlight">
+                  Forgetting check:{" "}
+                  {results.forgetting_check === "pass"
+                    ? "passed, the stale limits quiz memory never resurfaced."
+                    : "needs review, the stale limits quiz memory resurfaced."}
+                </p>
+              </section>
+            ) : null}
           </div>
         ) : (
           <section className="stellar-panel rounded-lg p-6">

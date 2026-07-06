@@ -5,20 +5,144 @@ import hashlib
 import json
 import math
 import time
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, TypeVar
 
 from . import clock
 from .config import settings
 from .db import db, new_id
+from .models import (
+    DistillVerdict,
+    EvalJudgeVerdict,
+    ObserverResult,
+    PairJudgeVerdict,
+    SessionLevelEngramResult,
+)
+from .subject import build_tutor_system_prompt
 
 
 def _count_tokens(text: str) -> int:
     return max(1, int(len(text.split()) * 1.35))
 
 
+T = TypeVar("T")
+RETRY_DELAYS = (1, 2, 4)
+
+
 class LLMClient:
     def __init__(self) -> None:
         self.settings = settings
+
+    def _client(self):
+        from openai import AsyncOpenAI
+
+        return AsyncOpenAI(
+            api_key=self.settings.dashscope_api_key,
+            base_url=self.settings.dashscope_base_url,
+            timeout=60,
+        )
+
+    async def _broadcast_degraded(
+        self, purpose: str, error: Exception | str, session_id: str | None = None
+    ) -> None:
+        await db.broadcast(
+            {
+                "kind": "runtime_degraded",
+                "purpose": purpose,
+                "session_id": session_id,
+                "error": str(error)[:240],
+                "at": clock.iso_now(),
+            }
+        )
+
+    async def _chat_text(
+        self,
+        *,
+        purpose: str,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float,
+        session_id: str | None,
+        response_format: dict[str, str] | None = None,
+    ) -> str:
+        prompt_estimate = _count_tokens(
+            "\n".join(message["content"] for message in messages)
+        )
+        last_error: Exception | None = None
+        last_latency = 0
+        for attempt in range(len(RETRY_DELAYS) + 1):
+            start = time.perf_counter()
+            try:  # pragma: no cover - depends on network
+                request: dict[str, Any] = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                }
+                if response_format:
+                    request["response_format"] = response_format
+                response = await self._client().chat.completions.create(**request)
+                text = response.choices[0].message.content or ""
+                usage = response.usage
+                self._log_call(
+                    purpose,
+                    model,
+                    usage.prompt_tokens if usage else prompt_estimate,
+                    usage.completion_tokens if usage else _count_tokens(text),
+                    int((time.perf_counter() - start) * 1000),
+                    session_id,
+                )
+                return text
+            except Exception as exc:
+                last_error = exc
+                last_latency = int((time.perf_counter() - start) * 1000)
+                if attempt < len(RETRY_DELAYS):
+                    await asyncio.sleep(RETRY_DELAYS[attempt])
+
+        self._log_call(
+            purpose,
+            model,
+            prompt_estimate,
+            0,
+            last_latency,
+            session_id,
+            error=str(last_error),
+        )
+        raise last_error or RuntimeError(f"{purpose} call failed")
+
+    async def _chat_json(
+        self,
+        *,
+        purpose: str,
+        model: str,
+        prompt: str,
+        schema: type[T],
+        temperature: float,
+        session_id: str | None,
+    ) -> T:
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            text = await self._chat_text(
+                purpose=purpose,
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                response_format={"type": "json_object"},
+                session_id=session_id,
+            )
+            return schema.model_validate_json(text)  # type: ignore[attr-defined]
+        except Exception as validation_error:
+            repair_prompt = (
+                f"{prompt}\n\nThe previous response failed validation: {validation_error}. "
+                "Return corrected STRICT JSON only."
+            )
+            repair_text = await self._chat_text(
+                purpose=purpose,
+                model=model,
+                messages=[{"role": "user", "content": repair_prompt}],
+                temperature=temperature,
+                response_format={"type": "json_object"},
+                session_id=session_id,
+            )
+            return schema.model_validate_json(repair_text)  # type: ignore[attr-defined]
 
     async def health(self) -> dict[str, Any]:
         if not self.settings.live_llm_enabled:
@@ -27,7 +151,10 @@ class LLMClient:
                 "mode": "mock",
                 "reason": "DASHSCOPE_API_KEY missing or MOCK_LLM=true",
                 "chat_model": self.settings.chat_model,
+                "observer_model": self.settings.observer_model,
+                "dream_model": self.settings.dream_model,
                 "embed_model": self.settings.embed_model,
+                "judge_model": self.settings.judge_model,
             }
         try:
             start = time.perf_counter()
@@ -38,7 +165,10 @@ class LLMClient:
                 "reachable": True,
                 "latency_ms": int((time.perf_counter() - start) * 1000),
                 "chat_model": self.settings.chat_model,
+                "observer_model": self.settings.observer_model,
+                "dream_model": self.settings.dream_model,
                 "embed_model": self.settings.embed_model,
+                "judge_model": self.settings.judge_model,
                 "sample": text[:32],
             }
         except Exception as exc:  # pragma: no cover - depends on network
@@ -47,7 +177,10 @@ class LLMClient:
                 "mode": "live",
                 "error": str(exc),
                 "chat_model": self.settings.chat_model,
+                "observer_model": self.settings.observer_model,
+                "dream_model": self.settings.dream_model,
                 "embed_model": self.settings.embed_model,
+                "judge_model": self.settings.judge_model,
             }
 
     async def embed(self, text: str, session_id: str | None = None) -> list[float]:
@@ -56,41 +189,43 @@ class LLMClient:
             self._log_call("embed", self.settings.embed_model, _count_tokens(text), 0, 1, session_id)
             return vector
 
-        start = time.perf_counter()
-        try:  # pragma: no cover - depends on network
-            from openai import AsyncOpenAI
+        last_error: Exception | None = None
+        last_latency = 0
+        for attempt in range(len(RETRY_DELAYS) + 1):
+            start = time.perf_counter()
+            try:  # pragma: no cover - depends on network
+                response = await self._client().embeddings.create(
+                    model=self.settings.embed_model,
+                    input=text,
+                )
+                latency = int((time.perf_counter() - start) * 1000)
+                usage = getattr(response, "usage", None)
+                self._log_call(
+                    "embed",
+                    self.settings.embed_model,
+                    getattr(usage, "prompt_tokens", _count_tokens(text)),
+                    0,
+                    latency,
+                    session_id,
+                )
+                return list(response.data[0].embedding)
+            except Exception as exc:
+                last_error = exc
+                last_latency = int((time.perf_counter() - start) * 1000)
+                if attempt < len(RETRY_DELAYS):
+                    await asyncio.sleep(RETRY_DELAYS[attempt])
 
-            client = AsyncOpenAI(
-                api_key=self.settings.dashscope_api_key,
-                base_url=self.settings.dashscope_base_url,
-            )
-            response = await client.embeddings.create(
-                model=self.settings.embed_model,
-                input=text,
-            )
-            latency = int((time.perf_counter() - start) * 1000)
-            usage = getattr(response, "usage", None)
-            self._log_call(
-                "embed",
-                self.settings.embed_model,
-                getattr(usage, "prompt_tokens", _count_tokens(text)),
-                0,
-                latency,
-                session_id,
-            )
-            return list(response.data[0].embedding)
-        except Exception as exc:
-            latency = int((time.perf_counter() - start) * 1000)
-            self._log_call(
-                "embed",
-                self.settings.embed_model,
-                _count_tokens(text),
-                0,
-                latency,
-                session_id,
-                error=str(exc),
-            )
-            return mock_embedding(text, self.settings.embed_dim)
+        self._log_call(
+            "embed",
+            self.settings.embed_model,
+            _count_tokens(text),
+            0,
+            last_latency,
+            session_id,
+            error=str(last_error),
+        )
+        await self._broadcast_degraded("embed", last_error or "embedding failed", session_id)
+        return mock_embedding(text, self.settings.embed_dim)
 
     async def complete_tutor(
         self,
@@ -113,52 +248,93 @@ class LLMClient:
             return text
 
         prompt = build_tutor_prompt(student_message, memory_pack)
-        start = time.perf_counter()
         try:  # pragma: no cover - depends on network
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(
-                api_key=self.settings.dashscope_api_key,
-                base_url=self.settings.dashscope_base_url,
-                timeout=60,
-            )
-            response = await client.chat.completions.create(
+            return await self._chat_text(
+                purpose=purpose,
                 model=self.settings.chat_model,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": student_message},
                 ],
                 temperature=0.7,
+                session_id=session_id,
             )
-            text = response.choices[0].message.content or ""
-            usage = response.usage
-            self._log_call(
-                purpose,
-                self.settings.chat_model,
-                usage.prompt_tokens if usage else _count_tokens(prompt),
-                usage.completion_tokens if usage else _count_tokens(text),
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-            )
-            return text
         except Exception as exc:
             fallback = mock_tutor_reply(student_message, memory_pack, max_words)
-            self._log_call(
-                purpose,
-                self.settings.chat_model,
-                _count_tokens(prompt),
-                _count_tokens(fallback),
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-                error=str(exc),
-            )
+            await self._broadcast_degraded(purpose, exc, session_id)
             return fallback
 
     async def stream_tutor(
         self, student_message: str, memory_pack: list[dict[str, Any]], session_id: str
     ) -> AsyncIterator[str]:
-        text = await self.complete_tutor(student_message, memory_pack, session_id)
-        words = text.split(" ")
+        if not self.settings.live_llm_enabled:
+            text = await self.complete_tutor(student_message, memory_pack, session_id)
+            words = text.split(" ")
+            for index, word in enumerate(words):
+                suffix = " " if index < len(words) - 1 else ""
+                yield word + suffix
+                await asyncio.sleep(0.015)
+            return
+
+        prompt = build_tutor_prompt(student_message, memory_pack)
+        prompt_estimate = _count_tokens(prompt + "\n" + student_message)
+        last_error: Exception | None = None
+        text_parts: list[str] = []
+        for attempt in range(len(RETRY_DELAYS) + 1):
+            yielded = False
+            final_usage: Any = None
+            start = time.perf_counter()
+            try:  # pragma: no cover - depends on network
+                stream = await self._client().chat.completions.create(
+                    model=self.settings.chat_model,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": student_message},
+                    ],
+                    temperature=0.7,
+                    stream=True,
+                    stream_options={"include_usage": True},
+                )
+                async for chunk in stream:
+                    usage = getattr(chunk, "usage", None)
+                    if usage:
+                        final_usage = usage
+                    if not getattr(chunk, "choices", None):
+                        continue
+                    delta = chunk.choices[0].delta.content or ""
+                    if delta:
+                        yielded = True
+                        text_parts.append(delta)
+                        yield delta
+                text = "".join(text_parts)
+                self._log_call(
+                    "tutor",
+                    self.settings.chat_model,
+                    final_usage.prompt_tokens if final_usage else prompt_estimate,
+                    final_usage.completion_tokens if final_usage else _count_tokens(text),
+                    int((time.perf_counter() - start) * 1000),
+                    session_id,
+                )
+                return
+            except Exception as exc:
+                last_error = exc
+                if yielded:
+                    break
+                if attempt < len(RETRY_DELAYS):
+                    await asyncio.sleep(RETRY_DELAYS[attempt])
+
+        self._log_call(
+            "tutor",
+            self.settings.chat_model,
+            prompt_estimate,
+            _count_tokens("".join(text_parts)),
+            0,
+            session_id,
+            error=str(last_error),
+        )
+        await self._broadcast_degraded("tutor", last_error or "stream failed", session_id)
+        fallback = mock_tutor_reply(student_message, memory_pack, 120)
+        words = fallback.split(" ")
         for index, word in enumerate(words):
             suffix = " " if index < len(words) - 1 else ""
             yield word + suffix
@@ -171,7 +347,7 @@ class LLMClient:
             candidates = mock_extract(transcript)
             self._log_call(
                 "observer",
-                self.settings.chat_model,
+                self.settings.observer_model,
                 _count_tokens(transcript),
                 _count_tokens(json.dumps(candidates)),
                 1,
@@ -202,43 +378,18 @@ class LLMClient:
             "TRANSCRIPT (most recent exchange last):\n"
             f"{transcript}"
         )
-        start = time.perf_counter()
         try:  # pragma: no cover - depends on network
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(
-                api_key=self.settings.dashscope_api_key,
-                base_url=self.settings.dashscope_base_url,
-                timeout=60,
-            )
-            response = await client.chat.completions.create(
-                model=self.settings.chat_model,
-                messages=[{"role": "user", "content": prompt}],
+            parsed = await self._chat_json(
+                purpose="observer",
+                model=self.settings.observer_model,
+                prompt=prompt,
+                schema=ObserverResult,
                 temperature=0.1,
-                response_format={"type": "json_object"},
+                session_id=session_id,
             )
-            text = response.choices[0].message.content or '{"engrams":[]}'
-            usage = response.usage
-            self._log_call(
-                "observer",
-                self.settings.chat_model,
-                usage.prompt_tokens if usage else _count_tokens(prompt),
-                usage.completion_tokens if usage else _count_tokens(text),
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-            )
-            parsed = json.loads(text)
-            return parsed.get("engrams", [])[:3]
+            return [item.model_dump() for item in parsed.engrams[:3]]
         except Exception as exc:
-            self._log_call(
-                "observer",
-                self.settings.chat_model,
-                _count_tokens(prompt),
-                0,
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-                error=str(exc),
-            )
+            await self._broadcast_degraded("observer", exc, session_id)
             return []
 
     async def extract_session_level_engrams(
@@ -251,7 +402,7 @@ class LLMClient:
             candidates = mock_session_level_extract(transcript)
             self._log_call(
                 "consolidate",
-                self.settings.chat_model,
+                self.settings.dream_model,
                 _count_tokens(transcript),
                 _count_tokens(json.dumps(candidates)),
                 1,
@@ -275,44 +426,114 @@ class LLMClient:
             f"EXISTING MEMORIES: {json.dumps(existing_engrams, sort_keys=True)}\n"
             f"TRANSCRIPT:\n{transcript}"
         )
-        start = time.perf_counter()
         try:  # pragma: no cover - depends on network
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(
-                api_key=self.settings.dashscope_api_key,
-                base_url=self.settings.dashscope_base_url,
-                timeout=60,
-            )
-            response = await client.chat.completions.create(
-                model=self.settings.chat_model,
-                messages=[{"role": "user", "content": prompt}],
+            parsed = await self._chat_json(
+                purpose="consolidate",
+                model=self.settings.dream_model,
+                prompt=prompt,
+                schema=SessionLevelEngramResult,
                 temperature=0.1,
-                response_format={"type": "json_object"},
+                session_id=session_id,
             )
-            text = response.choices[0].message.content or '{"engrams":[]}'
-            usage = response.usage
-            self._log_call(
-                "consolidate",
-                self.settings.chat_model,
-                usage.prompt_tokens if usage else _count_tokens(prompt),
-                usage.completion_tokens if usage else _count_tokens(text),
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-            )
-            parsed = json.loads(text)
-            return parsed.get("engrams", [])[:2]
+            return [item.model_dump() for item in parsed.engrams[:2]]
         except Exception as exc:
+            await self._broadcast_degraded("consolidate", exc, session_id)
+            return []
+
+    async def distill_engram(
+        self,
+        engram: dict[str, Any],
+        quotes: list[str],
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        if not self.settings.live_llm_enabled:
+            result = {
+                "verdict": "confirm",
+                "content": engram["content"],
+                "confidence": engram["confidence"],
+                "reason": "Mock mode confirms supported provisional memories.",
+            }
             self._log_call(
                 "consolidate",
-                self.settings.chat_model,
-                _count_tokens(prompt),
-                0,
-                int((time.perf_counter() - start) * 1000),
+                self.settings.dream_model,
+                _count_tokens(json.dumps(engram) + json.dumps(quotes)),
+                _count_tokens(json.dumps(result)),
+                1,
                 session_id,
-                error=str(exc),
             )
-            return []
+            return result
+
+        prompt = (
+            "You are consolidating a tutoring session into long-term memory. Given a candidate memory\n"
+            "and the exact transcript excerpts it came from, return STRICT JSON:\n"
+            "{\"verdict\":\"confirm|revise|reject\",\"content\":\"(final one-sentence content if confirm/revise)\",\n"
+            " \"confidence\":0.0,\"reason\":\"one short sentence\"}\n"
+            "- reject if the excerpts do not actually support the claim.\n"
+            "- revise to make content tighter/more precise; never broader than evidence.\n"
+            f"CANDIDATE: {json.dumps(engram, sort_keys=True)}\n"
+            f"EXCERPTS: {json.dumps(quotes, sort_keys=True)}"
+        )
+        try:  # pragma: no cover - depends on network
+            verdict = await self._chat_json(
+                purpose="consolidate",
+                model=self.settings.dream_model,
+                prompt=prompt,
+                schema=DistillVerdict,
+                temperature=0,
+                session_id=session_id,
+            )
+            return verdict.model_dump()
+        except Exception as exc:
+            await self._broadcast_degraded("consolidate", exc, session_id)
+            return {
+                "verdict": "confirm",
+                "content": engram["content"],
+                "confidence": engram["confidence"],
+                "reason": "Distillation unavailable; deterministic fallback kept threshold behavior.",
+            }
+
+    async def judge_pair(
+        self,
+        left: dict[str, Any],
+        right: dict[str, Any],
+        session_id: str | None = None,
+        relation: str = "dedupe",
+    ) -> dict[str, Any]:
+        if not self.settings.live_llm_enabled:
+            verdict = "contradiction" if relation == "reconcile" else "duplicate"
+            result = {"verdict": verdict, "reason": "Mock mode preserves threshold behavior."}
+            self._log_call(
+                "judge",
+                self.settings.dream_model,
+                _count_tokens(json.dumps(left) + json.dumps(right)),
+                _count_tokens(json.dumps(result)),
+                1,
+                session_id,
+            )
+            return result
+
+        prompt = (
+            "Compare two memories about the same student. Return STRICT JSON:\n"
+            "{\"verdict\":\"duplicate|refinement|contradiction|distinct\",\"reason\":\"one sentence\"}\n"
+            "- duplicate: same claim in different words.\n"
+            "- refinement: B is a strictly more precise/updated version of A.\n"
+            "- contradiction: they cannot both be true of the student now.\n"
+            "- distinct: different claims that can coexist.\n"
+            f"A: {json.dumps(left, sort_keys=True)}   B: {json.dumps(right, sort_keys=True)}"
+        )
+        try:  # pragma: no cover - depends on network
+            verdict = await self._chat_json(
+                purpose="judge",
+                model=self.settings.dream_model,
+                prompt=prompt,
+                schema=PairJudgeVerdict,
+                temperature=0,
+                session_id=session_id,
+            )
+            return verdict.model_dump()
+        except Exception as exc:
+            await self._broadcast_degraded("judge", exc, session_id)
+            return {"verdict": "distinct", "reason": "Judge unavailable; skipped item."}
 
     async def score_personalization(
         self, truth_sheet: str, opening_message: str, session_id: str | None = None
@@ -342,47 +563,22 @@ class LLMClient:
             f"STUDENT GROUND TRUTH: {truth_sheet}\n"
             f"TUTOR OPENING: {opening_message}"
         )
-        start = time.perf_counter()
         try:  # pragma: no cover - depends on network
-            from openai import AsyncOpenAI
-
-            client = AsyncOpenAI(
-                api_key=self.settings.dashscope_api_key,
-                base_url=self.settings.dashscope_base_url,
-                timeout=60,
-            )
-            response = await client.chat.completions.create(
+            parsed = await self._chat_json(
+                purpose="eval_judge",
                 model=self.settings.judge_model,
-                messages=[{"role": "user", "content": prompt}],
+                prompt=prompt,
+                schema=EvalJudgeVerdict,
                 temperature=0,
-                response_format={"type": "json_object"},
-            )
-            text = response.choices[0].message.content or "{}"
-            parsed = json.loads(text)
-            usage = response.usage
-            self._log_call(
-                "eval_judge",
-                self.settings.judge_model,
-                usage.prompt_tokens if usage else _count_tokens(prompt),
-                usage.completion_tokens if usage else _count_tokens(text),
-                int((time.perf_counter() - start) * 1000),
-                session_id,
+                session_id=session_id,
             )
             return {
-                "score": int(parsed["score"]),
-                "reason": str(parsed["reason"]),
+                "score": int(parsed.score),
+                "reason": str(parsed.reason),
                 "real_run": True,
             }
         except Exception as exc:
-            self._log_call(
-                "eval_judge",
-                self.settings.judge_model,
-                _count_tokens(prompt),
-                0,
-                int((time.perf_counter() - start) * 1000),
-                session_id,
-                error=str(exc),
-            )
+            await self._broadcast_degraded("eval_judge", exc, session_id)
             return {
                 "score": 0,
                 "reason": f"Eval judge failed: {exc}",
@@ -440,19 +636,12 @@ def build_tutor_prompt(student_message: str, memory_pack: list[dict[str, Any]]) 
         f"- {item['type'].upper()} ({item.get('confidence', 0):.2f}): {item['content']}"
         for item in semantic
     ) or "- No durable student model yet."
-    return f"""You are Reverie, a private tutor for Calculus I. You are warm, precise, and Socratic.
-Write every math expression as inline LaTeX delimited by $...$ (for example $y' = 5(3x^2 + 1)^4 \\cdot 6x$).
-Keep replies under 120 words unless working a full example.
-
-TEACHING DIRECTIVES:
-{procedural_block}
-
-STUDENT MODEL:
-{semantic_block}
-
-CURRENT STUDENT MESSAGE:
-{student_message}
-"""
+    return build_tutor_system_prompt(
+        student_message,
+        procedural_block,
+        semantic_block,
+        "Use the app clock date and current session title supplied by the session layer.",
+    )
 
 
 def mock_embedding(text: str, dim: int) -> list[float]:
@@ -516,8 +705,18 @@ def mock_extract(transcript: str) -> list[dict[str, Any]]:
                 "source_quotes": [quote],
             }
         )
-    if "example first" in lower or "rules in the abstract" in lower:
+    if (
+        "example first" in lower
+        or "example-first" in lower
+        or "worked example" in lower
+        or "worked one first" in lower
+        or "rules in the abstract" in lower
+    ):
         quote = find_case_snippet(transcript, "example first") or find_case_snippet(
+            transcript, "worked example"
+        ) or find_case_snippet(
+            transcript, "worked one first"
+        ) or find_case_snippet(
             transcript, "rules in the abstract"
         ) or "example first"
         found.append(

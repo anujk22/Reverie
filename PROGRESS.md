@@ -39,8 +39,8 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 | M4 | done | 2026-07-04 | Session-open and per-turn budgeted retrieval return winners, exclusions, score breakdowns, confidence/strength metadata, and emit reinforcement events. |
 | M5 | provisional | 2026-07-05 | ECS gate dissolved by Fable. Design rescue pass completed; Fable provisionally accepted pending screenshot review. Hold two-panel session composition while later work proceeds. |
 | M6 | ready-for-fable-review | 2026-07-05 | Dream view, Evals honest-state screen, and `/architecture` memory-pipeline card implemented and QA'd at desktop + narrow widths. |
-| M7 | todo |  |  |
-| M8 | todo |  |  |
+| M7 | implemented-local | 2026-07-06 | Conductor, film mode, real eval runner, recall probes, DB isolation, and mock eval verification implemented. Full Docker film replay twice is still pending. |
+| M8 | in-progress | 2026-07-06 | README, architecture diagram SVG, deploy note, Devpost draft, screenshots, and hygiene updates landed locally. ECS proof remains blocked externally. |
 | M9 | todo |  | Gated on VL model and core completion. |
 
 ## Decisions Log
@@ -69,6 +69,10 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 22. Premise hardening implemented across `README.md`, `docs/DEVPOST.md`, `docs/ARCHITECTURE.md`, metadata, and route copy. The docs state near the top that extraction, dreaming, forgetting, duplicate detection, and budgeted recall contain zero calculus knowledge; the subject lives in prompt/script surfaces, and `backend/tests/test_dedupe.py` proves the Spanish-conjugation litmus.
 23. `docs/DESIGN.md` was read and resolved. Useful design/product-contract details were folded into `docs/ARCHITECTURE.md`; the standalone file was deleted so there is no mystery untracked design note.
 24. Eval result JSON is runtime state, not source. `backend/app/evals/results/*.json` is ignored; the API returns an honest empty state until a completed real run exists, and augments that state with live token totals from `llm_calls`.
+25. Model routing is now role-specific: `qwen-flash` observer, `qwen-plus` tutor, `qwen-max` dream/judge, `qwen-max` eval judge, and `text-embedding-v4` embeddings. `/api/health` reports all five roles.
+26. Engine-purity enforcement moved demo subject strings into `backend/app/subject.py`; source tests now scan memory, routes, DB, and tutor modules for demo-subject leakage.
+27. Dream distillation and pair checks now accept schema-validated LLM verdicts, then use deterministic archive, consolidate, merge, refinement, supersession, or no-op paths. Invalid or unavailable verdicts fall back without mutating memory from raw text.
+28. Film mode is keyed by `?film=1`, with beat captions in `frontend/lib/filmScript.ts`; Conductor now exposes the seven repeatable demo actions and keyboard shortcuts 1-7.
 
 ## Deviations from PRD
 
@@ -76,7 +80,9 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - Local Python is 3.14.5, not 3.11. Docker pins Python 3.11.
 - Mock embeddings originally used dimension 128. After M0.5 discovery, default `EMBED_DIM` was updated to the live `text-embedding-v4` dimension of 1024.
 - Added new hard law from Fable: eval charts/results must not be fabricated. The current eval endpoint returns an honest unavailable state until a live DashScope-backed run exists.
-- Dream distillation currently uses deterministic consolidation for provisional memories plus session-level LLM/mock extraction for affect/strategy memories. Live Qwen judge/distillation for dedup/contradiction remains required before M7 and before any recorded material.
+- Live Qwen dream distillation and judge calls are implemented, but final recorded-material validation still needs a live non-mock rehearsal.
+- Full Docker film mode has not yet been replayed twice in this pass. Local mock backend/frontend screenshots were captured via the app runtime instead.
+- `.venv/` is now ignored, but the repository already has tracked `.venv` files from before this pass. They were not removed because that is a separate hygiene operation with a large diff.
 - If ECS never lands before submission, fallback of record is an `llm.py` permalink showing DashScope/Alibaba Cloud API usage, a live app recording with token logs, and an honest deployment note plus ticket screenshot.
 
 ## Verification Log
@@ -109,6 +115,14 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - `jq empty backend/app/evals/scripts/*.json` -> passed.
 - `git diff --check` -> passed.
 - Secret-pattern scan for DashScope/Qwen key material -> no repo matches.
+- `backend/.venv311/bin/pytest backend/tests` -> 26 passed after engine purity, dream judge, and eval runner tests.
+- `grep -ri "maya\|calculus" backend/app/memory backend/app/routes` -> no source matches after clearing generated `__pycache__`.
+- `PYTHONPATH=backend MOCK_LLM=true backend/.venv311/bin/python -m app.evals.run` -> mock suite completed with `real_run=false`, recall precision `1.0` for sessions 2 and 3, forgetting check `pass`, and no generated real-run markdown.
+- `PYTHONPATH=backend MOCK_LLM=true` TestClient full flow -> create session, 3 chat turns, end session, dream stages, and new-session memory pack passed.
+- `npm run build` in `frontend/` -> passed for `/`, `/dream`, `/evals`, `/architecture`, and `/conductor`.
+- Fresh final screenshots captured via local mock backend/frontend: `docs/screenshots/final-session-dormant-desktop.png`, `docs/screenshots/final-session-dormant-narrow.png`, `docs/screenshots/final-first-engram-desktop.png`, `docs/screenshots/final-first-engram-narrow.png`, `docs/screenshots/final-session-recall-desktop.png`, `docs/screenshots/final-session-recall-narrow.png`, `docs/screenshots/final-dream-desktop.png`, `docs/screenshots/final-dream-narrow.png`, `docs/screenshots/final-evals-desktop.png`, `docs/screenshots/final-evals-narrow.png`, `docs/screenshots/final-conductor-desktop.png`, `docs/screenshots/final-conductor-narrow.png`, `docs/screenshots/final-architecture-desktop.png`, `docs/screenshots/final-architecture-narrow.png`.
+- `git diff --check` -> passed.
+- Source secret-pattern scan excluding tracked virtualenv/vendor folders -> no matches. Pre-existing tracked `.venv` vendor files remain a separate cleanup item.
 
 ## M2 Observer Sample
 
@@ -171,7 +185,7 @@ Session 2 draft (`backend/app/evals/scripts/session2.json`):
 - [ ] Backend live on Alibaba ECS; /api/health public
 - [ ] Deployment proof recording done (§12.5 shot list)
 - [ ] Repo public, MIT license, no secrets (grep + git history check), .env.example present
-- [ ] README per §13.2 with hero screenshot; ARCHITECTURE.md + diagram PNG
+- [x] README per §13.2 with hero screenshot; ARCHITECTURE.md + diagram image
 - [ ] EVALS.md with real numbers; forgetting check passing
 - [ ] 3-minute demo recorded following §11.1; uploaded public
 - [ ] Devpost: description, track = MemoryAgent, video link, repo link, deployment proof, llm.py permalink

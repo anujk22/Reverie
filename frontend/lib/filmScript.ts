@@ -1,4 +1,4 @@
-export type DemoPage = "/" | "/dream" | "/evals";
+export type DemoPage = "/" | "/dream" | "/evals" | "/architecture";
 
 export type DemoAction =
   | { type: "reset"; createSessionTitle: string }
@@ -17,7 +17,7 @@ export type DemoBeat = {
   autoAdvanceMs?: number;
 };
 
-export const demoScript: DemoBeat[] = [
+export const filmScript: DemoBeat[] = [
   {
     id: "cold-start",
     caption: "Reverie starts knowing nothing.",
@@ -27,7 +27,7 @@ export const demoScript: DemoBeat[] = [
   },
   {
     id: "first-friction",
-    caption: "It listens - and extracts what's worth keeping.",
+    caption: "It listens, and keeps what matters.",
     page: "/",
     action: {
       type: "send_message",
@@ -38,7 +38,7 @@ export const demoScript: DemoBeat[] = [
   },
   {
     id: "worked-example",
-    caption: "Each memory is an event: observed, typed, sourced to her words.",
+    caption: "It listens, and keeps what matters.",
     page: "/",
     action: {
       type: "send_message",
@@ -48,36 +48,22 @@ export const demoScript: DemoBeat[] = [
     autoAdvanceMs: 7000
   },
   {
-    id: "late-work",
-    caption: "Watch the mind light up as memories form.",
-    page: "/",
-    action: {
-      type: "send_message",
-      text: "I study late after work, so short practice sets stick better.",
-      settleMs: 3000
-    },
-    autoAdvanceMs: 9000
-  },
-  {
     id: "dream-cycle",
-    caption:
-      "Between sessions, Reverie dreams: it replays, merges duplicates, and lets stale memories fade.",
+    caption: "Between sessions, it dreams, merging, resolving, forgetting.",
     page: "/dream",
     action: { type: "run_dream", endCurrentSession: true },
     autoAdvanceMs: 9000
   },
   {
     id: "second-day",
-    caption:
-      "A new day. It recalls only what fits a fixed token budget - and shows what it left out.",
+    caption: "A day passes. Unused memories fade.",
     page: "/",
     action: { type: "create_session", title: "Session 2", showMemoryPack: true },
     autoAdvanceMs: 9000
   },
   {
     id: "recall",
-    caption:
-      "It remembers Maya - her mistake, her preference, her schedule - without replaying the transcript.",
+    caption: "It recalls only what fits the budget.",
     page: "/",
     action: {
       type: "send_message",
@@ -86,17 +72,26 @@ export const demoScript: DemoBeat[] = [
     autoAdvanceMs: 9000
   },
   {
-    id: "measured",
-    caption:
-      "Measured: more personal than no-memory, a fraction of full-history's tokens.",
-    page: "/evals",
-    action: { type: "idle" },
+    id: "remember",
+    caption: "And it remembers her.",
+    page: "/",
+    action: {
+      type: "send_message",
+      text: "Can we do one small worked example before the rule?"
+    },
     autoAdvanceMs: 9000
   },
   {
-    id: "general",
-    caption: "And the engine never knew calculus. Swap one prompt, keep the mind.",
-    page: "/",
+    id: "measured",
+    caption: "Measured, not asserted.",
+    page: "/evals",
+    action: { type: "idle" },
+    autoAdvanceMs: 7000
+  },
+  {
+    id: "architecture",
+    caption: "The engine is the product.",
+    page: "/architecture",
     action: { type: "idle" }
   }
 ];

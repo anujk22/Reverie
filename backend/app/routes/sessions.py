@@ -6,6 +6,7 @@ from app.db import db
 from app.memory.dream import run_dream
 from app.memory.retrieval_service import assemble_memory_pack
 from app.models import CreateSessionRequest
+from app.subject import SESSION_OPEN_RETRIEVAL_QUERY
 
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -20,7 +21,7 @@ async def list_sessions():
 async def create_session(payload: CreateSessionRequest):
     session = db.create_session(payload.title)
     pack = await assemble_memory_pack(
-        "session open: Maya's goals, last dream summary, and current calculus focus",
+        SESSION_OPEN_RETRIEVAL_QUERY,
         session_id=session["id"],
         phase="session_open",
     )
@@ -30,7 +31,7 @@ async def create_session(payload: CreateSessionRequest):
 @router.get("/{session_id}/memory-pack")
 async def memory_pack(session_id: str, phase: str = "session_open"):
     return await assemble_memory_pack(
-        "session open: Maya's goals, last dream summary, and current calculus focus",
+        SESSION_OPEN_RETRIEVAL_QUERY,
         session_id=session_id,
         phase=phase,
     )
