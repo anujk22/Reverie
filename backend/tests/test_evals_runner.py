@@ -4,6 +4,7 @@ import asyncio
 
 from app.db import Database
 from app.evals import runner
+from app.llm import mock_tutor_reply
 
 
 def test_score_recall_probes_counts_expected_and_absent_tags() -> None:
@@ -49,3 +50,23 @@ def test_eval_run_uses_isolated_condition_databases(tmp_path, monkeypatch) -> No
         "no_memory.db",
         "reverie.db",
     ]
+
+
+def test_mock_returning_opening_uses_misconception_and_affect() -> None:
+    memory_pack = [
+        {
+            "type": "misconception",
+            "content": "Differentiates f(g(x)) as f'(x) times g'(x), applying the product rule pattern to compositions.",
+        },
+        {
+            "type": "affect",
+            "content": "Anxiety rises around exam language; respond by concretizing the next step.",
+        },
+    ]
+
+    for _ in range(3):
+        reply = mock_tutor_reply(
+            "Okay, I have 20 minutes tonight. Where were we?", memory_pack, 120
+        )
+        assert "product" in reply.lower()
+        assert "low-pressure" in reply.lower()

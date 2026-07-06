@@ -75,7 +75,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
             <Clapperboard aria-hidden="true" size={17} strokeWidth={1.8} />
           </button>
           <div className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2/80 font-mono text-[11px] text-starlight">
-            MC
+            LP
           </div>
           <RuntimeChip />
         </div>

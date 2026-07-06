@@ -899,9 +899,9 @@ export function ConstellationCanvas({
       {graph.nodes.length === 0 ? (
         <div className="pointer-events-none absolute inset-x-0 top-[72%] flex justify-center px-8 text-center">
           <p className="max-w-xl font-display text-[27px] italic leading-snug text-[#d9aec2]">
-            Reverie has not met Maya yet.
+            Reverie has not met Lena yet.
             <br />
-            Everything she teaches it will appear here.
+            Everything she tells it will appear here.
           </p>
         </div>
       ) : null}

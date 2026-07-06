@@ -1,12 +1,18 @@
 # Devpost Description Draft
 
-Reverie is a memory engine wearing a tutoring skin.
+Reverie is a visible memory engine: extraction with provenance receipts, dream consolidation, Ebbinghaus decay, and budgeted retrieval are all watchable in real time.
 
-Most AI tutors have amnesia. They answer the current turn, but they do not build a durable, inspectable model of how a learner thinks. Reverie makes that memory lifecycle visible. During a tutoring session, it extracts typed observations with provenance. Between sessions, it dreams over the evidence: confirming, revising, merging, reconciling, decaying, and archiving memories. When the learner returns, it recalls only the highest-value memories that fit a fixed context budget.
+## Inspiration
 
-The demo subject is Calculus I, with Maya confusing chain rule and product rule. The engine itself contains zero calculus knowledge. Subject-specific material lives in the tutor prompt and scripts; the memory pipeline is typed, event-sourced, and tested with a Spanish-conjugation duplicate-guard case.
+Memory is the missing layer for any AI that serves the same human twice: a learner across weeks, a patient across visits, a customer across tickets. Context windows aren't memory; they are cost. Reverie makes memory a first-class, inspectable, budgeted system.
 
-Reverie uses multi-model Qwen orchestration: `qwen-flash` for the high-frequency observer, `qwen-plus` for tutor conversation, `qwen-max` for dream/judge work, and `text-embedding-v4` for retrieval. The backend is FastAPI and SQLite; the frontend is Next.js with a live canvas mind map, Dream view, Conductor, and Evals dashboard.
+## What It Does
+
+The demo scenario is the hardest memory workload we could give it: one person, learning something difficult, across multiple sessions, over weeks. Lena Park brings a misconception, preferences, a goal, and pressure around an exam. Reverie extracts typed memories with exact transcript receipts, dreams over them between sessions, lets stale memories decay, and retrieves only the highest-value memories that fit a fixed budget. It remembers not just what the user got wrong but how they felt, and adapts.
+
+The engine contains zero domain knowledge. Swap one script file and the same engine remembers a customer across support tickets, a patient across visits, an engineer across a codebase. The test suite proves it.
+
+Reverie uses multi-model Qwen orchestration: `qwen-flash` for the high-frequency observer, `qwen-plus` for assistant conversation, `qwen-max` for dream/judge work, and `text-embedding-v4` for retrieval. The backend is FastAPI and SQLite; the frontend is Next.js with a live canvas mind map, Dream view, Conductor, and Evals dashboard.
 
 The eval harness compares three conditions across identical scripted sessions: no memory, full transcript history, and Reverie. Live eval numbers are written to `EVALS.md`; mock runs are labeled `real_run=false` and never become claims.
 

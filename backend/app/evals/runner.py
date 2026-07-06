@@ -186,7 +186,7 @@ def condition_message(condition: str, student: str, history: list[str]) -> str:
     if condition != "full_history" or not history:
         return student
     prior = "\n\n".join(history)
-    return f"Prior session transcripts:\n{prior}\n\nCurrent student turn:\n{student}"
+    return f"Prior session transcripts:\n{prior}\n\nCurrent learner turn:\n{student}"
 
 
 async def play_baseline_condition(
@@ -204,7 +204,7 @@ async def play_baseline_condition(
         session = database.create_session(script["title"])
         opening_prompt = condition_message(
             condition,
-            "Open this tutoring session with one concise first response.",
+            "Open this learning session with one concise first response.",
             history,
         )
         opening = await llm_client.complete_tutor(opening_prompt, [], session["id"])
@@ -272,7 +272,7 @@ async def play_reverie_condition(
             )
 
         opening = await llm_client.complete_tutor(
-            "Open this tutoring session with one concise first response.",
+            "Open this learning session with one concise first response.",
             pack["winners"],
             session["id"],
         )

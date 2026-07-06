@@ -149,7 +149,7 @@ def test_session_open_retrieval_includes_goal_and_preference(tmp_path, monkeypat
                 provisional=False,
             )
         return await retrieval_service.assemble_memory_pack(
-            "Start the next chain rule session from Maya goals.",
+            "Start the next chain rule session from the learner's goals.",
             session["id"],
             phase="session_open",
         )

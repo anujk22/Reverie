@@ -6,11 +6,13 @@ product
 
 ## Users
 
-Reverie is primarily used in a hackathon demo context by judges, reviewers, and builders evaluating whether an AI tutor can carry durable memory across sessions. The active user is a learner in a tutoring session, but the interface must also make the hidden memory engine legible to an observer.
+Reverie is primarily used in a hackathon demo context by judges, reviewers, and builders evaluating whether a domain-agnostic memory engine can carry durable memory across sessions. The active scenario is a learner working through a difficult topic, but the interface must also make the hidden memory engine legible to an observer.
 
 ## Product Purpose
 
-Reverie is a memory engine wearing a tutoring skin. It extracts durable observations, dreams over session evidence, forgets stale memories, and recalls only the memories that fit a fixed context budget. Success means the app feels like a live AI mind forming and reusing memories, not a generic chatbot with a graph bolted on.
+Reverie is a visible memory engine. It extracts durable observations, dreams over session evidence, forgets stale memories, and recalls only the memories that fit a fixed context budget. Success means the app feels like a live AI mind forming and reusing memories, not a generic chatbot with a graph bolted on.
+
+The engine contains zero domain knowledge. Swap one script file and the same engine remembers a customer across support tickets, a patient across visits, an engineer across a codebase. The test suite proves it.
 
 ## Brand Personality
 

@@ -29,14 +29,14 @@ export type DemoBeat = {
 export const filmScript: DemoBeat[] = [
   {
     id: "cold-start",
-    caption: "Reverie starts knowing nothing.",
+    caption: "A memory engine starts empty.",
     page: "/",
     action: { type: "reset", createSessionTitle: "Session 1" },
     autoAdvanceMs: 5000
   },
   {
     id: "first-friction",
-    caption: "It listens, and keeps what matters.",
+    caption: "The hardest memory workload: one person over weeks.",
     page: "/",
     action: {
       type: "send_message",
@@ -59,7 +59,7 @@ export const filmScript: DemoBeat[] = [
   },
   {
     id: "worked-example",
-    caption: "It listens, and keeps what matters.",
+    caption: "It forms typed memories from exact evidence.",
     page: "/",
     action: {
       type: "send_message",
@@ -70,7 +70,7 @@ export const filmScript: DemoBeat[] = [
   },
   {
     id: "dream-cycle",
-    caption: "Between sessions, it dreams, merging, resolving, forgetting.",
+    caption: "Between sessions, it dreams: merging, resolving, forgetting.",
     page: "/",
     action: { type: "run_dream", endCurrentSession: true },
     autoAdvanceMs: 5000
@@ -101,7 +101,7 @@ export const filmScript: DemoBeat[] = [
   },
   {
     id: "remember",
-    caption: "And it remembers her.",
+    caption: "It remembered pressure, and changed the response.",
     page: "/",
     action: {
       type: "send_message",

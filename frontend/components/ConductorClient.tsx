@@ -111,7 +111,7 @@ export function ConductorClient() {
       },
       {
         title: "Play session 1 script",
-        description: "Feed Maya's first-session turns through the normal chat route.",
+        description: "Replay Lena's first-session turns through the normal chat route.",
         icon: ScrollText,
         run: async () => {
           const session = await playScript("session1", "Session 1 - chain rule");

@@ -141,7 +141,7 @@ function sessionEyebrow(session: SessionRecord | null) {
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  return sessionNumber(session) === "1" ? "Maya meets Reverie." : "Maya returns.";
+  return sessionNumber(session) === "1" ? "Lena meets Reverie." : "Lena returns.";
 }
 
 function stageSummary(stage: DreamStage) {
@@ -376,7 +376,7 @@ export function SessionClient() {
       if (fallback) {
         setSelected({
           id,
-          student_id: "stu_maya",
+          student_id: "person_lena",
           type: fallback.type as Engram["type"],
           content: fallback.content,
           subject_tags: [],
@@ -503,7 +503,7 @@ export function SessionClient() {
       setError(humanError(err));
       patchMessage(tutorLocalId, {
         pending: false,
-        content: "The tutor stream is unavailable. The memory state is still intact."
+        content: "The assistant stream is unavailable. The memory state is still intact."
       });
     } finally {
       setStreaming(false);
@@ -739,11 +739,11 @@ export function SessionClient() {
                 <div>
                   <p className="max-w-md font-display text-[30px] italic leading-snug text-starlight/90">
                     {sessionNumber(session) === "1"
-                      ? "Reverie knows nothing about Maya yet."
+                      ? "Reverie knows nothing about Lena yet."
                       : "Reverie has been dreaming about last time."}
                   </p>
                   <p className="mt-3 text-sm leading-6 text-dim">
-                    Start with what Maya would say, or write your own below.
+                    Start with what Lena would say, or write your own below.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2.5">

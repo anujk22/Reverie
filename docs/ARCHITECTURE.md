@@ -1,12 +1,16 @@
 # Reverie Architecture
 
-Reverie is a subject-agnostic memory engine. The tutoring layer is the demo skin:
-the core pipeline extracts typed observations about a person, consolidates them
-during a dream cycle, decays or supersedes stale memories, and assembles a
-budgeted recall pack before the next response. The engine contains zero calculus
-knowledge; the subject lives in prompts and scripts. The Spanish-conjugation
+Reverie is a subject-agnostic memory engine: the core pipeline extracts typed
+observations about a person, consolidates them during a dream cycle, decays or
+supersedes stale memories, and assembles a budgeted recall pack before the next
+response. The demo scenario is the hardest memory workload we could give it: one
+person, learning something difficult, across multiple sessions, over weeks.
+
+The engine contains zero domain knowledge. Swap one script file and the same
+engine remembers a customer across support tickets, a patient across visits, an
+engineer across a codebase. The test suite proves it. The Spanish-conjugation
 acceptance tests in [`backend/tests/test_dedupe.py`](../backend/tests/test_dedupe.py)
-prove the duplicate guard without relying on the demo subject.
+exercise the duplicate guard outside the demo subject.
 
 ![Reverie architecture diagram](./diagram.svg)
 
@@ -23,7 +27,7 @@ flowchart LR
     BE --> RET[Budgeted retrieval\nscore + knapsack]
   end
   subgraph "Qwen Cloud (DashScope)"
-    QP[qwen-plus — tutor]
+    QP[qwen-plus — assistant]
     QF[qwen-flash — observer]
     QM[qwen-max — dreams · judges]
     QE[text-embedding-v4]
@@ -37,7 +41,7 @@ flowchart LR
 
 The frontend never invents memory state. It renders initial graph state from `/api/memory/graph` and then animates the append-only event stream from `/api/events/stream`.
 
-Model routing matches depth to cognitive function: `qwen-flash` handles the high-frequency observer pass after each turn, `qwen-plus` stays focused on tutor conversation, `qwen-max` is reserved for slower dream consolidation and judge calls, and `text-embedding-v4` powers retrieval. The health endpoint reports all role model IDs so a demo can prove which model served each function.
+Model routing matches depth to cognitive function: `qwen-flash` handles the high-frequency observer pass after each turn, `qwen-plus` stays focused on assistant conversation, `qwen-max` is reserved for slower dream consolidation and judge calls, and `text-embedding-v4` powers retrieval. The health endpoint reports all role model IDs so a demo can prove which model served each function.
 
 ## Product Center
 
@@ -56,7 +60,7 @@ The UI follows the PRD design contract that was previously captured in
 
 | Surface | Required memory pixel |
 | --- | --- |
-| Session | live Constellation, memory chips under tutor replies, budget meter |
+| Session | live Constellation, memory chips under assistant replies, budget meter |
 | Dream | stage rows animated from real `dream_stage` SSE events |
 | Evals | charts only from real eval JSON, otherwise honest empty state |
 | Architecture | in-app card showing Qwen on Alibaba Cloud and the memory pipeline |

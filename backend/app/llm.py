@@ -355,7 +355,7 @@ class LLMClient:
             )
             return candidates
         prompt = (
-            "You watch a tutoring exchange and extract durable observations about the STUDENT.\n"
+            "You watch a learning exchange and extract durable observations about the LEARNER.\n"
             "Return STRICT JSON: {\"engrams\":[{\"type\":\"...\",\"content\":\"...\","
             "\"subject_tags\":[\"..\"],\"confidence\":0.0,\"importance\":0.0,"
             "\"source_quotes\":[\"exact substring from transcript\", ...]}]}\n"
@@ -373,7 +373,7 @@ class LLMClient:
             "- Correct application of a skill is mastery evidence, never misconception evidence. Contrastive example: "
             "if a transcript says \"I used to mix up rule A, but now I apply rule B correctly,\" extract mastery "
             "for the current correct performance, not a misconception from the historical mention.\n"
-            "- confidence: how sure the transcript supports this. importance: how much a tutor should care "
+            "- confidence: how sure the transcript supports this. importance: how much the assistant should care "
             "(misconceptions and goals high; incidental facts low).\n"
             "TRANSCRIPT (most recent exchange last):\n"
             f"{transcript}"
@@ -411,7 +411,7 @@ class LLMClient:
             return candidates
 
         prompt = (
-            "You are consolidating a tutoring session into durable long-term memory.\n"
+            "You are consolidating a learning session into durable long-term memory.\n"
             "Return STRICT JSON: {\"engrams\":[{\"type\":\"affect|strategy_outcome\","
             "\"content\":\"...\",\"subject_tags\":[\"..\"],\"confidence\":0.0,"
             "\"importance\":0.0,\"source_quotes\":[\"exact substring from transcript\", ...]}]}\n"
@@ -513,11 +513,11 @@ class LLMClient:
             return result
 
         prompt = (
-            "Compare two memories about the same student. Return STRICT JSON:\n"
+            "Compare two memories about the same person. Return STRICT JSON:\n"
             "{\"verdict\":\"duplicate|refinement|contradiction|distinct\",\"reason\":\"one sentence\"}\n"
             "- duplicate: same claim in different words.\n"
             "- refinement: B is a strictly more precise/updated version of A.\n"
-            "- contradiction: they cannot both be true of the student now.\n"
+            "- contradiction: they cannot both be true of the person now.\n"
             "- distinct: different claims that can coexist.\n"
             f"A: {json.dumps(left, sort_keys=True)}   B: {json.dumps(right, sort_keys=True)}"
         )
@@ -555,13 +555,13 @@ class LLMClient:
             return result
 
         prompt = (
-            "Score 1-5 how well this tutor OPENING message demonstrates specific knowledge of this "
-            "student (their known misconception, goal, and learning preference), while sounding natural.\n"
+            "Score 1-5 how well this assistant OPENING message demonstrates specific knowledge of this "
+            "learner (their known misconception, goal, and learning preference), while sounding natural.\n"
             "5 = references a specific prior struggle or preference accurately and naturally.\n"
-            "3 = generic but subject-appropriate. 1 = could be sent to any student.\n"
+            "3 = generic but subject-appropriate. 1 = could be sent to any learner.\n"
             "Return STRICT JSON {\"score\":N,\"reason\":\"...\"}.\n"
-            f"STUDENT GROUND TRUTH: {truth_sheet}\n"
-            f"TUTOR OPENING: {opening_message}"
+            f"LEARNER GROUND TRUTH: {truth_sheet}\n"
+            f"ASSISTANT OPENING: {opening_message}"
         )
         try:  # pragma: no cover - depends on network
             parsed = await self._chat_json(
@@ -631,11 +631,11 @@ def build_tutor_prompt(student_message: str, memory_pack: list[dict[str, Any]]) 
     procedural_block = "\n".join(
         f"- {item['content']} (confidence {item.get('confidence', 0):.2f})"
         for item in procedural
-    ) or "- No durable teaching directives yet."
+    ) or "- No durable response directives yet."
     semantic_block = "\n".join(
         f"- {item['type'].upper()} ({item.get('confidence', 0):.2f}): {item['content']}"
         for item in semantic
-    ) or "- No durable student model yet."
+    ) or "- No durable person model yet."
     return build_tutor_system_prompt(
         student_message,
         procedural_block,
@@ -659,13 +659,24 @@ def mock_tutor_reply(
     student_message: str, memory_pack: list[dict[str, Any]], max_words: int
 ) -> str:
     lower = student_message.lower()
-    remembers_chain = any("chain" in item.get("content", "").lower() for item in memory_pack)
+    remembers_composition = any(
+        any(
+            marker in item.get("content", "").lower()
+            for marker in ("chain", "f(g", "product rule", "composite")
+        )
+        for item in memory_pack
+    )
     prefers_examples = any("example" in item.get("content", "").lower() for item in memory_pack)
-    if remembers_chain and (
+    remembers_affect = any(item.get("type") == "affect" for item in memory_pack)
+    if remembers_composition and (
         "start" in lower or "where were we" in lower or "pick up" in lower
     ):
+        affect_prefix = (
+            "No rush; we'll keep this low-pressure and concrete. " if remembers_affect else ""
+        )
         return (
-            "Last time, f(g(x)) was tempting to treat like a product. Let's start with one "
+            affect_prefix
+            + "Last time, f(g(x)) was tempting to treat like a product. Let's start with one "
             "worked example: if y = (3x + 1)^4, what is the outside function doing?"
         )
     if "f'(x)" in lower or "product rule" in lower:
@@ -793,7 +804,7 @@ def mock_session_level_extract(transcript: str) -> list[dict[str, Any]]:
         found.append(
             {
                 "type": "strategy_outcome",
-                "content": "Guiding questions helped Maya self-correct chain rule reasoning.",
+                "content": "Guiding questions helped the learner self-correct chain rule reasoning.",
                 "subject_tags": ["chain_rule", "guiding_questions"],
                 "confidence": 0.74,
                 "importance": 0.8,

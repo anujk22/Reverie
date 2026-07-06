@@ -27,7 +27,8 @@ const serif = Fraunces({
 
 export const metadata: Metadata = {
   title: "Reverie",
-  description: "A visible memory engine for extraction, dreaming, forgetting, and recall."
+  description:
+    "A visible memory engine for provenance-backed extraction, dream consolidation, Ebbinghaus decay, and budgeted retrieval."
 };
 
 export default function RootLayout({

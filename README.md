@@ -2,7 +2,13 @@
 
 ![Reverie session screen](docs/screenshots/final-session-recall-desktop.png)
 
-Reverie is a memory engine wearing a tutoring skin: it observes how a learner thinks, dreams over the evidence between sessions, forgets stale memories, and recalls only what fits a fixed context budget.
+Reverie is a visible memory engine: extraction with provenance receipts, dream consolidation, Ebbinghaus decay, and budgeted retrieval are all watchable in real time.
+
+The demo scenario is the hardest memory workload we could give it: one person, learning something difficult, across multiple sessions, over weeks. Lena Park is anxious about an exam, wants worked examples, studies late after work, and asks for one small question at a time.
+
+The engine contains zero domain knowledge. Swap one script file and the same engine remembers a customer across support tickets, a patient across visits, an engineer across a codebase. The test suite proves it.
+
+Memory is the missing layer for any AI that serves the same human twice: a learner across weeks, a patient across visits, a customer across tickets. Context windows aren't memory; they are cost. Reverie makes memory a first-class, inspectable, budgeted system. It remembers not just what the user got wrong but how they felt, and adapts.
 
 What is inside:
 

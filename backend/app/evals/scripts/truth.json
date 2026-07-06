@@ -1,5 +1,5 @@
 {
-  "student": "Maya Chen",
+  "learner": "Lena Park",
   "misconception": "Differentiates f(g(x)) as f'(x) times g'(x), applying product rule reasoning to composite functions.",
   "preference": "Has an example-first preference: show an example first before abstract rules.",
   "goal": "Has a midterm goal to prepare for a differentiation midterm covering chain rule.",

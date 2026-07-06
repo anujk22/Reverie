@@ -5,7 +5,7 @@ const layers = [
   {
     eyebrow: "person signal",
     title: "Session stream",
-    body: "The tutor hears what Maya says, preserves provenance, and turns each important turn into evidence.",
+    body: "The assistant hears what Lena says, preserves provenance, and turns each important turn into evidence.",
     icon: Radio
   },
   {
@@ -27,7 +27,7 @@ const layers = [
 const storage = [
   ["Memories", "Typed observations with confidence, strength, and lifecycle state."],
   ["Memory timeline", "Every consolidation, merge, decay, and recall is preserved as evidence."],
-  ["Recall vectors", "Embeddings let the tutor retrieve the right memories without replaying everything."]
+  ["Recall vectors", "Embeddings let the assistant retrieve the right memories without replaying everything."]
 ];
 
 const stack = [
@@ -35,9 +35,16 @@ const stack = [
   ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
   [
     "Qwen on Alibaba Cloud",
-    "qwen-flash observer · qwen-plus tutor · qwen-max dreams and judges · text-embedding-v4"
+    "qwen-flash observer · qwen-plus assistant · qwen-max dreams and judges · text-embedding-v4"
   ],
   ["Deployment", "Docker Compose · Nginx · ECS-ready runtime"]
+];
+
+const swaps = [
+  ["Support", "A customer across support tickets."],
+  ["Healthcare", "A patient across visits."],
+  ["Codebase", "An engineer across a codebase."],
+  ["Litmus proof", "Spanish-conjugation tests exercise the duplicate guard outside the demo subject."]
 ];
 
 export default function ArchitecturePage() {
@@ -49,13 +56,34 @@ export default function ArchitecturePage() {
             architecture
           </p>
           <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
-            Reverie is a memory engine wearing a tutoring skin.
+            Reverie is a domain-agnostic memory engine.
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-dim">
-            The subject lives in prompts. The durable product is extraction, dreaming,
-            forgetting, and budgeted recall over a person-shaped memory graph.
+            The learning scenario is the hardest memory workload we could give it:
+            one person, learning something difficult, across multiple sessions, over weeks.
           </p>
         </header>
+
+        <section className="stellar-panel rounded-lg p-5 md:p-6">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+            zero domain knowledge
+          </p>
+          <p className="mt-3 max-w-4xl font-display text-[30px] leading-tight text-starlight md:text-[38px]">
+            The engine contains zero domain knowledge. Swap one script file and the
+            same engine remembers a customer across support tickets, a patient across
+            visits, an engineer across a codebase. The test suite proves it.
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            {swaps.map(([name, detail]) => (
+              <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+                  {name}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-starlight">{detail}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="stellar-panel rounded-lg p-5 md:p-6">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto_1.15fr_auto_1fr] lg:items-stretch">
@@ -160,16 +188,6 @@ export default function ArchitecturePage() {
           </div>
         </section>
 
-        <section className="stellar-panel rounded-lg p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
-            Proof it is not a calculus app
-          </p>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
-            Spanish-conjugation tests exercise the duplicate guard outside the demo
-            subject. The same memory pipeline would run unchanged for a different
-            subject prompt.
-          </p>
-        </section>
       </div>
     </div>
   );

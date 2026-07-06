@@ -73,6 +73,7 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 26. Engine-purity enforcement moved demo subject strings into `backend/app/subject.py`; source tests now scan memory, routes, DB, and tutor modules for demo-subject leakage.
 27. Dream distillation and pair checks now accept schema-validated LLM verdicts, then use deterministic archive, consolidate, merge, refinement, supersession, or no-op paths. Invalid or unavailable verdicts fall back without mutating memory from raw text.
 28. Film mode is keyed by `?film=1`, with beat captions in `frontend/lib/filmScript.ts`; Conductor now exposes the seven repeatable demo actions and keyboard shortcuts 1-7.
+29. REPOSITIONING PASS — 2026-07-06: Reverie is framed as a domain-agnostic memory engine, with the learning scenario described as the hardest memory workload we could give it rather than the product category. The demo persona is now Lena Park. Rationale: Devpost judges categorize the project in the first 10 seconds, so the copy must lead with typed memories, event sourcing, dream consolidation, decay, budgeted retrieval, and zero-domain-knowledge generality.
 
 ## Deviations from PRD
 
@@ -116,13 +117,18 @@ Generated on 2026-07-04 in `/Users/anuj/Documents/Coding/Hackathons/QwenHacks`.
 - `git diff --check` -> passed.
 - Secret-pattern scan for DashScope/Qwen key material -> no repo matches.
 - `backend/.venv311/bin/pytest backend/tests` -> 26 passed after engine purity, dream judge, and eval runner tests.
-- `grep -ri "maya\|calculus" backend/app/memory backend/app/routes` -> no source matches after clearing generated `__pycache__`.
+- `grep -ri "lena\|calculus" backend/app/memory backend/app/routes` -> no source matches after clearing generated `__pycache__`.
 - `PYTHONPATH=backend MOCK_LLM=true backend/.venv311/bin/python -m app.evals.run` -> mock suite completed with `real_run=false`, recall precision `1.0` for sessions 2 and 3, forgetting check `pass`, and no generated real-run markdown.
 - `PYTHONPATH=backend MOCK_LLM=true` TestClient full flow -> create session, 3 chat turns, end session, dream stages, and new-session memory pack passed.
 - `npm run build` in `frontend/` -> passed for `/`, `/dream`, `/evals`, `/architecture`, and `/conductor`.
 - Fresh final screenshots captured via local mock backend/frontend: `docs/screenshots/final-session-dormant-desktop.png`, `docs/screenshots/final-session-dormant-narrow.png`, `docs/screenshots/final-first-engram-desktop.png`, `docs/screenshots/final-first-engram-narrow.png`, `docs/screenshots/final-session-recall-desktop.png`, `docs/screenshots/final-session-recall-narrow.png`, `docs/screenshots/final-dream-desktop.png`, `docs/screenshots/final-dream-narrow.png`, `docs/screenshots/final-evals-desktop.png`, `docs/screenshots/final-evals-narrow.png`, `docs/screenshots/final-conductor-desktop.png`, `docs/screenshots/final-conductor-narrow.png`, `docs/screenshots/final-architecture-desktop.png`, `docs/screenshots/final-architecture-narrow.png`.
 - `git diff --check` -> passed.
 - Source secret-pattern scan excluding tracked virtualenv/vendor folders -> no matches. Pre-existing tracked `.venv` vendor files remain a separate cleanup item.
+- 2026-07-06 repositioning pass: old-persona grep across editable source/docs -> no matches; raw grep excluding only `PRD.md` has one intentional hit in untouched `VIDEO_SCRIPT.md` checklist text.
+- 2026-07-06 repositioning pass: README, Devpost draft, architecture docs/SVG, and film captions contain no display-copy `tutor`, `tutoring`, or `student` wording; remaining frontend role hits are internal schema keys.
+- 2026-07-06 repositioning pass: `backend/.venv311/bin/pytest backend/tests` -> 27 passed; `npm run typecheck` and `npm run build` in `frontend/` -> passed before starting the dev server.
+- 2026-07-06 repositioning pass: three mock returning-session runs produced a first reply that cites the prior product-rule mixup and uses low-pressure phrasing; full browser film run reached beat 11/11 with no console errors or failed requests.
+- 2026-07-06 repositioning pass: final screenshot set recaptured in `docs/screenshots/` with Lena/persona initials and memory-engine framing.
 
 ## M2 Observer Sample
 
@@ -161,19 +167,19 @@ Live smoke eval:
 
 Session 1 draft (`backend/app/evals/scripts/session1.json`):
 
-1. Maya: "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself."
-2. Maya: "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making."
-3. Maya: "Could we start with actual numbers first? If I see one worked example, the rule usually lands better."
-4. Maya: "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it."
-5. Maya: "Also, I usually study late after work, so shorter practice sets are easier for me to stick with."
+1. Lena: "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself."
+2. Lena: "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making."
+3. Lena: "Could we start with actual numbers first? If I see one worked example, the rule usually lands better."
+4. Lena: "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it."
+5. Lena: "Also, I usually study late after work, so shorter practice sets are easier for me to stick with."
 
 Session 2 draft (`backend/app/evals/scripts/session2.json`):
 
-1. Maya: "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first."
-2. Maya: "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?"
-3. Maya: "It feels less panicky if I write outside first, then inside, almost like a checklist."
-4. Maya: "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative."
-5. Maya: "The power rule itself is fine now. It is recognizing that something is nested that slows me down."
+1. Lena: "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first."
+2. Lena: "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?"
+3. Lena: "It feels less panicky if I write outside first, then inside, almost like a checklist."
+4. Lena: "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative."
+5. Lena: "The power rule itself is fine now. It is recognizing that something is nested that slows me down."
 
 ## Blockers & Questions
 

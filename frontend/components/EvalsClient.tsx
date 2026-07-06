@@ -145,11 +145,11 @@ function modeLabel(value: string) {
 
 function humanPurpose(value: string) {
   const labels: Record<string, string> = {
-    chat: "Tutor replies",
+    chat: "Assistant replies",
     consolidate: "Dream consolidation",
     observer: "Memory observer",
     observe: "Memory observation",
-    tutor: "Tutor replies",
+    tutor: "Assistant replies",
     embed: "Embeddings",
     eval_judge: "Judge calls",
     extract_session_level: "Dream extraction"
