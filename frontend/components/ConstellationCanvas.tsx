@@ -73,6 +73,21 @@ const colors: Record<string, string> = {
 
 const BRAIN_IMAGE_SRC = "/assets/reverie-brain.png";
 
+type ArtNode = {
+  x: number;
+  y: number;
+  phase: number;
+  weight: number;
+};
+
+type BrainArt = {
+  source: HTMLCanvasElement | HTMLImageElement;
+  nodes: ArtNode[];
+  core: { x: number; y: number } | null;
+};
+
+type ArtRect = { x: number; y: number; w: number; h: number };
+
 // side profile facing right, normalized to a unit box (x right, y down)
 const BRAIN_OUTLINE: Array<[number, number]> = [
   [0.06, 0.53],
@@ -176,6 +191,90 @@ function mulberry32(seed: number) {
   };
 }
 
+function createBrainCutout(image: HTMLImageElement): BrainArt {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return { source: image, nodes: [], core: null };
+
+  context.drawImage(image, 0, 0);
+  const data = context.getImageData(0, 0, canvas.width, canvas.height);
+  const lights = findArtworkLights(data.data, canvas.width, canvas.height);
+  return { source: image, nodes: lights.nodes, core: lights.core };
+}
+
+// locate the bright synapse dots baked into the artwork so the live twinkle
+// lands exactly where the painting already glows
+function findArtworkLights(pixels: Uint8ClampedArray, width: number, height: number) {
+  const cell = 14;
+  const cols = Math.ceil(width / cell);
+  const score = new Float32Array(cols * Math.ceil(height / cell));
+  const sumX = new Float32Array(score.length);
+  const sumY = new Float32Array(score.length);
+
+  for (let y = 0; y < height; y += 2) {
+    for (let x = 0; x < width; x += 2) {
+      const index = (y * width + x) * 4;
+      const whiteness = Math.min(pixels[index], pixels[index + 1], pixels[index + 2]);
+      const alpha = pixels[index + 3];
+      if (whiteness < 198 || alpha < 150) continue;
+      const value = ((whiteness - 198) / 57) * (alpha / 255);
+      const bucket = Math.floor(y / cell) * cols + Math.floor(x / cell);
+      score[bucket] += value;
+      sumX[bucket] += x * value;
+      sumY[bucket] += y * value;
+    }
+  }
+
+  const candidates: number[] = [];
+  for (let bucket = 0; bucket < score.length; bucket += 1) {
+    if (score[bucket] > 1.4) candidates.push(bucket);
+  }
+  candidates.sort((left, right) => score[right] - score[left]);
+
+  const random = mulberry32(23);
+  const picked: Array<ArtNode & { px: number; py: number }> = [];
+  for (const bucket of candidates) {
+    const px = sumX[bucket] / score[bucket];
+    const py = sumY[bucket] / score[bucket];
+    if (picked.some((node) => (node.px - px) ** 2 + (node.py - py) ** 2 < 34 ** 2)) continue;
+    picked.push({
+      x: px / width,
+      y: py / height,
+      phase: random() * Math.PI * 2,
+      weight: score[bucket],
+      px,
+      py
+    });
+    if (picked.length >= 48) break;
+  }
+  if (!picked.length) return { nodes: [] as ArtNode[], core: null };
+
+  // the starburst core is the largest white mass; cluster it out of the
+  // twinkle list so it breathes as one light instead of shimmering in pieces
+  const brightest = picked[0];
+  const coreReach = Math.max(width, height) * 0.055;
+  const coreCluster = picked.filter(
+    (node) => (node.px - brightest.px) ** 2 + (node.py - brightest.py) ** 2 < coreReach ** 2
+  );
+  let coreX = 0;
+  let coreY = 0;
+  let coreWeight = 0;
+  for (const node of coreCluster) {
+    coreX += node.px * node.weight;
+    coreY += node.py * node.weight;
+    coreWeight += node.weight;
+  }
+  const nodes = picked
+    .filter((node) => !coreCluster.includes(node))
+    .map(({ px: _px, py: _py, ...node }) => node);
+  return {
+    nodes,
+    core: { x: coreX / coreWeight / width, y: coreY / coreWeight / height }
+  };
+}
+
 function nodeColor(engram: Engram) {
   if (engram.status !== "active") return "#5D4B58";
   return colors[engram.type] ?? "#F5476B";
@@ -184,7 +283,7 @@ function nodeColor(engram: Engram) {
 function alphaFor(engram: Engram) {
   if (engram.status === "archived") return 0.15;
   if (engram.status === "superseded") return 0.34;
-  if (engram.provisional) return 0.42;
+  if (engram.provisional) return 0.62;
   return 0.72 + Math.max(0, Math.min(1, engram.strength)) * 0.28;
 }
 
@@ -216,13 +315,13 @@ type BrainFrame = {
 };
 
 function computeFrame(width: number, height: number): BrainFrame {
-  const margin = 0.12;
+  const margin = 0.05;
   const usableW = width * (1 - margin * 2);
   const usableH = height * (1 - margin * 2);
-  const scale = Math.min(usableW, usableH * BRAIN_ASPECT, width * 0.72, height * 0.58 * BRAIN_ASPECT);
+  const scale = Math.min(usableW, usableH * BRAIN_ASPECT, width * 0.815, height * 0.95);
   const brainW = scale;
   const brainH = scale / BRAIN_ASPECT;
-  const offsetX = (width - brainW) / 2 + width * 0.035;
+  const offsetX = (width - brainW) / 2;
   const offsetY = (height - brainH) * 0.34;
   const polygon = BRAIN_OUTLINE.map(
     ([x, y]) => [offsetX + x * brainW, offsetY + y * brainH] as [number, number]
@@ -438,10 +537,11 @@ export function ConstellationCanvas({
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const brainImageRef = useRef<HTMLImageElement | null>(null);
+  const brainArtRef = useRef<BrainArt | null>(null);
   const nodesRef = useRef<CanvasNode[]>([]);
   const linksRef = useRef<CanvasLink[]>([]);
   const starfieldRef = useRef<StaticStar[]>([]);
+  const sceneryRef = useRef<HTMLCanvasElement | null>(null);
   const fibersRef = useRef<{ fibers: Fiber[]; synapses: Synapse[] }>({
     fibers: [],
     synapses: []
@@ -473,7 +573,7 @@ export function ConstellationCanvas({
     const image = new Image();
     image.decoding = "async";
     image.onload = () => {
-      brainImageRef.current = image;
+      brainArtRef.current = createBrainCutout(image);
       setBrainImageReady(true);
     };
     image.onerror = () => setBrainImageReady(false);
@@ -499,15 +599,17 @@ export function ConstellationCanvas({
   }, []);
 
   useEffect(() => {
-    starfieldRef.current = Array.from({ length: 170 }, (_, index) => {
-      const seed = hashSeed(`static-${index}`);
+    const random = mulberry32(4271);
+    starfieldRef.current = Array.from({ length: 1320 }, (_, index) => {
+      const major = index % 79 === 0;
+      const seed = random();
       return {
-        x: (seed * 997) % 1,
-        y: (seed * 1777) % 1,
-        radius: 0.4 + ((seed * 61) % 1) * 0.9,
-        alpha: 0.045 + ((seed * 31) % 0.18),
-        twinkle: index < 24,
-        phase: seed * Math.PI * 2
+        x: seed,
+        y: random(),
+        radius: major ? 1 + random() * 0.58 : 0.3 + random() * 0.74,
+        alpha: major ? 0.42 + random() * 0.18 : 0.09 + random() * 0.32,
+        twinkle: index < 72 || major,
+        phase: random() * Math.PI * 2
       };
     });
   }, []);
@@ -516,6 +618,12 @@ export function ConstellationCanvas({
     const frame = computeFrame(size.width, size.height);
     frameRef.current = frame;
     fibersRef.current = buildFibers(frame);
+    sceneryRef.current = buildScenery(
+      size.width,
+      size.height,
+      window.devicePixelRatio || 1,
+      starfieldRef.current
+    );
   }, [size.height, size.width]);
 
   useEffect(() => {
@@ -591,7 +699,21 @@ export function ConstellationCanvas({
     for (let tick = 0; tick < 110; tick += 1) {
       simulation.tick();
       for (const node of nextNodes) {
-        const [cx, cy] = clampIntoBrain(frame, node.x ?? frame.coreX, node.y ?? frame.coreY);
+        let [cx, cy] = clampIntoBrain(frame, node.x ?? frame.coreX, node.y ?? frame.coreY);
+        // keep live memories off the artwork's starburst so they stay legible
+        let dx = cx - frame.coreX;
+        let dy = cy - frame.coreY;
+        let distance = Math.hypot(dx, dy);
+        if (distance < 1) {
+          dx = Math.cos(node.seed * Math.PI * 2);
+          dy = Math.sin(node.seed * Math.PI * 2);
+          distance = 1;
+        }
+        const guard = frame.scale * 0.14;
+        if (distance < guard) {
+          const push = guard / distance;
+          [cx, cy] = clampIntoBrain(frame, frame.coreX + dx * push, frame.coreY + dy * push);
+        }
         node.x = cx;
         node.y = cy;
       }
@@ -616,18 +738,19 @@ export function ConstellationCanvas({
       if (!context) return;
       const frame = frameRef.current;
       context.clearRect(0, 0, size.width, size.height);
-      context.fillStyle = "#050408";
+      context.fillStyle = "#020104";
       context.fillRect(0, 0, size.width, size.height);
-      drawNebula(context, size.width, size.height);
-      drawStaticField(context, size.width, size.height, starfieldRef.current, time, motionReduced);
+      if (sceneryRef.current) {
+        context.drawImage(sceneryRef.current, 0, 0, size.width, size.height);
+      }
+      drawTwinkleStars(context, size.width, size.height, starfieldRef.current, time, motionReduced);
 
       if (frame) {
         const vitality = dormant ? 0.88 : 1;
-        const brainImage = brainImageReady ? brainImageRef.current : null;
-        if (brainImage) {
-          drawBrainArtwork(context, frame, brainImage, vitality);
-          drawReferenceLights(context, frame, time, motionReduced, vitality);
-          drawCore(context, frame, time, motionReduced, vitality * 0.72);
+        const art = brainImageReady ? brainArtRef.current : null;
+        if (art) {
+          const rect = artworkRect(frame, art.source);
+          drawBrainArtwork(context, rect, art.source);
         } else {
           drawBrainBase(context, frame, time, motionReduced, vitality);
           drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
@@ -727,7 +850,7 @@ export function ConstellationCanvas({
       />
 
       {graph.nodes.length === 0 ? (
-        <div className="pointer-events-none absolute inset-x-0 top-[68%] flex justify-center px-8 text-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[72%] flex justify-center px-8 text-center">
           <p className="max-w-xl font-display text-[27px] italic leading-snug text-[#d9aec2]">
             Reverie has not met Maya yet.
             <br />
@@ -780,7 +903,111 @@ function ambientDrift(seed: number, time: number, reduced: boolean) {
   return Math.sin(time / 6000 + seed * Math.PI * 2) * 2;
 }
 
-function drawStaticField(
+function starColor(star: StaticStar, alpha: number) {
+  if (star.phase > Math.PI * 1.08) return `rgba(255,147,168,${alpha})`;
+  if (star.phase < Math.PI * 0.42) return `rgba(169,139,250,${alpha * 0.95})`;
+  return `rgba(243,236,227,${alpha})`;
+}
+
+// everything that never moves (fixed stars, nebula, diffraction glints) is
+// burned onto one offscreen plate so the animation loop just blits it
+function buildScenery(width: number, height: number, dpr: number, stars: StaticStar[]) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.floor(width * dpr));
+  canvas.height = Math.max(1, Math.floor(height * dpr));
+  const context = canvas.getContext("2d");
+  if (!context) return canvas;
+  context.scale(dpr, dpr);
+  context.globalCompositeOperation = "lighter";
+
+  // nebula bank rolling in from the lower-right corner
+  const base = Math.min(width, height);
+  const random = mulberry32(511);
+  const plumes: Array<[number, number, number, [number, number, number], number]> = [
+    [1.04, 1.08, 0.62, [104, 46, 176], 0.15],
+    [0.86, 1.06, 0.42, [148, 42, 152], 0.12],
+    [1.08, 0.87, 0.38, [86, 36, 160], 0.12],
+    [0.95, 0.95, 0.24, [214, 66, 148], 0.09]
+  ];
+  for (let index = 0; index < 16; index += 1) {
+    plumes.push([
+      0.78 + random() * 0.3,
+      0.7 + random() * 0.4,
+      0.05 + random() * 0.09,
+      mix([120, 52, 180], [214, 66, 148], random()),
+      0.03 + random() * 0.05
+    ]);
+  }
+  for (const [nx, ny, nr, color, alpha] of plumes) {
+    const x = nx * width;
+    const y = ny * height;
+    const radius = nr * base * 1.5;
+    const cloud = context.createRadialGradient(x, y, 0, x, y, radius);
+    cloud.addColorStop(0, rgba(color, alpha));
+    cloud.addColorStop(0.55, rgba(color, alpha * 0.45));
+    cloud.addColorStop(1, "rgba(5,4,8,0)");
+    context.fillStyle = cloud;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  for (const star of stars) {
+    if (star.twinkle) continue;
+    context.fillStyle = starColor(star, star.alpha);
+    context.beginPath();
+    context.arc(star.x * width, star.y * height, star.radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  drawGlint(context, width * 0.935, height * 0.42, base * 0.036, [255, 208, 224]);
+  drawGlint(context, width * 0.075, height * 0.18, base * 0.02, [216, 196, 255]);
+  drawGlint(context, width * 0.16, height * 0.88, base * 0.014, [255, 188, 212]);
+
+  return canvas;
+}
+
+function drawGlint(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  tint: [number, number, number]
+) {
+  const halo = context.createRadialGradient(x, y, 0, x, y, size * 0.9);
+  halo.addColorStop(0, rgba(tint, 0.5));
+  halo.addColorStop(0.35, rgba(tint, 0.14));
+  halo.addColorStop(1, "rgba(5,4,8,0)");
+  context.fillStyle = halo;
+  context.beginPath();
+  context.arc(x, y, size * 0.9, 0, Math.PI * 2);
+  context.fill();
+
+  const spikes: Array<[number, number, number]> = [
+    [1, 0, size],
+    [-1, 0, size],
+    [0, 1, size * 0.8],
+    [0, -1, size * 0.8]
+  ];
+  for (const [dx, dy, reach] of spikes) {
+    const spike = context.createLinearGradient(x, y, x + dx * reach, y + dy * reach);
+    spike.addColorStop(0, "rgba(255,255,255,0.9)");
+    spike.addColorStop(1, "rgba(255,255,255,0)");
+    context.strokeStyle = spike;
+    context.lineWidth = 1.3;
+    context.beginPath();
+    context.moveTo(x, y);
+    context.lineTo(x + dx * reach, y + dy * reach);
+    context.stroke();
+  }
+
+  context.fillStyle = "rgba(255,255,255,0.95)";
+  context.beginPath();
+  context.arc(x, y, 1.6, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawTwinkleStars(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -789,20 +1016,19 @@ function drawStaticField(
   reduced: boolean
 ) {
   context.save();
+  context.globalCompositeOperation = "lighter";
   for (const star of stars) {
+    if (!star.twinkle) continue;
     const x = star.x * width;
     const y = star.y * height;
-    const twinkle = star.twinkle && !reduced ? 0.55 + Math.sin(time / 2600 + star.phase) * 0.35 : 1;
+    const twinkle = reduced ? 1 : 0.55 + Math.sin(time / 2600 + star.phase) * 0.35;
     const alpha = Math.max(0.03, star.alpha * twinkle);
-    const warm = star.phase > Math.PI;
-    context.fillStyle = warm
-      ? `rgba(255,147,168,${alpha})`
-      : `rgba(243,236,227,${alpha})`;
+    context.fillStyle = starColor(star, alpha);
     context.beginPath();
     context.arc(x, y, star.radius, 0, Math.PI * 2);
     context.fill();
 
-    if (star.twinkle && star.radius > 0.8) {
+    if (star.radius > 0.8) {
       context.strokeStyle = `rgba(255,147,168,${alpha * 0.42})`;
       context.lineWidth = 0.7;
       context.beginPath();
@@ -816,110 +1042,82 @@ function drawStaticField(
   context.restore();
 }
 
-function drawNebula(context: CanvasRenderingContext2D, width: number, height: number) {
-  context.save();
-  context.globalCompositeOperation = "lighter";
-
-  const cloud = context.createRadialGradient(
-    width * 0.95,
-    height * 0.78,
-    0,
-    width * 0.95,
-    height * 0.78,
-    Math.max(width, height) * 0.42
-  );
-  cloud.addColorStop(0, "rgba(245,71,107,0.16)");
-  cloud.addColorStop(0.35, "rgba(169,139,250,0.08)");
-  cloud.addColorStop(1, "rgba(5,4,8,0)");
-  context.fillStyle = cloud;
-  context.beginPath();
-  context.arc(width * 0.95, height * 0.78, Math.max(width, height) * 0.42, 0, Math.PI * 2);
-  context.fill();
-
-  const horizon = context.createLinearGradient(0, 0, width, height);
-  horizon.addColorStop(0, "rgba(169,139,250,0.04)");
-  horizon.addColorStop(0.55, "rgba(245,71,107,0.025)");
-  horizon.addColorStop(1, "rgba(242,166,90,0.035)");
-  context.fillStyle = horizon;
-  context.fillRect(0, 0, width, height);
-
-  context.restore();
+function artworkRect(frame: BrainFrame, image: HTMLCanvasElement | HTMLImageElement): ArtRect {
+  const imageWidth = image instanceof HTMLCanvasElement ? image.width : image.naturalWidth;
+  const imageHeight = image instanceof HTMLCanvasElement ? image.height : image.naturalHeight;
+  const imageAspect = imageWidth / Math.max(1, imageHeight);
+  const w = frame.scale * 1.2;
+  const h = w / imageAspect;
+  const brainH = frame.scale / BRAIN_ASPECT;
+  return {
+    x: frame.offsetX + frame.scale * 0.5 - w * 0.5,
+    y: frame.offsetY + brainH * 0.47 - h * 0.5,
+    w,
+    h
+  };
 }
 
 function drawBrainArtwork(
   context: CanvasRenderingContext2D,
-  frame: BrainFrame,
-  image: HTMLImageElement,
-  vitality: number
+  rect: ArtRect,
+  image: HTMLCanvasElement | HTMLImageElement
 ) {
-  const imageAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
-  const targetW = frame.scale * 1.18;
-  const targetH = targetW / imageAspect;
-  const brainH = frame.scale / BRAIN_ASPECT;
-  const x = frame.offsetX + frame.scale * 0.5 - targetW * 0.5;
-  const y = frame.offsetY + brainH * 0.49 - targetH * 0.5;
-
   context.save();
-  context.globalCompositeOperation = "lighter";
-
-  const backlight = context.createRadialGradient(
-    frame.coreX,
-    frame.coreY,
-    frame.scale * 0.06,
-    frame.coreX,
-    frame.coreY,
-    frame.scale * 0.56
-  );
-  backlight.addColorStop(0, `rgba(245,71,107,${0.26 * vitality})`);
-  backlight.addColorStop(0.42, `rgba(169,139,250,${0.18 * vitality})`);
-  backlight.addColorStop(1, "rgba(5,4,8,0)");
-  context.fillStyle = backlight;
-  context.beginPath();
-  context.arc(frame.coreX, frame.coreY, frame.scale * 0.56, 0, Math.PI * 2);
-  context.fill();
-
-  context.globalAlpha = 0.95;
-  context.filter = "saturate(1.18) contrast(1.08) brightness(1.04)";
-  context.drawImage(image, x, y, targetW, targetH);
+  context.globalCompositeOperation = "source-over";
+  context.globalAlpha = 1;
   context.filter = "none";
+  context.drawImage(image, rect.x, rect.y, rect.w, rect.h);
   context.restore();
 }
 
-function drawReferenceLights(
+// a soft shimmer riding exactly on the artwork's own painted lights
+function drawArtworkLife(
   context: CanvasRenderingContext2D,
-  frame: BrainFrame,
+  rect: ArtRect,
+  art: BrainArt,
   time: number,
   reduced: boolean,
   vitality: number
 ) {
   context.save();
   context.globalCompositeOperation = "lighter";
+  const unit = rect.w / 900;
 
-  for (let index = 0; index < SYNAPSE_ANCHORS.length; index += 1) {
-    const [nx, ny, size] = SYNAPSE_ANCHORS[index];
-    const [x, y] = toCanvas(frame, nx, ny);
-    const color = regionColor(nx);
-    const wave = reduced ? 0.75 : 0.58 + Math.sin(time / 1250 + index * 0.92) * 0.42;
-    const radius = size * (1.1 + wave * 0.32);
-    const alpha = (0.48 + wave * 0.34) * vitality;
+  for (const node of art.nodes) {
+    const x = rect.x + node.x * rect.w;
+    const y = rect.y + node.y * rect.h;
+    const wave = reduced ? 0.7 : 0.5 + Math.sin(time / 1500 + node.phase) * 0.5;
+    const alpha = (0.05 + wave * 0.2) * vitality;
+    const radius = (2.2 + Math.min(1, node.weight / 12) * 3.2) * unit;
+    const color = regionColor(node.x);
 
-    const halo = context.createRadialGradient(x, y, radius * 0.18, x, y, radius * 7);
-    halo.addColorStop(0, rgba(color, alpha * 0.55));
-    halo.addColorStop(0.32, rgba(color, alpha * 0.2));
+    const halo = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 6);
+    halo.addColorStop(0, rgba(color, alpha));
+    halo.addColorStop(0.4, rgba(color, alpha * 0.4));
     halo.addColorStop(1, "rgba(5,4,8,0)");
     context.fillStyle = halo;
     context.beginPath();
-    context.arc(x, y, radius * 7, 0, Math.PI * 2);
+    context.arc(x, y, radius * 6, 0, Math.PI * 2);
     context.fill();
 
-    context.fillStyle = rgba(color, alpha);
+    context.fillStyle = `rgba(255,255,255,${alpha * 0.85})`;
     context.beginPath();
-    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.arc(x, y, radius * 0.55, 0, Math.PI * 2);
     context.fill();
+  }
 
-    context.fillStyle = `rgba(255,255,255,${Math.min(0.82, alpha)})`;
+  if (art.core) {
+    const x = rect.x + art.core.x * rect.w;
+    const y = rect.y + art.core.y * rect.h;
+    const breath = reduced ? 0.8 : 0.65 + Math.sin(time / 2600) * 0.35;
+    const radius = rect.w * 0.05 * (0.8 + breath * 0.25);
+    const halo = context.createRadialGradient(x, y, radius * 0.1, x, y, radius * 2.6);
+    halo.addColorStop(0, `rgba(255,196,210,${0.22 * breath * vitality})`);
+    halo.addColorStop(0.4, `rgba(245,71,107,${0.12 * breath * vitality})`);
+    halo.addColorStop(1, "rgba(5,4,8,0)");
+    context.fillStyle = halo;
     context.beginPath();
-    context.arc(x - radius * 0.24, y - radius * 0.24, Math.max(1, radius * 0.28), 0, Math.PI * 2);
+    context.arc(x, y, radius * 2.6, 0, Math.PI * 2);
     context.fill();
   }
 
@@ -1168,9 +1366,9 @@ function drawStrongLabels(
     const textWidth = context.measureText(label).width;
     const labelX = Math.min(width - textWidth - 14, Math.max(14, x + radius + 11));
     const labelY = Math.min(height - 12, Math.max(12, y - radius - 9));
-    context.fillStyle = "rgba(5,4,8,0.66)";
+    context.fillStyle = "rgba(5,4,8,0.72)";
     context.fillRect(labelX - 5, labelY - 8, textWidth + 10, 16);
-    context.fillStyle = "rgba(160,141,155,0.9)";
+    context.fillStyle = "rgba(224,206,216,0.95)";
     context.fillText(label, labelX, labelY);
   }
   context.restore();
@@ -1206,6 +1404,13 @@ function drawNode(
     context.stroke();
   }
 
+  // dark backing disc separates the orb from the bright artwork behind it
+  context.globalAlpha = 0.5;
+  context.fillStyle = "#050408";
+  context.beginPath();
+  context.arc(x, y, radius * 1.9, 0, Math.PI * 2);
+  context.fill();
+
   const gradient = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 3);
   gradient.addColorStop(0, color);
   gradient.addColorStop(0.42, `${color}77`);
@@ -1222,7 +1427,7 @@ function drawNode(
   context.arc(x, y, radius * 1.72, 0, Math.PI * 2);
   context.fill();
 
-  context.globalAlpha = alpha;
+  context.globalAlpha = Math.min(1, alpha + 0.3);
   const core = context.createRadialGradient(
     x - radius * 0.38,
     y - radius * 0.38,
