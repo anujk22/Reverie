@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { DemoDirectorProvider, useDemoDirector } from "@/components/DemoDirector";
+import { RuntimeChip } from "@/components/RuntimeChip";
 
 const routes = [
   { href: "/", label: "Journal", icon: BookOpen },
@@ -64,6 +65,10 @@ function AppShellFrame({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        <div className="relative z-[1] flex flex-col items-center pb-3">
+          <RuntimeChip />
+        </div>
 
         <div className="sidebar-brand">
           <strong>Reverie</strong>
