@@ -14,6 +14,6 @@ The engine contains zero domain knowledge. Swap one script file and the same eng
 
 Reverie uses multi-model Qwen orchestration: `qwen-flash` for the high-frequency observer, `qwen-plus` for assistant conversation, `qwen-max` for dream/judge work, and `text-embedding-v4` for retrieval. The backend is FastAPI and SQLite; the frontend is Next.js with a live canvas mind map, Dream view, Conductor, and Evals dashboard.
 
-The eval harness compares three conditions across identical scripted sessions: no memory, full transcript history, and Reverie. Live eval numbers are written to `EVALS.md`; mock runs are labeled `real_run=false` and never become claims.
+The eval harness compares three conditions across identical scripted sessions: no memory, full transcript history, and Reverie. In the final live run ([EVALS.md](../EVALS.md)): Reverie scored **4.7 on personalization vs 1.0 without memory** (and 2.5 for full-history), recalled **100% of planted facts**, and used **68% fewer reply-context tokens than full history** — full history scored worse on quality while costing 3x more. Live eval numbers are written to `EVALS.md`; mock runs are labeled `real_run=false` and never become claims.
 
 Track: MemoryAgent.

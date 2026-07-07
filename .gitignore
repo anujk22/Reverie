@@ -18,3 +18,4 @@ frontend/*.tsbuildinfo
 .gstack/
 fable.md
 codex-task.md
+PRODUCT.md

@@ -22,7 +22,7 @@ What is inside:
 ## Quickstart
 
 ```bash
-cp .env.e[x]ample .env
+cp .env.example .env
 docker compose up --build
 ```
 
