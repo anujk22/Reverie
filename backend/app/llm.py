@@ -268,6 +268,7 @@ class LLMClient:
         session_id: str | None,
         purpose: str = "tutor",
         max_words: int = 120,
+        temperature: float = 0.7,
     ) -> str:
         if not self.settings.live_llm_enabled:
             text = mock_tutor_reply(student_message, memory_pack, max_words)
@@ -290,7 +291,7 @@ class LLMClient:
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": student_message},
                 ],
-                temperature=0.7,
+                temperature=temperature,
                 session_id=session_id,
             )
         except Exception as exc:

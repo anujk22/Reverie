@@ -16,3 +16,4 @@ frontend/.next/
 frontend/out/
 frontend/*.tsbuildinfo
 .gstack/
+fable.md

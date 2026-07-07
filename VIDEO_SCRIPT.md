@@ -4,13 +4,14 @@ Target runtime: ~2:55 (hard cap 3:00 — lock the cut at ≤2:57). Narration: El
 Format: 10s failure cold open → cinematic name animation → live demo with zoom/popout edits → close.
 Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **never MOCK** (visible MOCK chip is disqualifying per project rules).
 
-**Framing rules (non-negotiable):** the words "tutor," "tutoring," and "student" never appear in this video. The persona is **Lena**. The learning scenario is presented as a deliberate *stress test* of the engine, never as the product category. Reverie is a memory engine — infrastructure with a visible mind.
+**Framing rules (non-negotiable):** the words "tutor," "tutoring," and "student" never appear in this video. The persona is **Lena**, a merchant migrating her online store onto a commerce platform. Her scenario is presented as *one workload* the engine happens to be running, never as the product category — the close makes the domain-swap explicit. Reverie is a memory engine — infrastructure with a visible mind.
 
 **Blockers before recording (item 1 is the critical path — nothing downstream matters until it lands):**
 
 - [ ] **Live eval run complete** — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat. Both contingencies are pre-decided in that beat; no judgment calls on edit night.
 - [x] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified — commit 55d5bda)
 - [x] Session 2 script timeline fixed — "yesterday" → "a few days ago," and Lena no longer announces her own misconception or preference (the recall has to be earned, not prompted)
+- [ ] Demo domain swap (calculus → store migration) landed, committed, and verified: purity grep clean, 27+ tests green, 11/11 film beats replay
 - [ ] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a staged generic chat blanking on a returning user — staged footage is fine here because it isn't Reverie, but it must show zero Reverie chrome and no MOCK chip)
 - [ ] Film mode replayed end-to-end **twice** on the live Docker stack before any take counts as good
 
@@ -32,7 +33,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** session view. Lena's first message streams. ZOOM to the engram toast the moment it fires, then popout on the new node igniting.
 
-> To prove it, we gave it the hardest memory workload there is: one person, learning something difficult, across multiple sessions. This brain starts empty. Lena starts talking — and watch the right side. An observer model just caught that: a misconception, typed, scored, and pinned to the moment she said it.
+> To prove it, we gave it a real workload: one user, one messy multi-day problem. Lena is migrating her store onto a new platform, with a launch date bearing down. This brain starts empty. She starts talking — and watch the right side. An observer model just caught something: a misconception about how the platform retries failed orders — typed, scored, and pinned to the moment she said it.
 
 **Screen:** ZOOM — inspector open on the misconception, source quote highlighted.
 
@@ -62,7 +63,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** hold on the reply's gentle, low-pressure phrasing.
 
-> It even remembered she panics under pressure — and changed how it responds.
+> It even remembered how frustrated she was when her orders wouldn't sync — and changed how it responds.
 
 **Screen:** ZOOM — excluded memories with reasons.
 
@@ -84,7 +85,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** /architecture card, then pull back to the fully-lit brain.
 
-> And the engine contains zero domain knowledge. Swap one script file, and it remembers a customer across support tickets, a patient across visits, an engineer across your codebase — the test suite proves it. Typed memories, event sourcing, dreams, decay, budgeted recall, on Qwen, on Alibaba Cloud. Your AI shouldn't meet its users for the first time, every time.
+> And the engine contains zero domain knowledge. Swap one script file, and it remembers a patient across visits, a learner across a semester, an engineer across your codebase — the test suite proves it. Typed memories, event sourcing, dreams, decay, budgeted recall, on Qwen, on Alibaba Cloud. Your AI shouldn't meet its users for the first time, every time.
 
 *(The list reads at 1x; slow to 0.95x only on the final thesis sentence, with a half-beat before it.)*
 
