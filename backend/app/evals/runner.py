@@ -124,7 +124,7 @@ def transcript_for_session(database: Database, session_id: str) -> str:
     )
 
 
-async def score_opening(opening: str, session_id: str) -> tuple[float, bool]:
+async def score_opening(opening: str, session_id: str) -> tuple[float, bool, int]:
     # Only real judge verdicts enter the mean: a failed call is retried once,
     # and if it still fails it is dropped rather than averaged in as a fake 0.
     scores: list[int] = []
@@ -142,9 +142,10 @@ async def score_opening(opening: str, session_id: str) -> tuple[float, bool]:
             )
         if result.get("real_run"):
             scores.append(int(result.get("score", 0)))
+    sample_count = len(scores)
     if not scores:
-        return (0.0, False)
-    return (sum(scores) / len(scores), len(scores) == 3)
+        return (0.0, False, sample_count)
+    return (sum(scores) / sample_count, True, sample_count)
 
 
 def score_recall_probes(pack: dict[str, Any], probes: list[dict[str, Any]]) -> float:
@@ -251,10 +252,15 @@ async def play_baseline_condition(
         )
         database.insert_utterance(session["id"], "tutor", opening)
         if index in (2, 3):
-            score, real = await score_opening(opening, session["id"])
+            score, real, judge_samples = await score_opening(opening, session["id"])
             real_personalization = real_personalization and real
             personalization.append(
-                {"condition": condition, "session": index, "score": round(score, 3)}
+                {
+                    "condition": condition,
+                    "session": index,
+                    "score": round(score, 3),
+                    "judge_samples": judge_samples,
+                }
             )
 
         for turn in script["turns"]:
@@ -321,10 +327,15 @@ async def play_reverie_condition(
         )
         database.insert_utterance(session["id"], "tutor", opening)
         if index in (2, 3):
-            score, real = await score_opening(opening, session["id"])
+            score, real, judge_samples = await score_opening(opening, session["id"])
             real_personalization = real_personalization and real
             personalization.append(
-                {"condition": "reverie", "session": index, "score": round(score, 3)}
+                {
+                    "condition": "reverie",
+                    "session": index,
+                    "score": round(score, 3),
+                    "judge_samples": judge_samples,
+                }
             )
 
         for turn in script["turns"]:
@@ -405,6 +416,20 @@ def write_evals_md(results: dict[str, Any]) -> None:
     ]
     for row in results["personalization"]:
         lines.append(f"| {row['condition']} | {row['session']} | {row['score']} |")
+    dropped_samples = [
+        f"{row['condition']}/session {row['session']}: {row.get('judge_samples', 3)}/3"
+        for row in results["personalization"]
+        if row.get("judge_samples", 3) < 3
+    ]
+    if dropped_samples:
+        lines.extend(
+            [
+                "",
+                "Some means use fewer than 3 judge samples (failed judge calls are dropped, never scored as 0): "
+                + ", ".join(dropped_samples)
+                + ".",
+            ]
+        )
     lines.extend(["", "## Recall Precision", "", "| Session | Precision |", "| ---: | ---: |"])
     for row in results["recall_precision"]:
         lines.append(f"| {row['session']} | {row['precision']} |")
@@ -482,6 +507,10 @@ async def run_eval_suite() -> dict[str, Any]:
     if results["real_run"]:
         results["headline"] = compose_headline(results)
         write_evals_md(results)
+    elif results["mode"] == "live":
+        results["message"] = (
+            "Live run, but some openings had zero surviving judge verdicts — EVALS.md not written."
+        )
     else:
         results["message"] = "Mock eval run completed. Real eval numbers require live DashScope."
 

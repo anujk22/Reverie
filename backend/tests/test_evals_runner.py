@@ -56,6 +56,55 @@ def test_eval_run_uses_isolated_condition_databases(tmp_path, monkeypatch) -> No
     ]
 
 
+def test_score_opening_keeps_partial_real_judge_samples(monkeypatch) -> None:
+    class FakeJudge:
+        def __init__(self) -> None:
+            self.results = [
+                {"real_run": True, "score": 4},
+                {"real_run": False, "score": 0},
+                {"real_run": True, "score": 5},
+            ]
+
+        async def score_personalization(
+            self, truth_sheet: str, opening: str, session_id: str | None = None
+        ) -> dict[str, object]:
+            return self.results.pop(0)
+
+    monkeypatch.setattr(runner, "llm_client", FakeJudge())
+
+    score, real, judge_samples = asyncio.run(runner.score_opening("Opening.", "session-1"))
+
+    assert score == 4.5
+    assert real is True
+    assert judge_samples == 2
+
+
+def test_write_evals_md_notes_dropped_judge_samples(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(runner, "REPO_ROOT", tmp_path)
+
+    runner.write_evals_md(
+        {
+            "headline": "+3.5 personalization vs no memory",
+            "personalization": [
+                {"condition": "no_memory", "session": 2, "score": 1.0, "judge_samples": 3},
+                {"condition": "reverie", "session": 2, "score": 4.5, "judge_samples": 2},
+            ],
+            "recall_precision": [{"session": 2, "precision": 1.0}],
+            "tokens": [
+                {"condition": "full_history", "session": 1, "tokens": 1000},
+                {"condition": "reverie", "session": 1, "tokens": 250},
+            ],
+            "forgetting_check": "pass",
+            "observed_llm_tokens": {},
+        }
+    )
+
+    text = (tmp_path / "EVALS.md").read_text()
+
+    assert "failed judge calls are dropped, never scored as 0" in text
+    assert "reverie/session 2: 2/3" in text
+
+
 def test_mock_returning_opening_uses_misconception_and_affect() -> None:
     memory_pack = [
         {
