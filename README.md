@@ -41,5 +41,5 @@ Backend health: http://localhost:8000/api/health
 
 - Demo video: _(link added on submission day)_
 - Eval results: [EVALS.md](./EVALS.md)
-- Build log and verification: [PROGRESS.md](./PROGRESS.md)
+- Build log and verification: [docs/PROGRESS.md](./docs/PROGRESS.md)
 - Architecture: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)

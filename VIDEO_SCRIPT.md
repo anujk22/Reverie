@@ -11,79 +11,117 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 - [x] **Live eval run complete** — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat. Both contingencies are pre-decided in that beat; no judgment calls on edit night.
 - [x] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified — commit 55d5bda)
 - [x] Session 2 script timeline fixed — "yesterday" → "a few days ago," and Lena no longer announces her own misconception or preference (the recall has to be earned, not prompted)
-- [ ] Demo domain swap (calculus → store migration) landed, committed, and verified: purity grep clean, 27+ tests green, 11/11 film beats replay
-- [ ] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a staged generic chat blanking on a returning user — staged footage is fine here because it isn't Reverie, but it must show zero Reverie chrome and no MOCK chip)
-- [ ] Film mode replayed end-to-end **twice** on the live Docker stack before any take counts as good
+- [x] Demo domain swap (calculus → store migration) landed, committed, and verified: purity grep clean, 27+ tests green, 11/11 film beats replay
+- [x] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a staged generic chat blanking on a returning user — staged footage is fine here because it isn't Reverie, but it must show zero Reverie chrome and no MOCK chip)
+- [x] Film mode replayed end-to-end **twice** on the live Docker stack before any take counts as good
 
 ---
 
 ## [00:00 – 00:14] THE FAILURE COLD OPEN
 
-**Screen:** a plain, generic chat UI (or the no-memory eval condition). A returning user asks "Where were we?" and gets a bland "Hi! What would you like to work on today?"
+**Screen / Director Notes:**
+- [Page: Standard generic chat window or `/evals` page under `no_memory` condition]
+- Start with a generic chat window (neutral cream tones, no memory indicators).
+- User types: *"Can we pick up with the webhook order sync setting we discussed?"*
+- The assistant replies: *"Hi there! I don't have access to prior conversations. Could you explain what you're working on?"*
+- **Visual Action:** ZOOM slightly on the generic reply to capture the feeling of amnesia.
 
 > Every AI product ships with the same flaw. Your users explain themselves — their goals, their preferences, what they struggle with — and the moment the session ends, it's gone. Context windows aren't memory. They're a goldfish with a bigger bowl.
 
 ## [00:14 – 00:17] NAME ANIMATION
 
-**Screen:** cinematic text: REVERIE. The dormant brain fades in behind it.
+**Screen / Director Notes:**
+- Transition to a black card that fades into the deep warm brown-black shell background.
+- Large typography: **REVERIE** in center.
+- Fade-in the faint neural outline of the brain graphic behind the text.
 
 > Meet Reverie. A memory engine you can watch think.
 
 ## [00:17 – 00:50] SESSION 1 — MEMORY FORMS
 
-**Screen:** session view. Lena's first message streams. ZOOM to the engram toast the moment it fires, then popout on the new node igniting.
+**Screen / Director Notes:**
+- [Page: Main `/` Session workspace]
+- Starts with an empty `Memory Constellation` canvas on the right (0 glowing nodes).
+- Lena's first message streams in the chat pane.
+- **Visual Action:**
+  - ZOOM in on the chat message as it mentions: *"I'm terrified the webhook order sync will break during launch."*
+  - Toast notification slides in on the bottom-right: `engram.observed` (shows type: `misconception`, model: `observer · qwen-flash`).
+  - PAN to the Memory Constellation as a new red/orange node ignites and starts pulsing on the canvas.
+  - **Click** the node to open the **Inspector Panel** on the left. Highlight the exact quote: *"Webhook order sync will break..."*
 
-> To prove it, we gave it a real workload: one user, one messy multi-day problem. Lena is migrating her store onto a new platform, with a launch date bearing down. This brain starts empty. She starts talking — and watch the right side. An observer model just caught something: a misconception about how the platform retries failed orders — typed, scored, and pinned to the moment she said it.
-
-**Screen:** ZOOM — inspector open on the misconception, source quote highlighted.
-
+> To prove it, we gave it a real workload: one user, one messy multi-day problem. Lena is migrating her store onto a new platform, with a launch date bearing down. This brain starts empty. She starts talking — and watch the right side. A Qwen-flash observer just caught something: a misconception about how the platform retries failed orders — typed, scored, and pinned to the moment she said it.
 > Every memory carries a receipt — the exact words from the transcript. No quote, no memory. Nothing here is hallucinated.
 
-**Screen:** wide shot, several nodes now lit.
+**Screen / Director Notes:**
+- Return to a WIDE shot of the workspace.
+- Lena enters a few more messages (simulating timeline progress).
+- **Visual Action:** Watch 3-4 other nodes (goals, preferences, affect) ignite in different colors (sage, gold, coral) across the constellation.
 
 > One session in, Reverie holds her goal, her preferences, even her anxiety — each one an event on an append-only ledger.
 
 ## [00:50 – 01:20] THE DREAM
 
-**Screen:** end session → constellation choreography → cut to dream report page. ZOOM on merged/superseded counts.
+**Screen / Director Notes:**
+- **Visual Action:**
+  - Click the **"End Session"** button on the top header.
+  - The screen dims slightly, and the Constellation canvas enters "Dream Mode" choreography (nodes pulse and connect lines dynamically).
+  - Cut to the `/dream` report page.
+  - ZOOM in on the **Dream Report Numbers** (distilled, merged, reconciled counts). The `2 merged` or `1 superseded` counters should stand out in large ember typography.
+  - Scroll down to the dream stage logs showing: `Replay` ➡️ `Distill` ➡️ `Deduplicate` ➡️ `Reconcile` ➡️ `Decay` stage transitions.
 
-> Then the session ends, and Reverie sleeps. It replays the day, distills what mattered, merges duplicates, and resolves contradictions. Watch — two memories just became one. The language model proposes. Deterministic code disposes. Every decision is on the ledger.
+> Then the session ends, and Reverie sleeps. It replays the day, distills what mattered, merges duplicates, and resolves contradictions. Watch — two memories just became one. Qwen-max proposes. Deterministic code disposes. Every decision is on the ledger.
 
 ## [01:20 – 01:35] FORGETTING
 
-**Screen:** advance clock +3 days ON CAMERA. Hold on the brain as nodes visibly dim. Slow zoom in. Let 2 seconds breathe.
+**Screen / Director Notes:**
+- [Page: Main `/` Session workspace / Conductor pane]
+- **Visual Action:**
+  - Click the **Conductor** action to *"Advance Clock +3 Days"*.
+  - Maintain a WIDE shot focused entirely on the Constellation canvas.
+  - Watch the older, unreinforced fact nodes (e.g., incidental questions about shipping zones) visibly dim from active color to a faint, dark-moth opacity.
+  - **Slow zoom-in** on the fading nodes. Let the visual breathe for 2 seconds of stillness.
 
 > Now, three days pass. Watch the brain. Memories she hasn't touched decay along a forgetting curve — because a memory that never forgets isn't memory. It's a landfill.
 
 ## [01:35 – 02:10] RECALL — THE PAYOFF
 
-**Screen:** Session 2 opens. ZOOM on budget meter filling, then on the assistant's reply citing the misconception unprompted.
+**Screen / Director Notes:**
+- [Page: Main `/` Session workspace, Session 2 starting]
+- **Visual Action:**
+  - Open Session 2.
+  - ZOOM immediately on the **Context Budget Meter** at the bottom as it dynamically fills to show `425 / 1,200 tokens`.
+  - Pan up to the Chat Pane as the assistant's opening message streams.
+  - Highlight the first sentence of the assistant's reply, where it unprompted references the webhook retry concern in a gentle, low-pressure tone.
 
 > Lena returns. Reverie doesn't reload her transcript — it retrieves under a budget. Twelve hundred tokens, scored on relevance, strength, and recency. It knows what she got wrong three days ago — she never had to say it twice.
-
-**Screen:** hold on the reply's gentle, low-pressure phrasing.
-
 > It even remembered how frustrated she was when her orders wouldn't sync — and changed how it responds.
 
-**Screen:** ZOOM — excluded memories with reasons.
+**Screen / Director Notes:**
+- **Visual Action:**
+  - ZOOM in on the bottom of the Inspector Panel under **"Excluded Memories"**.
+  - Show the items labeled: `incidental_shipping_zone_question (decayed, score: 0.12 - below threshold)`.
 
 > And it shows its work: what it recalled, what it left out, and why.
 
 ## [02:10 – 02:30] EVALS
 
-**Screen:** /evals with real numbers. Popout the token comparison.
+**Screen / Director Notes:**
+- [Page: `/evals` page]
+- ZOOM in on the main headline comparison: **"Reverie 4.7 vs 1.0 without memory"**.
+- Scroll down and focus on the **Token Efficiency Comparison Bar Visuals**.
+- **Visual Action:** Highlight the orange `reverie` token bar (flat, narrow) versus the long `full_history` token bar (skyrocketing).
 
 > We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored 4.7 on personalization versus 1.0, recalled 100 percent of planted facts, and used 68 percent fewer tokens than full history. Measured, not asserted.
 
-**Pre-decided contingencies (locked now, not at 2 a.m. on edit night):**
-
-- **No completed real run by record time** → cut this beat entirely (standing ruling: no real run, no eval claims). Cover the ~20s by extending the recall beat's stillness and playing the spare architecture line over the close.
-- **Real run but underwhelming** — underwhelming means personalization delta (Reverie − no-memory) **< 1.0 point** or planted-fact recall **< 80%** → keep the beat, cut the VO to the token-efficiency sentence only ("…and used [N] percent fewer tokens than full history. Measured, not asserted."). Token efficiency vs. full-history is structurally guaranteed to be large, so it is always safe to state.
-- The numbers spoken must match `EVALS.md` exactly. Never a favorable subset.
-
 ## [02:30 – 02:55] CLOSE
 
-**Screen:** /architecture card, then pull back to the fully-lit brain.
+**Screen / Director Notes:**
+- [Page: `/architecture` page]
+- **Visual Action:**
+  - Show the main architecture card.
+  - ZOOM in on the **Runtime Stack** panel, highlighting the row showing **"Qwen on Alibaba Cloud"** (with observer, assistant, judge model IDs).
+  - Pull back to the main session page showing the fully-populated `Memory Constellation` brain glowing with connected nodes.
+  - Fade to black with the logo.
 
 > And the engine contains zero domain knowledge. Swap one script file, and it remembers a patient across visits, a learner across a semester, an engineer across your codebase — the test suite proves it. Typed memories, event sourcing, dreams, decay, budgeted recall, on Qwen, on Alibaba Cloud. Your AI shouldn't meet its users for the first time, every time.
 

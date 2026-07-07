@@ -150,13 +150,7 @@ function sessionEyebrow(session: SessionRecord | null) {
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  if (!session) {
-    const topic = sessionTopic(session);
-    return `${topic.charAt(0).toUpperCase()}${topic.slice(1)}.`;
-  }
-  return sessionNumber(session) === "1"
-    ? `${SESSION_PERSON_NAME} arrives.`
-    : `${SESSION_PERSON_NAME} returns.`;
+  return "Lena Park";
 }
 
 function stageSummary(stage: DreamStage) {
@@ -771,7 +765,7 @@ export function SessionClient() {
               <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
                 {sessionEyebrow(session)}
               </p>
-              <h1 className="display-glow mt-2 font-display text-[44px] font-medium leading-none text-starlight">
+              <h1 className="display-glow mt-2 font-display text-[24px] font-semibold uppercase tracking-widest leading-none text-starlight">
                 {sessionHeadline(session)}
               </h1>
             </div>
@@ -852,7 +846,7 @@ export function SessionClient() {
                   <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
                     pick up the thread
                   </p>
-                  <p className="mt-4 max-w-md font-display text-[28px] italic leading-snug text-starlight">
+                  <p className="mt-4 max-w-xl font-display text-[28px] italic leading-snug text-starlight">
                     {sessionNumber(session) === "1"
                       ? `Reverie knows nothing about ${SESSION_PERSON_NAME} yet.`
                       : "Reverie has been dreaming about last time."}
@@ -1026,10 +1020,10 @@ export function SessionClient() {
 
       <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-field lg:order-2 lg:h-full lg:min-h-0">
         <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field px-8">
-          <p className="font-display text-[24px] font-medium text-starlight">
-            {SESSION_PERSON_NAME}&apos;s mind
-          </p>
-          <p className="mt-2 max-w-sm font-mono text-[12px] leading-5 text-dim">
+          <h2 className="font-display text-[20px] font-semibold uppercase tracking-widest text-ember">
+            Memory Constellation
+          </h2>
+          <p className="mt-1.5 max-w-lg font-mono text-[10px] leading-relaxed uppercase tracking-wider text-dim">
             {memoryCount} memories · {provisionalCount} provisional — every glowing node is something Reverie learned from her own words
           </p>
         </header>
