@@ -1015,7 +1015,7 @@ export function SessionClient() {
             {SESSION_PERSON_NAME}&apos;s mind
           </p>
           <p className="mt-2 max-w-sm font-mono text-[12px] leading-5 text-dim">
-            {memoryCount} memories · {provisionalCount} provisional — every dot is something Reverie learned from her own words
+            {memoryCount} memories · {provisionalCount} provisional — every glowing node is something Reverie learned from her own words
           </p>
         </header>
         <div className="relative min-h-0 flex-1">
