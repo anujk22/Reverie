@@ -8,7 +8,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Blockers before recording (item 1 is the critical path — nothing downstream matters until it lands):**
 
-- [ ] **Live eval run complete** — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat. Both contingencies are pre-decided in that beat; no judgment calls on edit night.
+- [x] **Live eval run complete** — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat. Both contingencies are pre-decided in that beat; no judgment calls on edit night.
 - [x] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified — commit 55d5bda)
 - [x] Session 2 script timeline fixed — "yesterday" → "a few days ago," and Lena no longer announces her own misconception or preference (the recall has to be earned, not prompted)
 - [ ] Demo domain swap (calculus → store migration) landed, committed, and verified: purity grep clean, 27+ tests green, 11/11 film beats replay
@@ -73,7 +73,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** /evals with real numbers. Popout the token comparison.
 
-> We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored 5.0 on personalization versus 4.5, recalled 100 percent of planted facts, and used 71 percent fewer tokens than full history. Measured, not asserted.
+> We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored 4.7 on personalization versus 1.0, recalled 100 percent of planted facts, and used 68 percent fewer tokens than full history. Measured, not asserted.
 
 **Pre-decided contingencies (locked now, not at 2 a.m. on edit night):**
 
