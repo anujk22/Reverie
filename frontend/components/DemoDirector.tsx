@@ -319,6 +319,8 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
       abortRef.current?.abort();
 
       if (index >= filmScript.length) {
+        statusRef.current = "done";
+        busyRef.current = false;
         setStatus("done");
         setBusy(false);
         setError(null);
@@ -330,6 +332,8 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
       const abortController = new AbortController();
       abortRef.current = abortController;
 
+      statusRef.current = "playing";
+      busyRef.current = true;
       setBeatIndex(index);
       setStatus("playing");
       setBusy(true);
@@ -340,9 +344,11 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         await executeBeat(beat, abortController.signal);
         if (runTokenRef.current !== token) return;
         abortRef.current = null;
+        busyRef.current = false;
         setBusy(false);
 
         if (index === filmScript.length - 1) {
+          statusRef.current = "done";
           setStatus("done");
           return;
         }
@@ -350,13 +356,16 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         if (autoplayRef.current) {
           scheduleAutoAdvance(index, beat.autoAdvanceMs ?? 3500);
         } else {
+          statusRef.current = "paused";
           setStatus("paused");
         }
       } catch (err) {
         if (runTokenRef.current !== token) return;
         abortRef.current = null;
+        busyRef.current = false;
         setBusy(false);
         if (err instanceof Error && err.name === "AbortError") return;
+        statusRef.current = "paused";
         setStatus("paused");
         setError(errorMessage(err));
       }
@@ -370,6 +379,9 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback(
     (options?: StartOptions) => {
+      if (busyRef.current || statusRef.current === "playing" || statusRef.current === "paused") {
+        return;
+      }
       removeDirectorParam();
       currentSessionRef.current = null;
       setAutoplay(Boolean(options?.autoplay));
@@ -386,6 +398,10 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     abortRef.current = null;
     currentSessionRef.current = null;
     removeDirectorParam();
+    statusRef.current = "idle";
+    busyRef.current = false;
+    autoplayRef.current = false;
+    errorRef.current = null;
     setStatus("idle");
     setBeatIndex(0);
     setBusy(false);
@@ -419,6 +435,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     autoplayRef.current = false;
     setAutoplay(false);
     if (!busyRef.current && statusRef.current === "playing") {
+      statusRef.current = "paused";
       setStatus("paused");
     }
   }, [clearAutoTimer]);
@@ -427,6 +444,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     if (statusRef.current === "idle" || statusRef.current === "done") return;
     autoplayRef.current = true;
     setAutoplay(true);
+    statusRef.current = "playing";
     setStatus("playing");
 
     if (
@@ -560,7 +578,6 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
         <button
           type="button"
           aria-label={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
-          title={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
           onClick={toggleAutoplay}
           className="ml-1 flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-ember transition hover:text-glow"
         >
@@ -573,7 +590,6 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
         <button
           type="button"
           aria-label="Exit film mode"
-          title="Exit film mode"
           onClick={exit}
           className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-dim transition hover:text-starlight"
         >

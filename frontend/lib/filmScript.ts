@@ -31,17 +31,17 @@ export const filmScript: DemoBeat[] = [
     id: "cold-start",
     caption: "A memory engine starts empty.",
     page: "/",
-    action: { type: "reset", createSessionTitle: "Session 1" },
+    action: { type: "reset", createSessionTitle: "Session 1 · store migration" },
     autoAdvanceMs: 5000
   },
   {
     id: "first-friction",
-    caption: "The hardest memory workload: one person over weeks.",
+    caption: "The hardest memory workload: one person across sessions.",
     page: "/",
     action: {
       type: "send_message",
       text:
-        "I keep freezing when the midterm leans on chain rule. With f(g(x)), my hand wants to write f'(x) times g'(x), like product rule."
+        "The last order sync failed halfway through, and I thought webhook retries happened automatically. The sale date is close, and I am frustrated."
     },
     autoAdvanceMs: 2000
   },
@@ -52,19 +52,19 @@ export const filmScript: DemoBeat[] = [
     action: {
       type: "show_engram_inspector",
       engramType: "misconception",
-      contains: "product rule",
+      contains: "automatic",
       holdMs: 6000
     },
     autoAdvanceMs: 500
   },
   {
-    id: "worked-example",
+    id: "exact-steps",
     caption: "It forms typed memories from exact evidence.",
     page: "/",
     action: {
       type: "send_message",
       text:
-        "Could we start with actual numbers? Example first, then rules in the abstract, and the rule usually lands."
+        "Please give exact steps with real values, not doc links. I need the toggle name, the value, and the next check."
     },
     autoAdvanceMs: 2000
   },
@@ -77,7 +77,7 @@ export const filmScript: DemoBeat[] = [
   },
   {
     id: "forgetting",
-    caption: "Three days pass. Untouched memories fade.",
+    caption: "Three days pass. A stale shipping-zone question fades.",
     page: "/dream",
     action: { type: "advance_clock", days: 3, settleMs: 1500 },
     autoAdvanceMs: 6500
@@ -86,7 +86,7 @@ export const filmScript: DemoBeat[] = [
     id: "second-day",
     caption: "A new session begins with a memory budget.",
     page: "/",
-    action: { type: "create_session", title: "Session 2", showMemoryPack: true },
+    action: { type: "create_session", title: "Session 2 · going live", showMemoryPack: true },
     autoAdvanceMs: 5000
   },
   {
@@ -95,17 +95,17 @@ export const filmScript: DemoBeat[] = [
     page: "/",
     action: {
       type: "send_message",
-      text: "Okay, I have 20 minutes tonight. Where were we?"
+      text: "I have 20 minutes before going live. What is the smallest check first?"
     },
     autoAdvanceMs: 2000
   },
   {
     id: "remember",
-    caption: "It remembered pressure, and changed the response.",
+    caption: "It remembered frustration, and lowered the pressure.",
     page: "/",
     action: {
       type: "send_message",
-      text: "Can we do one small worked example before the rule?"
+      text: "Can you keep it exact, with values, not links?"
     },
     autoAdvanceMs: 2000
   },

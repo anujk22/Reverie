@@ -68,21 +68,23 @@ type DreamStage = {
 };
 
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
+const SESSION_ONE_TITLE = "Session 1 · store migration";
+const SESSION_TWO_TITLE = "Session 2 · going live";
 
 const sessionOneStarterTurns = [
-  "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself.",
-  "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making.",
-  "Could we start with actual numbers first? If I see one worked example, the rule usually lands better.",
-  "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it.",
-  "Also, I usually study late after work, so shorter practice sets are easier for me to stick with."
+  "I'm moving her store onto the platform this week, and the last order sync failed halfway through. I need help without getting sent to a doc maze.",
+  "I thought webhook retries happened automatically after a failed order sync, so I never enabled anything. Is that wrong?",
+  "Can you give me exact steps with real values? For example, tell me the toggle name and what it should be set to.",
+  "Please ask one thing at a time. When support dumps five links at once, I lose the thread.",
+  "I'm frustrated because the test order disappeared after the sync error, and the sale date is close."
 ];
 
 const sessionTwoStarterTurns = [
-  "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first.",
-  "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x. Is that finally the move?",
-  "It feels less panicky if I write outside first, then inside, almost like a checklist.",
-  "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative.",
-  "The power rule itself is fine now. It is recognizing that something is nested that slows me down."
+  "I have 20 minutes before going live. Can we pick up with the smallest check first?",
+  "The sync ran again, but I want to verify the retry setting before the sale starts.",
+  "Please use exact values again, not links.",
+  "If the platform asks for max attempts, what should I enter for launch?",
+  "After that I need a short final checklist for orders, inventory, and webhooks."
 ];
 
 const memoryDotColors: Record<string, string> = {
@@ -141,15 +143,12 @@ function shortDate(value?: string) {
 }
 
 function sessionEyebrow(session: SessionRecord | null) {
-  const title = session?.title ?? "Session 1 - chain rule";
-  const subject = title.split(" - ")[1] ?? "chain rule";
-  return [shortDate(session?.started_at), `Session ${sessionNumber(session)}`, subject].join(
-    " · "
-  );
+  return [shortDate(session?.started_at), "Lena Park", normalizedSessionTitle(session)].join(" · ");
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  return sessionNumber(session) === "1" ? "Lena meets Reverie." : "Lena returns.";
+  const topic = sessionTopic(session);
+  return `${topic.charAt(0).toUpperCase()}${topic.slice(1)}.`;
 }
 
 function stageSummary(stage: DreamStage) {
@@ -180,13 +179,12 @@ function humanError(error: unknown) {
 
 function memoryLabel(item: MemoryPackItem) {
   const text = item.content.toLowerCase();
-  if (text.includes("worked example") || text.includes("example")) return "example first";
-  if (text.includes("anxious") || text.includes("anxiety") || text.includes("midterm")) return "exam nerves";
-  if (text.includes("product rule")) return "product mixup";
-  if (text.includes("power rule")) return "power rule";
-  if (text.includes("guiding") || text.includes("question")) return "guided prompts";
-  if (text.includes("late") || text.includes("shorter")) return "short sets";
-  if (text.includes("outer") || text.includes("inner")) return "outer inner";
+  if (text.includes("step") || text.includes("real value") || text.includes("doc")) return "exact steps";
+  if (text.includes("frustrated") || text.includes("failed order")) return "low pressure";
+  if (text.includes("webhook") || text.includes("retry")) return "webhook retries";
+  if (text.includes("sale") || text.includes("launch")) return "launch date";
+  if (text.includes("shipping")) return "shipping zone";
+  if (text.includes("order sync")) return "order sync";
   return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
 }
 
@@ -204,6 +202,17 @@ function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
 function sessionNumber(session: SessionRecord | null) {
   const match = /session\s*(\d+)/i.exec(session?.title ?? "");
   return match?.[1] ?? "1";
+}
+
+function normalizedSessionTitle(session: SessionRecord | null) {
+  const title = session?.title ?? SESSION_ONE_TITLE;
+  return title.replace(/\s+-\s+/g, " · ").toLowerCase();
+}
+
+function sessionTopic(session: SessionRecord | null) {
+  const title = normalizedSessionTitle(session);
+  const topic = title.split("·").pop()?.trim() || "store migration";
+  return topic;
 }
 
 function sortedSessions(sessions: SessionRecord[], session: SessionRecord | null) {
@@ -225,7 +234,14 @@ function SessionTimeline({
   dreaming: boolean;
 }) {
   const ordered = sortedSessions(sessions, session);
-  const stops = ordered.flatMap((item, index) => {
+  type TimelineStop = {
+    key: string;
+    kind: "session" | "dream";
+    label: string;
+    current: boolean;
+    complete: boolean;
+  };
+  const stops: TimelineStop[] = ordered.flatMap((item, index) => {
     const dreamComplete =
       Boolean(item.ended_at) || Boolean(item.dream_completed) || index < ordered.length - 1;
     return [
@@ -250,50 +266,64 @@ function SessionTimeline({
     ];
   });
 
-  const visibleStops = stops.length ? stops : [{ key: "session-1", kind: "session" as const, label: "S1", current: true, complete: false }];
+  const visibleStops = [...stops];
+  if (!visibleStops.length) {
+    visibleStops.push({
+      key: "session-1",
+      kind: "session",
+      label: "S1",
+      current: true,
+      complete: false
+    });
+  }
+  if (ordered.length <= 2) {
+    if (!visibleStops.some((stop) => stop.kind === "dream")) {
+      visibleStops.splice(1, 0, {
+        key: "dream-placeholder",
+        kind: "dream",
+        label: "dream",
+        current: false,
+        complete: false
+      });
+    }
+    if (!visibleStops.some((stop) => stop.kind === "session" && stop.label === "S2")) {
+      visibleStops.push({
+        key: "session-2-placeholder",
+        kind: "session",
+        label: "S2",
+        current: false,
+        complete: false
+      });
+    }
+  }
 
   return (
     <section className="flex h-full items-center border-l border-hairline px-8">
-      <div className="w-full">
-        <div className="flex items-center justify-between gap-3 font-mono text-[15px] text-starlight">
-          {visibleStops.map((stop, index) => (
-            <div key={stop.key} className="flex min-w-0 flex-1 items-center gap-3">
-              <span
-                className={`inline-flex items-center gap-2 whitespace-nowrap ${
-                  stop.current ? "text-ember" : stop.complete ? "text-starlight" : "text-dim"
-                }`}
-              >
-                {stop.kind === "dream" ? (
-                  <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
-                ) : null}
-                {stop.label}
-              </span>
-              {index < visibleStops.length - 1 ? <span className="h-px flex-1 bg-hairline" /> : null}
-            </div>
-          ))}
-        </div>
-        <div
-          className="mt-5 grid items-center gap-0"
-          style={{ gridTemplateColumns: `repeat(${visibleStops.length}, minmax(0, 1fr))` }}
-        >
-          {visibleStops.map((stop, index) => (
-            <div
-              key={`${stop.key}-dot`}
-              className={`relative flex ${visibleStops.length === 1 ? "justify-start" : "justify-center"}`}
+      <div className="flex w-full items-center gap-3 font-mono text-[14px] text-starlight">
+        {visibleStops.map((stop, index) => (
+          <div key={stop.key} className="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              className={`inline-flex min-w-0 items-center gap-2 whitespace-nowrap ${
+                stop.current ? "text-ember" : stop.complete ? "text-starlight" : "text-dim"
+              }`}
             >
-              {index > 0 ? <span className="absolute right-1/2 top-1/2 h-px w-full -translate-y-1/2 bg-hairline" /> : null}
+              {stop.kind === "dream" ? (
+                <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
+              ) : null}
+              <span>{stop.label}</span>
               <span
-                className={`relative z-10 h-3 w-3 rounded-full border ${
+                className={`h-3 w-3 shrink-0 rounded-full border ${
                   stop.current
                     ? "border-ember bg-field-2"
                     : stop.complete
-                      ? "border-starlight bg-starlight"
+                      ? "border-sage bg-sage"
                       : "border-faint bg-field-2"
                 }`}
               />
-            </div>
-          ))}
-        </div>
+            </span>
+            {index < visibleStops.length - 1 ? <span className="h-px flex-1 bg-hairline" /> : null}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -319,6 +349,7 @@ export function SessionClient() {
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const hasChatRef = useRef(false);
+  const sessionRef = useRef<SessionRecord | null>(null);
   const sendMessageRef = useRef<
     ((message?: string, signal?: AbortSignal) => Promise<void>) | null
   >(null);
@@ -336,6 +367,7 @@ export function SessionClient() {
 
   const startSession = useCallback(async (title?: string) => {
     const created = await createSession(title);
+    sessionRef.current = created;
     setSession(created);
     setSessions((current) => sortedSessions(current, created));
     setPack(created.memory_pack ?? null);
@@ -352,7 +384,8 @@ export function SessionClient() {
       const [sessions, graphData] = await Promise.all([listSessions(), fetchGraph()]);
       setSessions(sessions.sessions);
       const latest = sessions.sessions[sessions.sessions.length - 1] ?? null;
-      const active = latest && !latest.ended_at ? latest : await startSession("Session 1 - chain rule");
+      const active = latest && !latest.ended_at ? latest : await startSession(SESSION_ONE_TITLE);
+      sessionRef.current = active;
       setSession(active);
       setGraph(graphData);
       if (active.memory_pack) {
@@ -376,6 +409,10 @@ export function SessionClient() {
   useEffect(() => {
     hasChatRef.current = items.some((item) => item.kind === "message");
   }, [items]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   useEffect(() => {
     const source = new EventSource(apiUrl("/api/events/stream"));
@@ -458,7 +495,8 @@ export function SessionClient() {
 
   async function sendMessage(message = draft, signal?: AbortSignal) {
     const text = message.trim();
-    if (!text || !session || streaming || dreaming) return;
+    const activeSession = sessionRef.current;
+    if (!text || !activeSession || streaming || dreaming) return;
     if (signal?.aborted) return;
 
     setDraft("");
@@ -495,7 +533,7 @@ export function SessionClient() {
     }
 
     try {
-      const response = await fetch(apiUrl(`/api/sessions/${session.id}/chat`), {
+      const response = await fetch(apiUrl(`/api/sessions/${activeSession.id}/chat`), {
         method: "POST",
         headers: {
           Accept: "text/event-stream",
@@ -585,7 +623,7 @@ export function SessionClient() {
       const refreshed = await listSessions();
       setSessions(refreshed.sessions);
       await loadGraph();
-      const next = await startSession("Session 2 - chain rule recall");
+      const next = await startSession(SESSION_TWO_TITLE);
       setPack(next.memory_pack ?? (await fetchMemoryPack(next.id)));
     } catch (err) {
       setError(humanError(err));
@@ -604,7 +642,7 @@ export function SessionClient() {
       setSessions([]);
       setSelected(null);
       setPack(null);
-      await startSession("Session 1 - chain rule");
+      await startSession(SESSION_ONE_TITLE);
       await loadGraph();
     } catch (err) {
       setError(humanError(err));
@@ -616,7 +654,7 @@ export function SessionClient() {
   useEffect(() => {
     const unsubscribeSend = onDemoSend(async ({ text, signal, resolve, reject }) => {
       try {
-        if (!session) throw new Error("Session page is not ready.");
+        if (!sessionRef.current) throw new Error("Session page is not ready.");
         if (streaming || dreaming) throw new Error("Session page is busy.");
 
         throwIfDemoAborted(signal);
@@ -675,10 +713,12 @@ export function SessionClient() {
       async ({ type, contains, resolve, reject }) => {
         try {
           const criteria = { type, contains };
-          let node = findDemoEngram(graph.nodes, criteria);
-          if (!node) {
+          let node: Engram | null = null;
+          for (let attempt = 0; attempt < 24; attempt += 1) {
             const nextGraph = await loadGraph();
             node = findDemoEngram(nextGraph.nodes, criteria);
+            if (node) break;
+            await waitForDemoTyping(250);
           }
           if (!node) throw new Error("No matching memory for the film inspector.");
           setSelected(node);
@@ -712,8 +752,8 @@ export function SessionClient() {
   return (
     <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
       <section className="order-2 flex min-h-[66dvh] flex-col border-hairline bg-field lg:order-1 lg:h-full lg:min-h-0 lg:border-r">
-        <header className="border-b border-hairline bg-field px-7 py-6">
-          <div className="flex items-start justify-between gap-4">
+        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field px-8">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
                 {sessionEyebrow(session)}
@@ -735,7 +775,6 @@ export function SessionClient() {
               <button
                 type="button"
                 aria-label="More session actions"
-                title="More session actions"
                 onClick={() => setMenuOpen((open) => !open)}
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field-2 text-dim transition hover:text-starlight"
               >
@@ -747,7 +786,7 @@ export function SessionClient() {
                     type="button"
                     onClick={() => {
                       setMenuOpen(false);
-                      startSession("Session 2 - chain rule recall").catch((err) =>
+                      startSession(SESSION_TWO_TITLE).catch((err) =>
                         setError(err.message)
                       );
                     }}
@@ -786,12 +825,8 @@ export function SessionClient() {
           ) : null}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-7 py-5">
-          <div
-            className={`flex min-h-full flex-col ${
-              hasMessages ? "justify-end" : "justify-center"
-            }`}
-          >
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <div className={`flex min-h-full flex-col ${hasMessages ? "justify-end" : "justify-start"}`}>
             {booting ? (
               <div className="space-y-4 pb-4">
                 <div className="h-4 w-2/3 rounded-full bg-field-2" />
@@ -799,9 +834,12 @@ export function SessionClient() {
                 <div className="h-28 w-5/6 bg-void" />
               </div>
             ) : !hasMessages ? (
-              <div className="flex flex-col gap-6 pb-8">
+              <div className="flex flex-col gap-5 pb-8">
                 <div>
-                  <p className="max-w-md font-display text-[30px] italic leading-snug text-starlight">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
+                    pick up the thread
+                  </p>
+                  <p className="mt-4 max-w-md font-display text-[28px] italic leading-snug text-starlight">
                     {sessionNumber(session) === "1"
                       ? "Reverie knows nothing about Lena yet."
                       : "Reverie has been dreaming about last time."}
@@ -816,7 +854,7 @@ export function SessionClient() {
                       key={turn}
                       type="button"
                       onClick={() => sendMessage(turn)}
-                      className="relative flex max-w-xl items-start gap-4 rounded-2xl border border-hairline bg-field-2 px-5 py-3.5 text-left text-[13.5px] leading-6 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.22)] transition hover:border-ember/40 hover:text-starlight"
+                      className="relative flex max-w-xl items-start gap-4 rounded-lg border border-hairline bg-field-2 px-5 py-3.5 text-left text-[13.5px] leading-6 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.22)] transition hover:border-ember/40 hover:text-starlight"
                     >
                       <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
                       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
@@ -860,7 +898,7 @@ export function SessionClient() {
                       className={item.role === "student" ? "flex justify-end" : "block"}
                     >
                       {item.role === "student" ? (
-                        <div className="relative flex max-w-[82%] items-start gap-4 rounded-2xl border border-hairline bg-field-2 px-5 py-3.5 text-[15px] leading-7 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.18)]">
+                        <div className="relative flex max-w-[82%] items-start gap-4 rounded-lg border border-hairline bg-field-2 px-5 py-3.5 text-[15px] leading-7 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.18)]">
                           <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
                           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
                             <MessageCircle aria-hidden="true" size={16} strokeWidth={1.7} />
@@ -916,7 +954,7 @@ export function SessionClient() {
         </div>
 
         <form
-          className="border-t border-hairline bg-field px-7 py-4"
+          className="flex h-[var(--reverie-bottom-h)] shrink-0 items-center border-t border-hairline bg-field px-8"
           onSubmit={(event) => {
             event.preventDefault();
             sendMessage();
@@ -931,7 +969,7 @@ export function SessionClient() {
               <span className="hairline-divider h-px flex-1" />
             </div>
           ) : (
-            <div className="stellar-panel flex items-end gap-3 rounded-[22px] px-4 py-2.5 focus-within:border-ember/50">
+            <div className="stellar-panel flex w-full items-end gap-3 rounded-[22px] px-4 py-2.5 focus-within:border-ember/50">
               <label className="sr-only" htmlFor="message">
                 Message
               </label>
@@ -953,7 +991,6 @@ export function SessionClient() {
               <button
                 type="submit"
                 aria-label="Send message"
-                title="Send message"
                 disabled={streaming || !draft.trim() || !session}
                 className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-field-2 shadow-[0_8px_20px_-12px_rgba(93,64,35,0.42)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
               >
@@ -965,6 +1002,14 @@ export function SessionClient() {
       </section>
 
       <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-void lg:order-2 lg:h-full lg:min-h-0">
+        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field/35 px-8">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
+            the mind
+          </p>
+          <p className="mt-2 max-w-sm font-mono text-[11px] leading-5 text-dim">
+            {graph.nodes.length} memories · {graph.nodes.filter((node) => node.provisional).length} provisional
+          </p>
+        </header>
         <div className="relative min-h-0 flex-1">
           <ConstellationCanvas
             graph={graph}
@@ -974,15 +1019,6 @@ export function SessionClient() {
             event={canvasEvent}
             onSelect={setSelected}
           />
-
-          <div className="pointer-events-none absolute left-8 top-7 max-w-[calc(100%-4rem)]">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-              the mind
-            </p>
-            <p className="mt-1 max-w-sm font-mono text-[11px] leading-5 text-dim">
-              {graph.nodes.length} memories · {graph.nodes.filter((node) => node.provisional).length} provisional
-            </p>
-          </div>
 
           {Object.keys(dreamStages).length ? (
             <div className="stellar-panel absolute bottom-5 left-8 right-8 rounded-lg p-3">
@@ -1009,7 +1045,7 @@ export function SessionClient() {
           ) : null}
         </div>
 
-        <div className="grid min-h-[136px] shrink-0 border-t border-hairline bg-field lg:grid-cols-[55%_45%]">
+        <div className="grid h-[var(--reverie-bottom-h)] shrink-0 border-t border-hairline bg-field lg:grid-cols-[55%_45%]">
           <BudgetMeter
             pack={pack}
             engrams={graph.nodes}

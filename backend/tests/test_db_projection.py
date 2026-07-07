@@ -17,8 +17,8 @@ def test_event_projection_preserves_payload_and_provenance(tmp_path) -> None:
     engram = database.insert_engram(
         {
             "type": "preference",
-            "content": "Learns chain rule best from a worked example first.",
-            "subject_tags": ["chain rule", "worked_examples"],
+            "content": "Prefers exact step-by-step instructions with real values.",
+            "subject_tags": ["step_by_step", "real_values"],
             "confidence": 0.88,
             "importance": 0.78,
         },
@@ -53,7 +53,7 @@ def test_event_projection_preserves_payload_and_provenance(tmp_path) -> None:
         }
     ]
     assert detail is not None
-    assert detail["engram"]["subject_tags"] == ["chain rule", "worked_examples"]
+    assert detail["engram"]["subject_tags"] == ["step_by_step", "real_values"]
     assert detail["engram"]["provisional"] is True
     assert [item["id"] for item in detail["provenance"]] == [utterance["id"]]
     assert detail["events"][0]["payload_json"]["source_quotes"] == ["example first"]

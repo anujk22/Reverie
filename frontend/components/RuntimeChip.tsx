@@ -85,14 +85,12 @@ export function RuntimeChip() {
               ? "border-sage/40 text-sage"
               : "border-coral/40 text-coral"
         }`}
-        title="Runtime status"
       >
         {label}
       </div>
       {offset ? (
         <div
           className="min-w-12 rounded-full border border-hairline bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none text-dim"
-          title="Simulated demo date"
         >
           {status?.simulated_date ?? "shifted"}
         </div>
@@ -100,7 +98,6 @@ export function RuntimeChip() {
       {degraded ? (
         <div
           className="w-20 rounded-full border border-gold/40 bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-tight text-gold"
-          title="A live model call degraded and fell back"
         >
           live model degraded
         </div>

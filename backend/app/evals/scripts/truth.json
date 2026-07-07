@@ -1,8 +1,15 @@
 {
   "learner": "Lena Park",
-  "misconception": "Differentiates f(g(x)) as f'(x) times g'(x), applying product rule reasoning to composite functions.",
-  "preference": "Has an example-first preference: show an example first before abstract rules.",
-  "goal": "Has a midterm goal to prepare for a differentiation midterm covering chain rule.",
-  "affect": "Feels anxious about the chain rule midterm.",
-  "mastery": "Session2 mastery quote: outer derivative/inner derivative means take the outer derivative, leave the inside alone, times inner derivative."
+  "misconception": "Believes failed order-sync webhooks retry automatically, but the platform requires retry failed order sync to be enabled.",
+  "preference": "Prefers exact step-by-step instructions with real values instead of documentation links.",
+  "goal": "Is trying to finish her store migration before the sale date.",
+  "affect": "Felt frustrated after a failed order sync; open next time with a low-pressure checklist.",
+  "mastery": "Session2 mastery quote: Retry failed order sync is Enabled and Max attempts is 3.",
+  "forgetting": {
+    "stale_session_title": "stale shipping-zone seed",
+    "stale_utterance": "I was trying to map a shipping zone for an address that we no longer need.",
+    "stale_memory": "Asked about a shipping-zone mapping question that was never revisited.",
+    "absent_tags": ["shipping_zones"],
+    "absent_phrases": ["shipping zone", "shipping-zone"]
+  }
 }

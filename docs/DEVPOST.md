@@ -8,7 +8,7 @@ Memory is the missing layer for any AI that serves the same human twice: a learn
 
 ## What It Does
 
-The demo scenario is the hardest memory workload we could give it: one person, learning something difficult, across multiple sessions, over weeks. Lena Park brings a misconception, preferences, a goal, and pressure around an exam. Reverie extracts typed memories with exact transcript receipts, dreams over them between sessions, lets stale memories decay, and retrieves only the highest-value memories that fit a fixed budget. It remembers not just what the user got wrong but how they felt, and adapts.
+The demo scenario is the hardest memory workload we could give it: one person, under pressure, returning across multiple support sessions. Lena Park is moving her store onto the platform before a sale date. She brings a clear misconception about webhook retries, a preference for exact steps with real values, frustration from a failed order sync, and a stale shipping-zone question that should fade. Reverie extracts typed memories with exact transcript receipts, dreams over them between sessions, lets stale memories decay, and retrieves only the highest-value memories that fit a fixed budget. It remembers not just what the user got wrong but how they felt, and adapts.
 
 The engine contains zero domain knowledge. Swap one script file and the same engine remembers a customer across support tickets, a patient across visits, an engineer across a codebase. The test suite proves it.
 

@@ -113,7 +113,6 @@ export function MemoryInspector({
         <button
           type="button"
           aria-label="Close inspector"
-          title="Close inspector"
           onClick={onClose}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-hairline bg-field-2 text-dim transition hover:text-starlight"
         >

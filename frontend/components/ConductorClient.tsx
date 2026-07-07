@@ -114,7 +114,7 @@ export function ConductorClient() {
         description: "Replay Lena's first-session turns through the normal chat route.",
         icon: ScrollText,
         run: async () => {
-          const session = await playScript("session1", "Session 1 - chain rule");
+          const session = await playScript("session1", "Session 1 · store migration");
           return `played ${session.title}`;
         }
       },
@@ -155,7 +155,7 @@ export function ConductorClient() {
         description: "Start the recall session and route every turn through live chat.",
         icon: ScrollText,
         run: async () => {
-          const session = await playScript("session2", "Session 2 - chain rule recall");
+          const session = await playScript("session2", "Session 2 · going live");
           return `played ${session.title}`;
         }
       },

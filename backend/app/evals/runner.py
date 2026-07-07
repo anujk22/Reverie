@@ -19,7 +19,7 @@ from app.llm import llm_client
 from app.memory.observer import observe_exchange
 from app.memory.decay import DecayInput, compute_strength
 from app.memory.retrieval_service import assemble_memory_pack
-from app.subject import SESSION_OPEN_RETRIEVAL_QUERY
+from app.subject import MOCK_SMOKE_OPENING, SESSION_OPEN_RETRIEVAL_QUERY
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -54,6 +54,21 @@ def _truth_sheet() -> str:
     return (SCRIPTS_DIR / "truth.json").read_text()
 
 
+def _truth_data() -> dict[str, Any]:
+    return json.loads(_truth_sheet())
+
+
+def _forgetting_spec() -> dict[str, Any]:
+    spec = _truth_data().get("forgetting", {})
+    return {
+        "stale_session_title": spec.get("stale_session_title", "stale memory seed"),
+        "stale_utterance": spec.get("stale_utterance", "I asked about a stale topic."),
+        "stale_memory": spec.get("stale_memory", "Asked about a stale topic."),
+        "absent_tags": spec.get("absent_tags", []),
+        "absent_phrases": spec.get("absent_phrases", []),
+    }
+
+
 @contextmanager
 def bind_database(database: Database) -> Iterator[None]:
     modules = (llm_module, dream_module, retrieval_service, observer_module)
@@ -86,12 +101,16 @@ async def broadcast_progress(condition: str, session: int) -> None:
 
 
 def session_tokens(database: Database, session_id: str) -> int:
+    # Assistant reply path only (purpose='tutor'): measures the context each
+    # condition feeds the reply model. Observer/dream/embedding overhead is
+    # reported separately via observed_llm_tokens; eval_judge calls are the
+    # measuring instrument and are never billed to a condition.
     with database.connection() as conn:
         row = conn.execute(
             """
             SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS tokens
             FROM llm_calls
-            WHERE session_id = ?
+            WHERE session_id = ? AND purpose = 'tutor'
             """,
             (session_id,),
         ).fetchone()
@@ -106,17 +125,26 @@ def transcript_for_session(database: Database, session_id: str) -> str:
 
 
 async def score_opening(opening: str, session_id: str) -> tuple[float, bool]:
+    # Only real judge verdicts enter the mean: a failed call is retried once,
+    # and if it still fails it is dropped rather than averaged in as a fake 0.
     scores: list[int] = []
-    real = True
     for _ in range(3):
         result = await llm_client.score_personalization(
             _truth_sheet(),
             opening,
             session_id=session_id,
         )
-        real = real and bool(result.get("real_run"))
-        scores.append(int(result.get("score", 0)))
-    return (sum(scores) / len(scores), real)
+        if not result.get("real_run") and settings.live_llm_enabled:
+            result = await llm_client.score_personalization(
+                _truth_sheet(),
+                opening,
+                session_id=session_id,
+            )
+        if result.get("real_run"):
+            scores.append(int(result.get("score", 0)))
+    if not scores:
+        return (0.0, False)
+    return (sum(scores) / len(scores), len(scores) == 3)
 
 
 def score_recall_probes(pack: dict[str, Any], probes: list[dict[str, Any]]) -> float:
@@ -137,28 +165,36 @@ def score_recall_probes(pack: dict[str, Any], probes: list[dict[str, Any]]) -> f
     return satisfied / checks if checks else 0.0
 
 
-def forgetting_passed(packs: list[dict[str, Any]]) -> bool:
-    return all(
-        "limits" not in winner.get("subject_tags", [])
-        and "limits" not in winner.get("content", "").lower()
-        for pack in packs
-        for winner in pack.get("winners", [])
-    )
+def forgetting_passed(
+    packs: list[dict[str, Any]], spec: dict[str, Any] | None = None
+) -> bool:
+    target = spec or _forgetting_spec()
+    absent_tags = {str(tag).lower() for tag in target.get("absent_tags", [])}
+    absent_phrases = [str(phrase).lower() for phrase in target.get("absent_phrases", [])]
+    for pack in packs:
+        for winner in pack.get("winners", []):
+            tags = {str(tag).lower() for tag in winner.get("subject_tags", [])}
+            content = str(winner.get("content", "")).lower()
+            if absent_tags.intersection(tags):
+                return False
+            if any(phrase in content for phrase in absent_phrases):
+                return False
+    return True
 
 
-async def seed_stale_memory(database: Database) -> None:
-    session = database.create_session("stale limits seed")
+async def seed_stale_memory(database: Database, spec: dict[str, Any]) -> None:
+    session = database.create_session(str(spec["stale_session_title"]))
     utterance = database.insert_utterance(
         session["id"],
         "student",
-        "I was studying limits for a quiz on July 1.",
+        str(spec["stale_utterance"]),
     )
-    content = "Studying limits for a quiz on July 1."
+    content = str(spec["stale_memory"])
     engram = database.insert_engram(
         {
             "type": "fact",
             "content": content,
-            "subject_tags": ["limits"],
+            "subject_tags": list(spec.get("absent_tags", [])),
             "confidence": 0.8,
             "importance": 0.35,
         },
@@ -251,7 +287,8 @@ async def play_reverie_condition(
     tokens: list[dict[str, Any]] = []
     packs: list[dict[str, Any]] = []
     real_personalization = True
-    await seed_stale_memory(database)
+    forgetting = _forgetting_spec()
+    await seed_stale_memory(database, forgetting)
 
     for index, script in enumerate(scripts, start=1):
         await broadcast_progress("reverie", index)
@@ -315,7 +352,7 @@ async def play_reverie_condition(
         "personalization": personalization,
         "recall_precision": recall_precision,
         "tokens": tokens,
-        "forgetting": forgetting_passed(packs),
+        "forgetting": forgetting_passed(packs, forgetting),
         "real_personalization": real_personalization,
     }
 
@@ -334,10 +371,10 @@ def compose_headline(results: dict[str, Any]) -> str:
         row["tokens"] for row in tokens if row["condition"] == "full_history"
     )
     if full_history_tokens:
-        token_ratio = reverie_tokens / full_history_tokens
+        percent_fewer = (1 - reverie_tokens / full_history_tokens) * 100
         return (
             f"{reverie_score - no_memory_score:+.1f} personalization vs no memory "
-            f"at {token_ratio:.1f}x full-history tokens"
+            f"with {percent_fewer:.0f}% fewer reply-context tokens than full history"
         )
     return f"{reverie_score - no_memory_score:+.1f} personalization vs no memory"
 
@@ -365,9 +402,35 @@ def write_evals_md(results: dict[str, Any]) -> None:
     lines.extend(["", "## Recall Precision", "", "| Session | Precision |", "| ---: | ---: |"])
     for row in results["recall_precision"]:
         lines.append(f"| {row['session']} | {row['precision']} |")
-    lines.extend(["", "## Tokens", "", "| Condition | Session | Tokens |", "| --- | ---: | ---: |"])
+    lines.extend(
+        [
+            "",
+            "## Reply tokens (assistant call context + response, per session)",
+            "",
+            "Counts only the assistant reply calls — the context each condition",
+            "feeds the reply model. Observer/dream/embedding overhead is listed",
+            "under pipeline totals below; eval-judge calls are excluded everywhere",
+            "(they are the measuring instrument, not the system under test).",
+            "",
+            "| Condition | Session | Tokens |",
+            "| --- | ---: | ---: |",
+        ]
+    )
     for row in results["tokens"]:
         lines.append(f"| {row['condition']} | {row['session']} | {row['tokens']} |")
+    observed = results.get("observed_llm_tokens", {})
+    if observed:
+        lines.extend(
+            [
+                "",
+                "## Pipeline totals across all conditions (by call purpose)",
+                "",
+                "| Purpose | Tokens |",
+                "| --- | ---: |",
+            ]
+        )
+        for purpose, count in sorted(observed.items()):
+            lines.append(f"| {purpose} | {count} |")
     lines.extend(["", f"Forgetting check: {results['forgetting_check']}.", ""])
     (REPO_ROOT / "EVALS.md").write_text("\n".join(lines))
 
@@ -442,13 +505,9 @@ def latest_results() -> dict[str, Any]:
 
 
 async def run_smoke_eval() -> dict[str, Any]:
-    opening = (
-        "Last time, f(g(x)) was tempting to treat like a product. "
-        "Let's start with one worked example before the abstract rule."
-    )
     result = await llm_client.score_personalization(
         _truth_sheet(),
-        opening,
+        MOCK_SMOKE_OPENING,
     )
     with MAIN_DB.connection() as conn:
         calls = [

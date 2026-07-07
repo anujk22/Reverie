@@ -33,8 +33,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
       <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-[72px] rounded-l-lg border border-hairline bg-field md:flex md:flex-col md:items-center">
         <Link
           href="/"
-          className="flex h-32 w-full items-center justify-center border-b border-hairline font-display text-[22px] italic leading-none text-starlight [writing-mode:vertical-rl]"
-          title="Reverie"
+          className="flex h-[var(--reverie-header-h)] w-full items-center justify-center border-b border-hairline font-display text-[22px] italic leading-none text-starlight [writing-mode:vertical-rl]"
         >
           Reverie
         </Link>
@@ -48,7 +47,6 @@ function AppShellFrame({ children }: { children: ReactNode }) {
                 key={route.href}
                 href={route.href}
                 aria-label={route.label}
-                title={route.label}
                 className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
                   active
                     ? "rounded-[14px] border border-ember/30 bg-ember/10 text-ember"
@@ -64,7 +62,6 @@ function AppShellFrame({ children }: { children: ReactNode }) {
           <button
             type="button"
             aria-label="Play the story"
-            title="Play the story"
             onClick={() => director.start()}
             className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline transition ${
               directorActive
@@ -90,7 +87,6 @@ function AppShellFrame({ children }: { children: ReactNode }) {
             <button
               type="button"
               aria-label="Play the story"
-              title="Play the story"
               onClick={() => director.start()}
               className={`flex h-10 w-10 items-center justify-center rounded-full border border-hairline ${
                 directorActive ? "bg-ember/10 text-ember" : "bg-field-2 text-starlight"
@@ -103,10 +99,9 @@ function AppShellFrame({ children }: { children: ReactNode }) {
               return (
                 <Link
                   key={route.href}
-                  href={route.href}
-                  aria-label={route.label}
-                  title={route.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 text-starlight"
+              href={route.href}
+              aria-label={route.label}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 text-starlight"
                 >
                   <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
                 </Link>

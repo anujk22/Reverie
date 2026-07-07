@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-FORBIDDEN = ("lena", "calculus", "chain rule", "product rule", "midterm")
+FORBIDDEN = ("lena", "webhook", "order sync", "shipping zone", "store migration", "sale date")
 
 
 def test_memory_engine_sources_contain_no_demo_subject_knowledge() -> None:

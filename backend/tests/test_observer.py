@@ -26,8 +26,8 @@ def test_quote_supported_accepts_exact_or_close_quote_only() -> None:
         "I need an example first.",
     )
     assert not quote_supported(
-        "I am confident about integration by parts now.",
-        "STUDENT: I still mix up the chain rule and product rule.",
+        "I am confident about tax settings now.",
+        "STUDENT: I still think webhook retries are automatic.",
     )
 
 
@@ -39,15 +39,15 @@ def test_quote_sources_prefers_exact_match_then_best_fuzzy_source() -> None:
             "content": "Could we do an example first?",
         },
         {
-            "id": "utt_chain",
+            "id": "utt_retry",
             "role": "student",
-            "content": "Use the outer derivative times the inner derivative.",
+            "content": "Set Retry failed order sync to Enabled.",
         },
     ]
 
     assert quote_sources("example first", utterances) == ["utt_example"]
     assert quote_sources(
-        "Use the outer derivate times the inner derivative.",
+        "Set Retry failed order sync to Enabled.",
         utterances,
-    ) == ["utt_chain"]
+    ) == ["utt_retry"]
     assert quote_sources("anything", []) == []

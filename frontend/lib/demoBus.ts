@@ -38,161 +38,110 @@ type DemoGraphRefreshHandler = (detail: DemoGraphRefreshDetail) => void;
 type DemoSelectEngramHandler = (detail: DemoSelectEngramDetail) => void;
 type DemoCloseInspectorHandler = (detail: DemoCloseInspectorDetail) => void;
 
-const demoBus = new EventTarget();
-let sendListenerCount = 0;
-let reloadListenerCount = 0;
-let graphRefreshListenerCount = 0;
-let selectEngramListenerCount = 0;
-let closeInspectorListenerCount = 0;
+let sendHandler: DemoSendHandler | null = null;
+let reloadHandler: DemoReloadHandler | null = null;
+let graphRefreshHandler: DemoGraphRefreshHandler | null = null;
+let selectEngramHandler: DemoSelectEngramHandler | null = null;
+let closeInspectorHandler: DemoCloseInspectorHandler | null = null;
 
 export function onDemoSend(handler: DemoSendHandler) {
-  const listener = (event: Event) => {
-    handler((event as CustomEvent<DemoSendDetail>).detail);
-  };
-
-  sendListenerCount += 1;
-  demoBus.addEventListener("demo:send", listener);
+  sendHandler = handler;
 
   return () => {
-    sendListenerCount = Math.max(0, sendListenerCount - 1);
-    demoBus.removeEventListener("demo:send", listener);
+    if (sendHandler === handler) sendHandler = null;
   };
 }
 
 export function onDemoReload(handler: DemoReloadHandler) {
-  const listener = (event: Event) => {
-    handler((event as CustomEvent<DemoReloadDetail>).detail);
-  };
-
-  reloadListenerCount += 1;
-  demoBus.addEventListener("demo:reload", listener);
+  reloadHandler = handler;
 
   return () => {
-    reloadListenerCount = Math.max(0, reloadListenerCount - 1);
-    demoBus.removeEventListener("demo:reload", listener);
+    if (reloadHandler === handler) reloadHandler = null;
   };
 }
 
 export function onDemoGraphRefresh(handler: DemoGraphRefreshHandler) {
-  const listener = (event: Event) => {
-    handler((event as CustomEvent<DemoGraphRefreshDetail>).detail);
-  };
-
-  graphRefreshListenerCount += 1;
-  demoBus.addEventListener("demo:graph-refresh", listener);
+  graphRefreshHandler = handler;
 
   return () => {
-    graphRefreshListenerCount = Math.max(0, graphRefreshListenerCount - 1);
-    demoBus.removeEventListener("demo:graph-refresh", listener);
+    if (graphRefreshHandler === handler) graphRefreshHandler = null;
   };
 }
 
 export function onDemoSelectEngram(handler: DemoSelectEngramHandler) {
-  const listener = (event: Event) => {
-    handler((event as CustomEvent<DemoSelectEngramDetail>).detail);
-  };
-
-  selectEngramListenerCount += 1;
-  demoBus.addEventListener("demo:select-engram", listener);
+  selectEngramHandler = handler;
 
   return () => {
-    selectEngramListenerCount = Math.max(0, selectEngramListenerCount - 1);
-    demoBus.removeEventListener("demo:select-engram", listener);
+    if (selectEngramHandler === handler) selectEngramHandler = null;
   };
 }
 
 export function onDemoCloseInspector(handler: DemoCloseInspectorHandler) {
-  const listener = (event: Event) => {
-    handler((event as CustomEvent<DemoCloseInspectorDetail>).detail);
-  };
-
-  closeInspectorListenerCount += 1;
-  demoBus.addEventListener("demo:close-inspector", listener);
+  closeInspectorHandler = handler;
 
   return () => {
-    closeInspectorListenerCount = Math.max(0, closeInspectorListenerCount - 1);
-    demoBus.removeEventListener("demo:close-inspector", listener);
+    if (closeInspectorHandler === handler) closeInspectorHandler = null;
   };
 }
 
 export function hasDemoSendListener() {
-  return sendListenerCount > 0;
+  return Boolean(sendHandler);
 }
 
 export function hasDemoGraphRefreshListener() {
-  return graphRefreshListenerCount > 0;
+  return Boolean(graphRefreshHandler);
 }
 
 export function hasDemoSelectEngramListener() {
-  return selectEngramListenerCount > 0;
+  return Boolean(selectEngramHandler);
 }
 
 export function sendDemoMessage(text: string, signal?: AbortSignal) {
-  if (!sendListenerCount) {
+  if (!sendHandler) {
     return Promise.reject(new Error("Session page is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    demoBus.dispatchEvent(
-      new CustomEvent<DemoSendDetail>("demo:send", {
-        detail: { text, signal, resolve, reject }
-      })
-    );
+    sendHandler?.({ text, signal, resolve, reject });
   });
 }
 
 export function refreshDemoGraph() {
-  if (!graphRefreshListenerCount) {
+  if (!graphRefreshHandler) {
     return Promise.reject(new Error("Graph view is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    demoBus.dispatchEvent(
-      new CustomEvent<DemoGraphRefreshDetail>("demo:graph-refresh", {
-        detail: { resolve, reject }
-      })
-    );
+    graphRefreshHandler?.({ resolve, reject });
   });
 }
 
 export function selectDemoEngram(criteria: DemoEngramCriteria) {
-  if (!selectEngramListenerCount) {
+  if (!selectEngramHandler) {
     return Promise.reject(new Error("Memory inspector is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    demoBus.dispatchEvent(
-      new CustomEvent<DemoSelectEngramDetail>("demo:select-engram", {
-        detail: { ...criteria, resolve, reject }
-      })
-    );
+    selectEngramHandler?.({ ...criteria, resolve, reject });
   });
 }
 
 export function closeDemoInspector() {
-  if (!closeInspectorListenerCount) {
+  if (!closeInspectorHandler) {
     return Promise.reject(new Error("Memory inspector is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    demoBus.dispatchEvent(
-      new CustomEvent<DemoCloseInspectorDetail>("demo:close-inspector", {
-        detail: { resolve, reject }
-      })
-    );
+    closeInspectorHandler?.({ resolve, reject });
   });
 }
 
 export function reloadDemoSession() {
-  if (!reloadListenerCount) {
+  if (!reloadHandler) {
     return Promise.reject(new Error("Session page is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    demoBus.dispatchEvent(
-      new CustomEvent<DemoReloadDetail>("demo:reload", {
-        detail: { resolve, reject }
-      })
-    );
+    reloadHandler?.({ resolve, reject });
   });
 }

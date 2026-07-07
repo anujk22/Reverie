@@ -17,7 +17,41 @@ from .models import (
     PairJudgeVerdict,
     SessionLevelEngramResult,
 )
-from .subject import build_tutor_system_prompt
+from .subject import (
+    MOCK_AFFECT_CONTENT,
+    MOCK_AFFECT_MARKERS,
+    MOCK_AFFECT_QUOTE_MARKERS,
+    MOCK_AFFECT_TAGS,
+    MOCK_DEFAULT_REPLY,
+    MOCK_EXACT_STEPS_REPLY,
+    MOCK_GOAL_CONTENT,
+    MOCK_GOAL_TAGS,
+    MOCK_LAUNCH_MARKERS,
+    MOCK_LAUNCH_QUOTE_MARKERS,
+    MOCK_MASTERY_CONTENT,
+    MOCK_MASTERY_MARKERS,
+    MOCK_MASTERY_QUOTE_MARKERS,
+    MOCK_MASTERY_REPLY,
+    MOCK_MASTERY_TAGS,
+    MOCK_MISCONCEPTION_CONTENT,
+    MOCK_MISCONCEPTION_QUOTE_MARKERS,
+    MOCK_MISCONCEPTION_REPLY,
+    MOCK_MISCONCEPTION_TAGS,
+    MOCK_MISCONCEPTION_TRIGGERS,
+    MOCK_PREFERENCE_CONTENT,
+    MOCK_PREFERENCE_TAGS,
+    MOCK_RECALL_MARKERS,
+    MOCK_RECALL_REPLY,
+    MOCK_RECALL_TRIGGERS,
+    MOCK_STEP_QUOTE_MARKERS,
+    MOCK_STEP_MARKERS,
+    MOCK_STRATEGY_CONTENT,
+    MOCK_STRATEGY_TAGS,
+    OBSERVER_BAD_EXAMPLE,
+    OBSERVER_GOOD_EXAMPLE,
+    SUBJECT_TAG_VOCABULARY,
+    build_tutor_system_prompt,
+)
 
 
 def _count_tokens(text: str) -> int:
@@ -355,7 +389,7 @@ class LLMClient:
             )
             return candidates
         prompt = (
-            "You watch a learning exchange and extract durable observations about the LEARNER.\n"
+            "You watch a support exchange and extract durable observations about the PERSON.\n"
             "Return STRICT JSON: {\"engrams\":[{\"type\":\"...\",\"content\":\"...\","
             "\"subject_tags\":[\"..\"],\"confidence\":0.0,\"importance\":0.0,"
             "\"source_quotes\":[\"exact substring from transcript\", ...]}]}\n"
@@ -364,8 +398,7 @@ class LLMClient:
             "Most turns reveal nothing.\n"
             "- type must be one of: misconception, mastery, preference, affect, goal, fact, strategy_outcome.\n"
             "- content: one sentence, third person, specific and testable. Bad: "
-            "\"struggles with calculus\". Good: \"Differentiates f(g(x)) as f'(x) times g'(x), "
-            "applying the product rule pattern to compositions.\"\n"
+            f"\"{OBSERVER_BAD_EXAMPLE}\". Good: \"{OBSERVER_GOOD_EXAMPLE}\"\n"
             "- Only claims supported by the transcript. Every engram MUST include at least one exact source quote.\n"
             "- Type assignment must be supported by the quoted evidence, not by surrounding labels or assumptions.\n"
             "- Do not create a misconception merely because the student mentions a past error; only create one "
@@ -375,6 +408,8 @@ class LLMClient:
             "for the current correct performance, not a misconception from the historical mention.\n"
             "- confidence: how sure the transcript supports this. importance: how much the assistant should care "
             "(misconceptions and goals high; incidental facts low).\n"
+            f"- subject_tags: use tags from this vocabulary whenever one applies: {', '.join(SUBJECT_TAG_VOCABULARY)}. "
+            "Only add a new snake_case tag if none of these fit.\n"
             "TRANSCRIPT (most recent exchange last):\n"
             f"{transcript}"
         )
@@ -411,7 +446,7 @@ class LLMClient:
             return candidates
 
         prompt = (
-            "You are consolidating a learning session into durable long-term memory.\n"
+            "You are consolidating a support session into durable long-term memory.\n"
             "Return STRICT JSON: {\"engrams\":[{\"type\":\"affect|strategy_outcome\","
             "\"content\":\"...\",\"subject_tags\":[\"..\"],\"confidence\":0.0,"
             "\"importance\":0.0,\"source_quotes\":[\"exact substring from transcript\", ...]}]}\n"
@@ -423,6 +458,8 @@ class LLMClient:
             "- Correct application of a skill is not a misconception. If a student corrects an earlier error, "
             "that may support strategy_outcome or mastery elsewhere, not a new misconception.\n"
             "- Do not duplicate an existing memory unless the transcript provides materially new evidence.\n"
+            f"- subject_tags: use tags from this vocabulary whenever one applies: {', '.join(SUBJECT_TAG_VOCABULARY)}. "
+            "Only add a new snake_case tag if none of these fit.\n"
             f"EXISTING MEMORIES: {json.dumps(existing_engrams, sort_keys=True)}\n"
             f"TRANSCRIPT:\n{transcript}"
         )
@@ -659,122 +696,94 @@ def mock_tutor_reply(
     student_message: str, memory_pack: list[dict[str, Any]], max_words: int
 ) -> str:
     lower = student_message.lower()
-    remembers_composition = any(
-        any(
-            marker in item.get("content", "").lower()
-            for marker in ("chain", "f(g", "product rule", "composite")
-        )
+    remembers_retry = any(
+        any(marker in item.get("content", "").lower() for marker in MOCK_RECALL_MARKERS)
         for item in memory_pack
     )
-    prefers_examples = any("example" in item.get("content", "").lower() for item in memory_pack)
-    remembers_affect = any(item.get("type") == "affect" for item in memory_pack)
-    if remembers_composition and (
-        "start" in lower or "where were we" in lower or "pick up" in lower
-    ):
-        affect_prefix = (
-            "No rush; we'll keep this low-pressure and concrete. " if remembers_affect else ""
-        )
-        return (
-            affect_prefix
-            + "Last time, f(g(x)) was tempting to treat like a product. Let's start with one "
-            "worked example: if y = (3x + 1)^4, what is the outside function doing?"
-        )
-    if "f'(x)" in lower or "product rule" in lower:
-        prefix = "Let's use an example first. " if prefers_examples else ""
-        return (
-            prefix
-            + "For f(g(x)), the pieces are nested, not multiplied. Differentiate the outside "
-            "while keeping the inside, then multiply by the derivative of the inside. For "
-            "(3x + 1)^4, that gives 4(3x + 1)^3 times 3."
-        )
-    if "example first" in lower:
-        return (
-            "Absolutely. Worked example first: y = (2x - 5)^3. Outside is cube, inside is "
-            "2x - 5. What do you get for outside derivative, leaving the inside untouched?"
-        )
-    if "outer" in lower and "inner" in lower:
-        return (
-            "Yes. That is the chain rule shape: outside derivative evaluated at the inside, "
-            "times the inside derivative. Nice correction. Try one more: d/dx of (x^2 + 1)^5."
-        )
-    return (
-        "Let's make it concrete. Are you looking at two functions multiplied side by side, "
-        "or one function nested inside another?"
+    prefers_steps = any(
+        any(marker in item.get("content", "").lower() for marker in MOCK_STEP_MARKERS)
+        for item in memory_pack
     )
+    remembers_affect = any(item.get("type") == "affect" for item in memory_pack)
+    if remembers_retry and any(marker in lower for marker in MOCK_RECALL_TRIGGERS):
+        prefix = "Low-pressure start: " if remembers_affect else ""
+        return prefix + MOCK_RECALL_REPLY
+    if any(marker in lower for marker in MOCK_MISCONCEPTION_TRIGGERS):
+        return MOCK_MISCONCEPTION_REPLY
+    if any(marker in lower for marker in MOCK_STEP_MARKERS) or prefers_steps:
+        return MOCK_EXACT_STEPS_REPLY
+    if any(marker in lower for marker in MOCK_MASTERY_MARKERS):
+        return MOCK_MASTERY_REPLY
+    return MOCK_DEFAULT_REPLY
 
 
 def mock_extract(transcript: str) -> list[dict[str, Any]]:
     lower = transcript.lower()
     found: list[dict[str, Any]] = []
-    if "f'(x) times g'(x)" in transcript or "product rule" in lower:
-        quote = "f'(x) times g'(x)" if "f'(x) times g'(x)" in transcript else "product rule"
+    if "automatic" in lower and any(marker in lower for marker in MOCK_RECALL_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_MISCONCEPTION_QUOTE_MARKERS)
+        quote = quote or MOCK_MISCONCEPTION_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "misconception",
-                "content": "Differentiates f(g(x)) as f'(x) times g'(x), applying the product rule pattern to compositions.",
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "content": MOCK_MISCONCEPTION_CONTENT,
+                "subject_tags": MOCK_MISCONCEPTION_TAGS,
                 "confidence": 0.78,
                 "importance": 0.95,
                 "source_quotes": [quote],
             }
         )
-    if (
-        "example first" in lower
-        or "example-first" in lower
-        or "worked example" in lower
-        or "worked one first" in lower
-        or "rules in the abstract" in lower
-    ):
-        quote = find_case_snippet(transcript, "example first") or find_case_snippet(
-            transcript, "worked example"
-        ) or find_case_snippet(
-            transcript, "worked one first"
-        ) or find_case_snippet(
-            transcript, "rules in the abstract"
-        ) or "example first"
+    if any(marker in lower for marker in MOCK_STEP_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_STEP_QUOTE_MARKERS)
+        quote = quote or MOCK_STEP_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "preference",
-                "content": "Learns chain rule best from a worked example before an abstract rule.",
-                "subject_tags": ["worked_examples"],
+                "content": MOCK_PREFERENCE_CONTENT,
+                "subject_tags": MOCK_PREFERENCE_TAGS,
                 "confidence": 0.88,
                 "importance": 0.78,
                 "source_quotes": [quote],
             }
         )
-    if "midterm" in lower:
-        quote = find_case_snippet(transcript, "midterm") or "midterm"
+    if any(marker in lower for marker in MOCK_LAUNCH_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_LAUNCH_QUOTE_MARKERS)
+        quote = quote or MOCK_LAUNCH_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "goal",
-                "content": "Is preparing for a differentiation midterm covering chain rule.",
-                "subject_tags": ["midterm", "differentiation"],
+                "content": MOCK_GOAL_CONTENT,
+                "subject_tags": MOCK_GOAL_TAGS,
                 "confidence": 0.8,
                 "importance": 0.9,
                 "source_quotes": [quote],
             }
         )
-    if "anxious" in lower or "panic" in lower:
-        quote = "anxious" if "anxious" in lower else "panic"
+    if any(marker in lower for marker in MOCK_AFFECT_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_AFFECT_QUOTE_MARKERS)
+        quote = quote or MOCK_AFFECT_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "affect",
-                "content": "Anxiety rises around exam language; respond by concretizing the next step.",
-                "subject_tags": ["exam_anxiety"],
+                "content": MOCK_AFFECT_CONTENT,
+                "subject_tags": MOCK_AFFECT_TAGS,
                 "confidence": 0.72,
                 "importance": 0.7,
                 "source_quotes": [quote],
             }
         )
-    if "outer derivative" in lower and "inner derivative" in lower:
+    if any(marker in lower for marker in MOCK_MASTERY_MARKERS):
         found.append(
             {
                 "type": "mastery",
-                "content": "Correctly explains chain rule as outside derivative times inner derivative.",
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "content": MOCK_MASTERY_CONTENT,
+                "subject_tags": MOCK_MASTERY_TAGS,
                 "confidence": 0.82,
                 "importance": 0.84,
-                "source_quotes": ["outer derivative"],
+                "source_quotes": [
+                    find_first_case_snippet(transcript, MOCK_MASTERY_QUOTE_MARKERS)
+                    or MOCK_MASTERY_QUOTE_MARKERS[0]
+                ],
             }
         )
     return found[:3]
@@ -783,29 +792,27 @@ def mock_extract(transcript: str) -> list[dict[str, Any]]:
 def mock_session_level_extract(transcript: str) -> list[dict[str, Any]]:
     lower = transcript.lower()
     found: list[dict[str, Any]] = []
-    if ("anxious" in lower or "panic" in lower or "freez" in lower) and (
-        "midterm" in lower or "exam" in lower
-    ):
-        quote = find_case_snippet(transcript, "anxious") or find_case_snippet(
-            transcript, "panic"
-        ) or find_case_snippet(transcript, "freez") or "anxious"
+    if any(marker in lower for marker in MOCK_AFFECT_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_AFFECT_QUOTE_MARKERS)
+        quote = quote or MOCK_AFFECT_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "affect",
-                "content": "Anxiety rises around exam language; respond by concretizing the next step.",
-                "subject_tags": ["exam_anxiety"],
+                "content": MOCK_AFFECT_CONTENT,
+                "subject_tags": MOCK_AFFECT_TAGS,
                 "confidence": 0.72,
                 "importance": 0.7,
                 "source_quotes": [quote],
             }
         )
-    if "outer derivative" in lower and "inner derivative" in lower:
-        quote = find_case_snippet(transcript, "outer derivative") or "outer derivative"
+    if any(marker in lower for marker in MOCK_MASTERY_MARKERS):
+        quote = find_first_case_snippet(transcript, MOCK_MASTERY_QUOTE_MARKERS)
+        quote = quote or MOCK_MASTERY_QUOTE_MARKERS[0]
         found.append(
             {
                 "type": "strategy_outcome",
-                "content": "Guiding questions helped the learner self-correct chain rule reasoning.",
-                "subject_tags": ["chain_rule", "guiding_questions"],
+                "content": MOCK_STRATEGY_CONTENT,
+                "subject_tags": MOCK_STRATEGY_TAGS,
                 "confidence": 0.74,
                 "importance": 0.8,
                 "source_quotes": [quote],
@@ -819,6 +826,14 @@ def find_case_snippet(text: str, needle: str) -> str | None:
     if index < 0:
         return None
     return text[index : index + len(needle)]
+
+
+def find_first_case_snippet(text: str, needles: tuple[str, ...]) -> str | None:
+    for needle in needles:
+        snippet = find_case_snippet(text, needle)
+        if snippet:
+            return snippet
+    return None
 
 
 llm_client = LLMClient()

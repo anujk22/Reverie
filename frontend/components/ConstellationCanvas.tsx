@@ -140,7 +140,7 @@ const SYNAPSE_ANCHORS: Array<[number, number, number]> = [
 ];
 
 // where each memory type gravitates inside the brain, echoing the
-// violet (back) -> pink (core) -> amber (front) gradient of the fibers
+// sepia back -> ember core -> amber front gradient of the fibers
 const typeRegionX: Record<string, number> = {
   preference: 0.26,
   affect: 0.3,
@@ -305,13 +305,12 @@ function resolveNode(value: string | CanvasNode) {
 
 function nodeLabel(engram: Engram) {
   const text = engram.content.toLowerCase();
-  if (text.includes("worked example") || text.includes("example")) return "example first";
-  if (text.includes("anxious") || text.includes("anxiety")) return "exam nerves";
-  if (text.includes("product rule")) return "product rule mixup";
-  if (text.includes("power rule")) return "power rule";
-  if (text.includes("guiding") || text.includes("question")) return "guided prompts";
-  if (text.includes("outer") || text.includes("inner")) return "outer / inner";
-  if (text.includes("shorter") || text.includes("late")) return "short sets";
+  if (text.includes("webhook") || text.includes("retry")) return "webhook retries";
+  if (text.includes("step") || text.includes("real value") || text.includes("doc")) return "exact steps";
+  if (text.includes("frustrated") || text.includes("failed order")) return "low pressure";
+  if (text.includes("sale") || text.includes("launch")) return "launch";
+  if (text.includes("shipping")) return "shipping zone";
+  if (text.includes("order sync")) return "order sync";
   return engram.type.replace("_", " ");
 }
 
@@ -759,31 +758,28 @@ export function ConstellationCanvas({
 
     function draw(time: number) {
       if (!context) return;
-      const frame = frameRef.current;
-      context.clearRect(0, 0, size.width, size.height);
-      context.fillStyle = "#F3EADC";
-      context.fillRect(0, 0, size.width, size.height);
+	      const frame = frameRef.current;
+	      context.clearRect(0, 0, size.width, size.height);
+	      context.fillStyle = "#F3EADC";
+	      context.fillRect(0, 0, size.width, size.height);
 
-      if (frame) {
-        const wakefulness = Math.min(1, 0.46 + nodesRef.current.length * 0.12);
-        const vitality = dormant ? 0.88 : 1;
-        const art = brainImageReady ? brainArtRef.current : null;
-        if (art) {
-          const rect = artworkRect(frame, art.source);
-          context.save();
-          context.globalAlpha = wakefulness;
-          drawBrainArtwork(context, rect, art.source);
-          context.restore();
-          if (!dormant) {
-            drawArtworkLife(context, rect, art, time, motionReduced, vitality);
-          }
-        } else {
-          drawBrainBase(context, frame, time, motionReduced, vitality);
-          drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality);
-          drawCore(context, frame, time, motionReduced, vitality);
-          drawBrainRim(context, frame, time, motionReduced, vitality);
-        }
-      }
+	      if (frame) {
+	        drawPanelAtmosphere(context, size.width, size.height, frame, time, motionReduced);
+	        const vitality = dormant ? 0.72 : 1;
+	        const art = brainImageReady ? brainArtRef.current : null;
+	        if (art && !dormant) {
+	          const wakefulness = Math.min(0.24, 0.12 + nodesRef.current.length * 0.018);
+	          const rect = artworkRect(frame, art.source);
+	          context.save();
+	          context.globalAlpha = wakefulness;
+	          drawBrainArtwork(context, rect, art.source);
+	          context.restore();
+	        }
+	        drawBrainBase(context, frame, time, motionReduced, vitality);
+	        drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality, !dormant);
+	        drawCore(context, frame, time, motionReduced, vitality);
+	        drawBrainRim(context, frame, time, motionReduced, vitality);
+	      }
 
       const radiusScale = Math.max(0.55, Math.min(1, Math.min(size.width, size.height) / 480));
 
@@ -888,10 +884,10 @@ export function ConstellationCanvas({
         }}
       />
 
-      {graph.nodes.length === 0 ? (
-        <div className="pointer-events-none absolute inset-x-0 top-[64%] flex justify-center px-8 text-center sm:top-[72%]">
-          <p className="max-w-xl font-display text-[23px] italic leading-snug text-starlight sm:text-[27px]">
-            Reverie has not met Lena yet.
+	      {graph.nodes.length === 0 ? (
+	        <div className="pointer-events-none absolute inset-x-0 top-[64%] flex justify-center px-8 text-center sm:top-[68%]">
+	          <p className="max-w-xl font-display text-[23px] italic leading-snug text-starlight sm:text-[27px]">
+	            Reverie has not met Lena yet.
             <br />
             Everything she tells it will appear here.
           </p>
@@ -1046,6 +1042,99 @@ function artworkRect(frame: BrainFrame, image: HTMLCanvasElement | HTMLImageElem
   };
 }
 
+function drawPanelAtmosphere(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  frame: BrainFrame,
+  time: number,
+  reduced: boolean
+) {
+  const breath = reduced ? 1 : 0.86 + Math.sin(time / 5200) * 0.14;
+  context.save();
+
+  const wash = context.createRadialGradient(
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.02,
+    frame.coreX,
+    frame.coreY,
+    frame.scale * 0.82
+  );
+  wash.addColorStop(0, `rgba(216,92,63,${0.16 * breath})`);
+  wash.addColorStop(0.42, "rgba(242,183,119,0.13)");
+  wash.addColorStop(0.74, "rgba(255,253,248,0.2)");
+  wash.addColorStop(1, "rgba(243,234,220,0)");
+  context.fillStyle = wash;
+  context.fillRect(0, 0, width, height);
+
+  const orbitColor = "rgba(151,101,66,0.22)";
+  context.strokeStyle = orbitColor;
+  context.lineWidth = 0.8;
+  context.setLineDash([2, 5]);
+  for (const radius of [0.34, 0.48, 0.62]) {
+    context.beginPath();
+    context.ellipse(
+      frame.coreX,
+      frame.coreY,
+      frame.scale * radius,
+      frame.scale * radius * 0.56,
+      -0.08,
+      0,
+      Math.PI * 2
+    );
+    context.stroke();
+  }
+
+  context.setLineDash([1, 8]);
+  context.beginPath();
+  context.moveTo(frame.coreX, Math.max(18, frame.coreY - frame.scale * 0.5));
+  context.lineTo(frame.coreX, Math.min(height - 18, frame.coreY + frame.scale * 0.52));
+  context.moveTo(Math.max(18, frame.coreX - frame.scale * 0.62), frame.coreY);
+  context.lineTo(Math.min(width - 18, frame.coreX + frame.scale * 0.66), frame.coreY);
+  context.stroke();
+  context.setLineDash([]);
+
+  context.strokeStyle = "rgba(151,101,66,0.13)";
+  context.lineWidth = 1;
+  for (let index = 0; index < 9; index += 1) {
+    const y = height * 0.18 + index * height * 0.085;
+    context.beginPath();
+    context.moveTo(width * 0.76, y);
+    context.bezierCurveTo(width * 0.86, y - 22, width * 0.94, y + 18, width * 1.04, y - 10);
+    context.stroke();
+  }
+
+  const stars = [
+    [0.13, 0.19, 3],
+    [0.2, 0.66, 2],
+    [0.28, 0.28, 1.8],
+    [0.36, 0.72, 2],
+    [0.52, 0.17, 2.5],
+    [0.64, 0.27, 2],
+    [0.78, 0.18, 3.2],
+    [0.87, 0.34, 2],
+    [0.82, 0.62, 2.5]
+  ] as const;
+  context.strokeStyle = "rgba(255,253,248,0.86)";
+  context.fillStyle = "rgba(255,253,248,0.72)";
+  for (const [sx, sy, radius] of stars) {
+    const x = sx * width;
+    const y = sy * height;
+    context.beginPath();
+    context.moveTo(x - radius, y);
+    context.lineTo(x + radius, y);
+    context.moveTo(x, y - radius);
+    context.lineTo(x, y + radius);
+    context.stroke();
+    context.beginPath();
+    context.arc(x, y, 0.8, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  context.restore();
+}
+
 function drawBrainArtwork(
   context: CanvasRenderingContext2D,
   rect: ArtRect,
@@ -1054,62 +1143,9 @@ function drawBrainArtwork(
   context.save();
   context.globalCompositeOperation = "source-over";
   context.globalAlpha = 1;
-  context.filter = "none";
+  context.filter = "grayscale(0.82) saturate(0.18) contrast(0.86) brightness(1.06)";
   context.drawImage(image, rect.x, rect.y, rect.w, rect.h);
-  context.restore();
-}
-
-// a soft shimmer riding exactly on the artwork's own painted lights
-function drawArtworkLife(
-  context: CanvasRenderingContext2D,
-  rect: ArtRect,
-  art: BrainArt,
-  time: number,
-  reduced: boolean,
-  vitality: number
-) {
-  context.save();
-  context.globalCompositeOperation = "source-over";
-  const unit = rect.w / 900;
-
-  for (const node of art.nodes) {
-    const x = rect.x + node.x * rect.w;
-    const y = rect.y + node.y * rect.h;
-    const wave = reduced ? 0.7 : 0.5 + Math.sin(time / 1500 + node.phase) * 0.5;
-    const alpha = (0.05 + wave * 0.2) * vitality;
-    const radius = (2.2 + Math.min(1, node.weight / 12) * 3.2) * unit;
-    const color = regionColor(node.x);
-
-    const halo = context.createRadialGradient(x, y, radius * 0.2, x, y, radius * 6);
-    halo.addColorStop(0, rgba(color, alpha));
-    halo.addColorStop(0.4, rgba(color, alpha * 0.4));
-    halo.addColorStop(1, "rgba(243,234,220,0)");
-    context.fillStyle = halo;
-    context.beginPath();
-    context.arc(x, y, radius * 6, 0, Math.PI * 2);
-    context.fill();
-
-    context.fillStyle = `rgba(255,253,248,${alpha * 0.7})`;
-    context.beginPath();
-    context.arc(x, y, radius * 0.55, 0, Math.PI * 2);
-    context.fill();
-  }
-
-  if (art.core) {
-    const x = rect.x + art.core.x * rect.w;
-    const y = rect.y + art.core.y * rect.h;
-    const breath = reduced ? 0.8 : 0.65 + Math.sin(time / 2600) * 0.35;
-    const radius = rect.w * 0.05 * (0.8 + breath * 0.25);
-    const halo = context.createRadialGradient(x, y, radius * 0.1, x, y, radius * 2.6);
-    halo.addColorStop(0, `rgba(255,239,220,${0.2 * breath * vitality})`);
-    halo.addColorStop(0.4, `rgba(216,92,63,${0.12 * breath * vitality})`);
-    halo.addColorStop(1, "rgba(243,234,220,0)");
-    context.fillStyle = halo;
-    context.beginPath();
-    context.arc(x, y, radius * 2.6, 0, Math.PI * 2);
-    context.fill();
-  }
-
+  context.filter = "none";
   context.restore();
 }
 
@@ -1186,7 +1222,8 @@ function drawFibers(
   bundle: { fibers: Fiber[]; synapses: Synapse[] },
   time: number,
   reduced: boolean,
-  vitality: number
+  vitality: number,
+  showSynapses = true
 ) {
   context.save();
   traceBrainPath(context, frame);
@@ -1207,6 +1244,11 @@ function drawFibers(
     context.moveTo(fiber.x1, fiber.y1);
     context.quadraticCurveTo(fiber.cx, fiber.cy, fiber.x2, fiber.y2);
     context.stroke();
+  }
+
+  if (!showSynapses) {
+    context.restore();
+    return;
   }
 
   for (const synapse of bundle.synapses) {

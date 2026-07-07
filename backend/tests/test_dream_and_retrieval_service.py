@@ -27,13 +27,11 @@ def test_dream_merges_duplicate_and_supersedes_contradiction(tmp_path, monkeypat
     utterance = database.insert_utterance(
         session["id"],
         "student",
-        "I used to treat composites like a product, but now I know outer derivative times inner derivative.",
+        "I used to think webhook retries were automatic, but now I know Retry failed order sync must be Enabled.",
     )
 
     async def run():
-        duplicate_content = (
-            "Learns chain rule best from a worked example before an abstract rule."
-        )
+        duplicate_content = "Prefers exact step-by-step instructions with real values."
         duplicate_embedding = await llm_module.llm_client.embed(
             duplicate_content, session["id"]
         )
@@ -41,7 +39,7 @@ def test_dream_merges_duplicate_and_supersedes_contradiction(tmp_path, monkeypat
             {
                 "type": "preference",
                 "content": duplicate_content,
-                "subject_tags": ["worked_examples"],
+                "subject_tags": ["step_by_step", "real_values"],
                 "confidence": 0.8,
                 "importance": 0.75,
             },
@@ -53,7 +51,7 @@ def test_dream_merges_duplicate_and_supersedes_contradiction(tmp_path, monkeypat
             {
                 "type": "preference",
                 "content": duplicate_content,
-                "subject_tags": ["worked_examples"],
+                "subject_tags": ["step_by_step", "real_values"],
                 "confidence": 0.82,
                 "importance": 0.75,
             },
@@ -62,12 +60,12 @@ def test_dream_merges_duplicate_and_supersedes_contradiction(tmp_path, monkeypat
             provisional=False,
         )
 
-        misconception = "Applies product rule reasoning to composite functions."
+        misconception = "Believes failed order-sync webhooks retry automatically."
         database.insert_engram(
             {
                 "type": "misconception",
                 "content": misconception,
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "subject_tags": ["webhook_retries", "order_sync"],
                 "confidence": 0.78,
                 "importance": 0.95,
             },
@@ -75,12 +73,12 @@ def test_dream_merges_duplicate_and_supersedes_contradiction(tmp_path, monkeypat
             await llm_module.llm_client.embed(misconception, session["id"]),
             provisional=False,
         )
-        mastery = "Correctly explains chain rule as outside derivative times inner derivative."
+        mastery = "Correctly checks that webhook retries are enabled before launch."
         mastery_engram = database.insert_engram(
             {
                 "type": "mastery",
                 "content": mastery,
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "subject_tags": ["webhook_retries", "launch"],
                 "confidence": 0.84,
                 "importance": 0.84,
             },
@@ -114,29 +112,29 @@ def test_session_open_retrieval_includes_goal_and_preference(tmp_path, monkeypat
     utterance = database.insert_utterance(
         session["id"],
         "student",
-        "I have a midterm and need examples before rules.",
+        "I have a sale date and need exact values before documentation.",
     )
 
     async def seed_and_retrieve():
         items = [
             {
                 "type": "goal",
-                "content": "Is preparing for a differentiation midterm covering chain rule.",
-                "subject_tags": ["midterm", "differentiation"],
+                "content": "Is trying to finish her store migration before the sale date.",
+                "subject_tags": ["launch", "sale_date", "store_migration"],
                 "confidence": 0.8,
                 "importance": 0.9,
             },
             {
                 "type": "preference",
-                "content": "Learns chain rule best from a worked example before an abstract rule.",
-                "subject_tags": ["worked_examples"],
+                "content": "Prefers exact step-by-step instructions with real values.",
+                "subject_tags": ["step_by_step", "real_values"],
                 "confidence": 0.88,
                 "importance": 0.78,
             },
             {
                 "type": "misconception",
-                "content": "Differentiates f(g(x)) as f prime x times g prime x.",
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "content": "Believes failed order-sync webhooks retry automatically.",
+                "subject_tags": ["webhook_retries", "order_sync"],
                 "confidence": 0.78,
                 "importance": 0.95,
             },
@@ -149,7 +147,7 @@ def test_session_open_retrieval_includes_goal_and_preference(tmp_path, monkeypat
                 provisional=False,
             )
         return await retrieval_service.assemble_memory_pack(
-            "Start the next chain rule session from the learner's goals.",
+            "Start the next store migration support session from Lena's goals.",
             session["id"],
             phase="session_open",
         )
@@ -189,9 +187,9 @@ def test_session_level_dream_recovers_affect_from_session1_script(tmp_path, monk
     assert report["stats"]["distill"]["confirmed"] >= 1
     assert affect
     assert affect[0]["content"] == (
-        "Anxiety rises around exam language; respond by concretizing the next step."
+        "Felt frustrated after a failed order sync; open next time with a low-pressure checklist."
     )
-    assert "exam_anxiety" in affect[0]["subject_tags"]
+    assert "frustration" in affect[0]["subject_tags"]
 
 
 def test_session_level_dream_does_not_duplicate_existing_affect(tmp_path, monkeypatch):
@@ -200,16 +198,16 @@ def test_session_level_dream_does_not_duplicate_existing_affect(tmp_path, monkey
     utterance = database.insert_utterance(
         session["id"],
         "student",
-        "My differentiation midterm makes me anxious about chain rule.",
+        "The failed order sync made me frustrated before the sale date.",
     )
 
     async def run():
-        content = "Anxiety rises around exam language; respond by concretizing the next step."
+        content = "Felt frustrated after a failed order sync; open next time with a low-pressure checklist."
         database.insert_engram(
             {
                 "type": "affect",
                 "content": content,
-                "subject_tags": ["exam_anxiety"],
+                "subject_tags": ["failed_order_sync", "frustration"],
                 "confidence": 0.9,
                 "importance": 0.7,
             },
@@ -232,16 +230,16 @@ def test_newer_mastery_supersedes_older_misconception(tmp_path, monkeypatch):
     utterance = database.insert_utterance(
         session["id"],
         "student",
-        "I now know outer derivative times inner derivative.",
+        "I now know Retry failed order sync must be Enabled.",
     )
 
     async def run():
-        misconception = "Applies product rule reasoning to composite functions."
+        misconception = "Believes failed order-sync webhooks retry automatically."
         database.insert_engram(
             {
                 "type": "misconception",
                 "content": misconception,
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "subject_tags": ["webhook_retries", "order_sync"],
                 "confidence": 0.99,
                 "importance": 0.95,
             },
@@ -249,12 +247,12 @@ def test_newer_mastery_supersedes_older_misconception(tmp_path, monkeypatch):
             await llm_module.llm_client.embed(misconception, session["id"]),
             provisional=False,
         )
-        mastery = "Correctly explains chain rule as outside derivative times inner derivative."
+        mastery = "Correctly checks that webhook retries are enabled before launch."
         mastery_engram = database.insert_engram(
             {
                 "type": "mastery",
                 "content": mastery,
-                "subject_tags": ["chain_rule", "composite_functions"],
+                "subject_tags": ["webhook_retries", "launch"],
                 "confidence": 0.7,
                 "importance": 0.84,
             },

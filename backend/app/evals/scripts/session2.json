@@ -1,31 +1,31 @@
 {
-  "title": "Session 2 - chain rule mastery",
+  "title": "Session 2 · going live",
   "probes": [
     {
-      "expected_tags": ["chain_rule", "worked_examples"],
-      "absent_tags": []
+      "expected_tags": ["webhook_retries", "step_by_step"],
+      "absent_tags": ["shipping_zones"]
     }
   ],
   "turns": [
     {
-      "student": "Can we pick up from a few days ago? Where did I leave off?",
-      "expected_tags": ["chain_rule"]
+      "student": "I have 20 minutes before going live. What is the smallest check first?",
+      "expected_tags": ["launch", "sale_date"]
     },
     {
-      "student": "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?",
-      "expected_tags": ["chain_rule", "mastery", "composite_functions"]
+      "student": "I found the webhook settings page. Retry failed order sync is Enabled, and Max attempts is 3. Is that enough for the platform?",
+      "expected_tags": ["webhook_retries", "mastery", "order_sync"]
     },
     {
-      "student": "It feels less panicky if I write outside first, then inside, almost like a checklist.",
-      "expected_tags": ["exam_anxiety", "strategy_outcome"]
+      "student": "That feels calmer. A short checklist works better than a long explanation right now.",
+      "expected_tags": ["failed_order_sync", "frustration", "strategy_outcome"]
     },
     {
-      "student": "One smaller thing still blurs: sin(5x^2). I forget whether cos keeps the inside unchanged before I multiply by the inside derivative.",
-      "expected_tags": ["trig_composites", "chain_rule"]
+      "student": "Please give the exact values for the test order: SKU, quantity, and status, not a doc link.",
+      "expected_tags": ["step_by_step", "real_values"]
     },
     {
-      "student": "The power rule itself is fine now. It is recognizing that something is nested that slows me down.",
-      "expected_tags": ["power_rule", "composite_functions"]
+      "student": "After retries are enabled, do I rerun the failed order sync or create a fresh order before launch?",
+      "expected_tags": ["order_sync", "webhook_retries", "launch"]
     }
   ]
 }

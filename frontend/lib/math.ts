@@ -3,7 +3,7 @@
  * "y = 2x - 5") and wraps them as inline TeX so KaTeX can typeset them. Text that
  * already carries $...$ or \(...\) math is passed through untouched.
  *
- * ponytail: token-level heuristic, single-variable calculus notation only;
+ * ponytail: token-level heuristic for compact formula-like notation only;
  * swap for prompt-enforced LaTeX delimiters if subjects beyond the demo appear.
  */
 

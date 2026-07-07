@@ -1,25 +1,25 @@
 {
-  "title": "Session 1 - chain rule memories",
+  "title": "Session 1 · store migration",
   "turns": [
     {
-      "student": "I keep freezing when someone says the midterm is going to lean on chain rule. I can do plain power rule, but nested functions make me second-guess myself.",
-      "expected_tags": ["midterm", "exam_anxiety", "power_rule", "chain_rule"]
+      "student": "The last order sync failed halfway through, and the sale date is close. I am frustrated because the test order disappeared from my store.",
+      "expected_tags": ["order_sync", "failed_order_sync", "frustration", "sale_date", "launch"]
     },
     {
-      "student": "Like with f(g(x)), my hand wants to write f'(x) times g'(x). I know that smells like product rule, but it is the mistake I keep making.",
-      "expected_tags": ["chain_rule", "composite_functions", "product_rule"]
+      "student": "I thought webhook retries happened automatically after a failed order sync, so I never enabled anything. Is that wrong?",
+      "expected_tags": ["webhook_retries", "order_sync"]
     },
     {
-      "student": "Could we start with actual numbers first? If I see one worked example, the rule usually lands better.",
-      "expected_tags": ["worked_examples"]
+      "student": "Please give me exact steps with real values, not documentation links. I need the toggle name and what it should be set to.",
+      "expected_tags": ["step_by_step", "real_values"]
     },
     {
-      "student": "Please ask me one small question at a time. When someone dumps the full solution, I nod along and then cannot repeat it.",
-      "expected_tags": ["guiding_questions"]
+      "student": "One thing at a time helps. If you give me the exact setting first, I can check the platform without losing the thread.",
+      "expected_tags": ["step_by_step", "real_values"]
     },
     {
-      "student": "Also, I usually study late after work, so shorter practice sets are easier for me to stick with.",
-      "expected_tags": ["study_schedule", "short_practice"]
+      "student": "I also asked about a shipping-zone mapping yesterday, but I do not think that matters if retries are the blocker.",
+      "expected_tags": ["shipping_zones"]
     }
   ]
 }

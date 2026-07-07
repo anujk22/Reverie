@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Reverie is primarily used in a hackathon demo context by judges, reviewers, and builders evaluating whether a domain-agnostic memory engine can carry durable memory across sessions. The active scenario is a learner working through a difficult topic, but the interface must also make the hidden memory engine legible to an observer.
+Reverie is primarily used in a hackathon demo context by judges, reviewers, and builders evaluating whether a domain-agnostic memory engine can carry durable memory across sessions. The active scenario is a merchant getting support while moving her store onto a platform, but the interface must also make the hidden memory engine legible to an observer.
 
 ## Product Purpose
 

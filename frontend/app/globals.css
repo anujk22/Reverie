@@ -23,6 +23,8 @@
   --text: var(--starlight);
   --muted: var(--dim);
   --warning: var(--gold);
+  --reverie-header-h: 154px;
+  --reverie-bottom-h: 136px;
 }
 
 * {
