@@ -563,12 +563,12 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
   if (status === "idle" || !currentBeat) return null;
 
   const caption = error ? `Error: ${error}` : currentBeat.caption;
-  const stateLabel = status === "done" ? "done" : busy ? "running" : autoplay ? "playing" : "paused";
+  const stateLabel = status === "done" ? "Done" : busy ? "Running" : autoplay ? "Playing" : "Paused";
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-field-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)] md:right-5 md:top-5">
-        <span className="text-starlight">film</span>
+        <span className="text-starlight">Film</span>
         <span className="text-faint">·</span>
         <span>{stateLabel}</span>
         <span className="text-faint">·</span>

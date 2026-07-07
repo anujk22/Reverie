@@ -1,15 +1,16 @@
 import { ArrowRight, Brain, Cloud, Database, Network, Radio } from "lucide-react";
 import { Fragment } from "react";
+import { PageHeader, TagPill } from "@/components/ReverieUI";
 
 const layers = [
   {
-    eyebrow: "person signal",
+    eyebrow: "Person Signal",
     title: "Session stream",
     body: "The assistant hears what Lena says, preserves provenance, and turns each important turn into evidence.",
     icon: Radio
   },
   {
-    eyebrow: "memory engine",
+    eyebrow: "Memory Engine",
     title: "Memory engine",
     body: "The product core forms durable memories, consolidates them between sessions, and keeps the graph honest.",
     icon: Brain,
@@ -17,7 +18,7 @@ const layers = [
     verbs: ["extract", "dream", "forget", "recall"]
   },
   {
-    eyebrow: "working context",
+    eyebrow: "Working Context",
     title: "Budgeted recall",
     body: "The most relevant memories compete for a fixed context budget before each response.",
     icon: Network
@@ -35,7 +36,7 @@ const stack = [
   ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
   [
     "Qwen on Alibaba Cloud",
-    "observer · assistant · dreams and judges · embeddings, reported live by /api/health"
+    "Observer · assistant · dreams and judges · embeddings, reported live by /api/health"
   ],
   ["Deployment", "Docker Compose · Nginx · ECS-ready runtime"]
 ];
@@ -51,22 +52,22 @@ export default function ArchitecturePage() {
   return (
     <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
-        <header>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-            architecture
-          </p>
-          <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
-            Reverie is a domain-agnostic memory engine.
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-dim">
-            The demo scenario is the hardest memory workload we could give it:
-            one person, under pressure, returning across multiple sessions.
-          </p>
-        </header>
+        <PageHeader
+          eyebrow="People"
+          title="Reverie is a domain-agnostic memory engine."
+          description="The demo scenario is the hardest memory workload we could give it: one person, under pressure, returning across multiple sessions."
+          meta={
+            <>
+              <TagPill>Event Sourced</TagPill>
+              <TagPill>Budgeted Recall</TagPill>
+              <TagPill>Dream Consolidation</TagPill>
+            </>
+          }
+        />
 
         <section className="stellar-panel rounded-lg p-5 md:p-6">
           <p className="text-[14px] font-medium text-starlight">
-            zero domain knowledge
+            Zero Domain Knowledge
           </p>
           <p className="mt-3 max-w-4xl font-display text-[30px] leading-tight text-starlight md:text-[38px]">
             The engine contains zero domain knowledge. Swap one script file and the
@@ -124,7 +125,7 @@ export default function ArchitecturePage() {
                             key={verb}
                             className="rounded-full border border-ember/30 bg-field-2 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-glow"
                           >
-                            {verb}
+                            {verb[0].toUpperCase() + verb.slice(1)}
                           </span>
                         ))}
                       </div>
@@ -149,7 +150,7 @@ export default function ArchitecturePage() {
           <div className="stellar-panel rounded-lg p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[14px] font-medium text-starlight">
-                storage
+                Storage
               </p>
               <Database aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
             </div>
@@ -168,7 +169,7 @@ export default function ArchitecturePage() {
           <div className="stellar-panel rounded-lg p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[14px] font-medium text-starlight">
-                runtime stack
+                Runtime Stack
               </p>
               <Cloud aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
             </div>

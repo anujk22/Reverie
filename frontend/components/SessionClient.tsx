@@ -1,19 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  MessageCircle,
-  MoreHorizontal,
-  Moon,
-  Plus,
-  RefreshCcw,
-  Send,
-  Sparkles
-} from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BudgetMeter } from "@/components/BudgetMeter";
-import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { MemoryInspector } from "@/components/MemoryInspector";
+import {
+  BrainMapPanel,
+  ComposerChrome,
+  EmptyState,
+  MemoryCard,
+  MetadataChip
+} from "@/components/ReverieUI";
 import { RichText } from "@/components/RichText";
 import {
   onDemoCloseInspector,
@@ -26,12 +22,9 @@ import {
 import {
   apiUrl,
   createSession,
-  endSession,
   fetchGraph,
   fetchMemoryPack,
   listSessions,
-  resetDemo,
-  type DreamReport,
   type Engram,
   type MemoryGraph,
   type MemoryPack,
@@ -39,9 +32,7 @@ import {
   type RuntimeEvent,
   type SessionRecord
 } from "@/lib/api";
-import { modelId } from "@/lib/health";
 import { uiText } from "@/lib/text";
-import { useHealthStatus } from "@/lib/useHealthStatus";
 
 type ChatMessage = {
   kind: "message";
@@ -63,47 +54,60 @@ type MemoryMarker = {
 
 type ChatItem = ChatMessage | MemoryMarker;
 
-type DreamStage = {
-  stage: string;
-  status: string;
-  counts: Record<string, unknown>;
-};
-
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
-const SESSION_PERSON_NAME = "Lena";
 const SESSION_ONE_TITLE = "Session 1 · store migration";
-const SESSION_TWO_TITLE = "Session 2 · going live";
 
-const sessionOneStarterTurns = [
-  "I'm moving her store onto the platform this week, and the last order sync failed halfway through. I need help without getting sent to a doc maze.",
-  "I thought webhook retries happened automatically after a failed order sync, so I never enabled anything. Is that wrong?",
-  "Can you give me exact steps with real values? For example, tell me the toggle name and what it should be set to.",
-  "Please ask one thing at a time. When support dumps five links at once, I lose the thread.",
-  "I'm frustrated because the test order disappeared after the sync error, and the sale date is close."
+const metadata = [
+  ["ID", "LP-90817"],
+  ["AGE", "34"],
+  ["OCCUPATION", "Product Designer"],
+  ["LOCATION", "Seoul, KR"],
+  ["MEMORY DEPTH", "Deep"],
+  ["RELATIONSHIP", "Self"],
+  ["LAST SYNC", "2m ago"]
 ];
 
-const sessionTwoStarterTurns = [
-  "I have 20 minutes before going live. Can we pick up with the smallest check first?",
-  "The sync ran again, but I want to verify the retry setting before the sale starts.",
-  "Please use exact values again, not links.",
-  "If the platform asks for max attempts, what should I enter for launch?",
-  "After that I need a short final checklist for orders, inventory, and webhooks."
+const sampleCards = [
+  {
+    actor: "You",
+    timestamp: "09:42 AM",
+    content: "What were the key takeaways from my design review yesterday?",
+    tags: ["design-review"],
+    variant: "person" as const
+  },
+  {
+    actor: "Reverie",
+    timestamp: "09:42 AM",
+    content:
+      "The team praised the clarity of your information architecture and empathy in user flows. You noted concerns about the onboarding friction and plan to run a usability test this week.",
+    tags: ["design-review", "ux", "team-feedback"],
+    confidence: 92,
+    recall: "memory recall",
+    variant: "reverie" as const
+  },
+  {
+    actor: "You",
+    timestamp: "09:43 AM",
+    content: "Remind me why this matters to me.",
+    tags: ["reflection"],
+    variant: "person" as const
+  },
+  {
+    actor: "Reverie",
+    timestamp: "09:43 AM",
+    content:
+      "You care about creating products that feel effortless and human. Reducing friction aligns with your mission to design experiences that respect people's time and attention.",
+    tags: ["values", "mission", "north-star"],
+    confidence: 95,
+    recall: "self model",
+    variant: "reverie" as const
+  }
 ];
-
-const memoryDotColors: Record<string, string> = {
-  misconception: "bg-coral",
-  mastery: "bg-gold",
-  preference: "bg-moth",
-  affect: "bg-moth",
-  goal: "bg-ember",
-  fact: "bg-sage",
-  strategy_outcome: "bg-sage"
-};
 
 const markerEyebrows: Record<string, string> = {
-  "engram.observed": "new memory",
-  "engram.reinforced": "memory reinforced",
-  "engram.superseded": "memory rewritten"
+  "engram.observed": "New Memory",
+  "engram.reinforced": "Memory Reinforced",
+  "engram.superseded": "Memory Rewritten"
 };
 
 function localId(prefix: string) {
@@ -138,29 +142,6 @@ function waitForDemoTyping(ms: number, signal?: AbortSignal) {
   });
 }
 
-function shortDate(value?: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "long",
-    day: "numeric"
-  }).format(value ? new Date(value) : new Date());
-}
-
-function sessionEyebrow(session: SessionRecord | null) {
-  return [shortDate(session?.started_at), normalizedSessionTitle(session)].join(" · ");
-}
-
-function sessionHeadline(session: SessionRecord | null) {
-  return "Lena Park";
-}
-
-function stageSummary(stage: DreamStage) {
-  const entries = Object.entries(stage.counts ?? {}).filter(
-    ([, value]) => typeof value === "number"
-  );
-  if (!entries.length) return stage.status;
-  return entries.map(([key, value]) => `${value} ${key}`).join(" · ");
-}
-
 function markerContent(event: RuntimeEvent) {
   if (event.kind !== "memory_event") return null;
   if (event.toast) return String(event.toast);
@@ -190,6 +171,19 @@ function memoryLabel(item: MemoryPackItem) {
   return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
 }
 
+function confidenceFrom(items?: MemoryPackItem[]) {
+  if (!items?.length) return undefined;
+  const score = items.reduce((total, item) => total + item.score, 0) / items.length;
+  return Math.max(72, Math.min(99, Math.round(score * 100)));
+}
+
+function formatTime(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(value);
+}
+
 function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
   const contains = criteria.contains?.toLowerCase();
   return (
@@ -201,155 +195,18 @@ function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
   );
 }
 
-function sessionNumber(session: SessionRecord | null) {
-  const match = /session\s*(\d+)/i.exec(session?.title ?? "");
-  return match?.[1] ?? "1";
-}
-
-function normalizedSessionTitle(session: SessionRecord | null) {
-  const title = session?.title ?? SESSION_ONE_TITLE;
-  return title.replace(/\s+-\s+/g, " · ").toLowerCase();
-}
-
-function sessionTopic(session: SessionRecord | null) {
-  const title = normalizedSessionTitle(session);
-  const topic = title.split("·").pop()?.trim() || "store migration";
-  return topic;
-}
-
-function sortedSessions(sessions: SessionRecord[], session: SessionRecord | null) {
-  const byId = new Map(sessions.map((item) => [item.id, item]));
-  if (session && !byId.has(session.id)) byId.set(session.id, session);
-  return [...byId.values()].sort(
-    (left, right) =>
-      new Date(left.started_at).getTime() - new Date(right.started_at).getTime()
-  );
-}
-
-function SessionTimeline({
-  sessions,
-  session,
-  dreaming
-}: {
-  sessions: SessionRecord[];
-  session: SessionRecord | null;
-  dreaming: boolean;
-}) {
-  const ordered = sortedSessions(sessions, session);
-  type TimelineStop = {
-    key: string;
-    kind: "session" | "dream";
-    label: string;
-    current: boolean;
-    complete: boolean;
-  };
-  const stops: TimelineStop[] = ordered.flatMap((item, index) => {
-    const dreamComplete =
-      Boolean(item.ended_at) || Boolean(item.dream_completed) || index < ordered.length - 1;
-    return [
-      {
-        key: item.id,
-        kind: "session" as const,
-        label: `S${index + 1}`,
-        current: session?.id === item.id && !dreaming,
-        complete: index < ordered.findIndex((candidate) => candidate.id === session?.id)
-      },
-      ...(dreamComplete || (dreaming && session?.id === item.id)
-        ? [
-            {
-              key: `${item.id}-dream`,
-              kind: "dream" as const,
-              label: "dream",
-              current: dreaming && session?.id === item.id,
-              complete: dreamComplete
-            }
-          ]
-        : [])
-    ];
-  });
-
-  const visibleStops = [...stops];
-  if (!visibleStops.length) {
-    visibleStops.push({
-      key: "session-1",
-      kind: "session",
-      label: "S1",
-      current: true,
-      complete: false
-    });
-  }
-  if (ordered.length <= 2) {
-    if (!visibleStops.some((stop) => stop.kind === "dream")) {
-      visibleStops.splice(1, 0, {
-        key: "dream-placeholder",
-        kind: "dream",
-        label: "dream",
-        current: false,
-        complete: false
-      });
-    }
-    if (!visibleStops.some((stop) => stop.kind === "session" && stop.label === "S2")) {
-      visibleStops.push({
-        key: "session-2-placeholder",
-        kind: "session",
-        label: "S2",
-        current: false,
-        complete: false
-      });
-    }
-  }
-
-  return (
-    <section className="flex h-full items-center border-l border-hairline px-8">
-      <div className="flex w-full items-center gap-3 font-mono text-[14px] text-starlight">
-        {visibleStops.map((stop, index) => (
-          <div key={stop.key} className="flex min-w-0 flex-1 items-center gap-3">
-            <span
-              className={`inline-flex min-w-0 items-center gap-2 whitespace-nowrap ${
-                stop.current ? "text-ember" : stop.complete ? "text-sage" : "text-dim"
-              }`}
-            >
-              {stop.kind === "dream" ? (
-                <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
-              ) : null}
-              <span>{stop.label}</span>
-              <span
-                className={`h-3 w-3 shrink-0 rounded-full border ${
-                  stop.current
-                    ? "border-ember bg-field-2"
-                    : stop.complete
-                      ? "border-sage bg-sage"
-                      : "border-faint bg-field-2"
-                }`}
-              />
-            </span>
-            {index < visibleStops.length - 1 ? <span className="h-px flex-1 bg-hairline" /> : null}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function SessionClient() {
-  const { status: healthStatus } = useHealthStatus();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
   const [pack, setPack] = useState<MemoryPack | null>(null);
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   const [selected, setSelected] = useState<Engram | null>(null);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const [pulseId, setPulseId] = useState<string | null>(null);
-  const [canvasEvent, setCanvasEvent] = useState<RuntimeEvent | null>(null);
+  const [lastMemoryEvent, setLastMemoryEvent] = useState<RuntimeEvent | null>(null);
   const [dreaming, setDreaming] = useState(false);
-  const [dreamStages, setDreamStages] = useState<Record<string, DreamStage>>({});
-  const [lastReport, setLastReport] = useState<DreamReport | null>(null);
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const hasChatRef = useRef(false);
   const sessionRef = useRef<SessionRecord | null>(null);
@@ -372,11 +229,8 @@ export function SessionClient() {
     const created = await createSession(title);
     sessionRef.current = created;
     setSession(created);
-    setSessions((current) => sortedSessions(current, created));
     setPack(created.memory_pack ?? null);
     setItems([]);
-    setDreamStages({});
-    setLastReport(null);
     return created;
   }, []);
 
@@ -385,17 +239,12 @@ export function SessionClient() {
     setError(null);
     try {
       const [sessions, graphData] = await Promise.all([listSessions(), fetchGraph()]);
-      setSessions(sessions.sessions);
       const latest = sessions.sessions[sessions.sessions.length - 1] ?? null;
       const active = latest && !latest.ended_at ? latest : await startSession(SESSION_ONE_TITLE);
       sessionRef.current = active;
       setSession(active);
       setGraph(graphData);
-      if (active.memory_pack) {
-        setPack(active.memory_pack);
-      } else {
-        setPack(await fetchMemoryPack(active.id));
-      }
+      setPack(active.memory_pack ?? (await fetchMemoryPack(active.id)));
     } catch (err) {
       setError(humanError(err));
     } finally {
@@ -423,11 +272,7 @@ export function SessionClient() {
       try {
         const event = JSON.parse(message.data) as RuntimeEvent;
         if (event.kind === "memory_event") {
-          setCanvasEvent(event);
-          if (event.engram) {
-            setPulseId(event.engram.id);
-            window.setTimeout(() => setPulseId(null), 1400);
-          }
+          setLastMemoryEvent(event);
           const eyebrow = markerEyebrows[event.event_type];
           const content = markerContent(event);
           if (eyebrow && content && hasChatRef.current) {
@@ -444,11 +289,7 @@ export function SessionClient() {
           loadGraph().catch(() => undefined);
         }
         if (event.kind === "dream_stage") {
-          setDreaming(event.status !== "done");
-          setDreamStages((current) => ({
-            ...current,
-            [event.stage]: event
-          }));
+          setDreaming(event.status !== "done" || event.stage !== "report");
         }
       } catch {
         return;
@@ -571,12 +412,6 @@ export function SessionClient() {
             const nextPack = payload as MemoryPack;
             setPack(nextPack);
             patchMessage(tutorLocalId, { usedEngrams: nextPack.winners });
-            nextPack.winners.slice(0, 6).forEach((winner, index) => {
-              window.setTimeout(() => {
-                setPulseId(winner.engram_id);
-              }, index * 120);
-            });
-            window.setTimeout(() => setPulseId(null), nextPack.winners.length * 120 + 500);
           }
           if (payload.kind === "token") {
             reply += payload.token;
@@ -593,7 +428,7 @@ export function SessionClient() {
         }
       }
 
-      window.setTimeout(() => loadGraph().catch(() => undefined), 1800);
+      window.setTimeout(() => loadGraph().catch(() => undefined), 1500);
     } catch (err) {
       if (signal?.aborted) {
         patchMessage(tutorLocalId, {
@@ -615,44 +450,6 @@ export function SessionClient() {
   useEffect(() => {
     sendMessageRef.current = sendMessage;
   });
-
-  async function runDream() {
-    if (!session || dreaming) return;
-    setDreaming(true);
-    setError(null);
-    try {
-      const report = await endSession(session.id);
-      setLastReport(report);
-      const refreshed = await listSessions();
-      setSessions(refreshed.sessions);
-      await loadGraph();
-      const next = await startSession(SESSION_TWO_TITLE);
-      setPack(next.memory_pack ?? (await fetchMemoryPack(next.id)));
-    } catch (err) {
-      setError(humanError(err));
-    } finally {
-      setDreaming(false);
-    }
-  }
-
-  async function resetLocalDemo() {
-    setError(null);
-    setBooting(true);
-    try {
-      await resetDemo();
-      setGraph(emptyGraph);
-      setItems([]);
-      setSessions([]);
-      setSelected(null);
-      setPack(null);
-      await startSession(SESSION_ONE_TITLE);
-      await loadGraph();
-    } catch (err) {
-      setError(humanError(err));
-    } finally {
-      setBooting(false);
-    }
-  }
 
   useEffect(() => {
     const unsubscribeSend = onDemoSend(async ({ text, signal, resolve, reject }) => {
@@ -689,12 +486,8 @@ export function SessionClient() {
         setItems([]);
         setDraft("");
         setSelected(null);
-        setHighlightedId(null);
-        setPulseId(null);
-        setCanvasEvent(null);
+        setLastMemoryEvent(null);
         setDreaming(false);
-        setDreamStages({});
-        setLastReport(null);
         setError(null);
         await boot();
         resolve();
@@ -744,86 +537,27 @@ export function SessionClient() {
       unsubscribeSelectEngram();
       unsubscribeCloseInspector();
     };
-  }, [boot, dreaming, graph.nodes, loadGraph, session, streaming]);
+  }, [boot, dreaming, loadGraph, streaming]);
 
-  const stageList = ["replay", "distill", "deduplicate", "reconcile", "decay", "report"];
-  const starterTurns = session?.title?.includes("Session 2")
-    ? sessionTwoStarterTurns
-    : sessionOneStarterTurns;
   const hasMessages = items.some((item) => item.kind === "message");
-  const memoryCount = graph.nodes.length;
-  const provisionalCount = graph.nodes.filter((node) => node.provisional).length;
-  const chatModel = modelId(healthStatus, "chat");
-  const observerModel = modelId(healthStatus, "observer");
-
   return (
-    <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
-      <section className="order-2 flex min-h-[66dvh] flex-col border-hairline bg-field lg:order-1 lg:h-full lg:min-h-0 lg:border-r">
-        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field px-8">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-                {sessionEyebrow(session)}
-              </p>
-              <h1 className="display-glow mt-2 font-display text-[24px] font-semibold uppercase tracking-widest leading-none text-starlight">
-                {sessionHeadline(session)}
+    <div className="grid min-h-dvh overflow-hidden bg-field lg:h-dvh lg:grid-cols-[minmax(560px,46%)_minmax(0,54%)]">
+      <section className="cosmic-shell flex min-h-dvh flex-col border-hairline lg:h-dvh lg:min-h-0 lg:border-r">
+        <header className="relative shrink-0 px-6 pb-4 pt-8 md:px-10 lg:px-11 lg:pt-10">
+          <div className="min-w-0">
+            <div className="min-w-0">
+              <h1 className="display-glow whitespace-nowrap font-display text-[58px] font-medium leading-[0.9] text-starlight max-sm:whitespace-normal md:text-[74px] xl:text-[86px]">
+                LENA PARK
               </h1>
+              <div className="mt-7 flex max-w-[720px] flex-wrap gap-2">
+                {metadata.map(([label, value]) => (
+                  <MetadataChip key={label} label={label} value={value} />
+                ))}
+              </div>
             </div>
-            <div className="relative flex items-center gap-2">
-              <button
-                type="button"
-                disabled={!session || dreaming || streaming}
-                onClick={() => runDream()}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-hairline bg-field-2 px-4 py-2 text-[13px] font-medium text-starlight transition hover:border-ember hover:bg-ember hover:text-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
-              >
-                <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
-                <span>End session</span>
-              </button>
-              <button
-                type="button"
-                aria-label="More session actions"
-                onClick={() => setMenuOpen((open) => !open)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 text-starlight transition hover:border-ember hover:bg-ember hover:text-field-2"
-              >
-                <MoreHorizontal aria-hidden="true" size={18} strokeWidth={1.8} />
-              </button>
-              {menuOpen ? (
-                <div className="stellar-panel absolute right-0 top-12 z-30 w-44 rounded-lg p-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      startSession(SESSION_TWO_TITLE).catch((err) =>
-                        setError(err.message)
-                      );
-                    }}
-                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
-                  >
-                    <Plus aria-hidden="true" size={16} strokeWidth={1.8} />
-                    <span>New session</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      resetLocalDemo();
-                    }}
-                    className="flex min-h-10 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-starlight transition hover:bg-field"
-                  >
-                    <RefreshCcw aria-hidden="true" size={15} strokeWidth={1.8} />
-                    <span>Reset demo</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
+
           </div>
-          {lastReport ? (
-            <p className="mt-3 font-mono text-[11px] text-dim">
-              {lastReport.duration_ms
-                ? `last dream finished in ${(lastReport.duration_ms / 1000).toFixed(1)}s`
-                : "last dream complete"}
-            </p>
-          ) : null}
+
           {error ? (
             <p className="relative mt-4 pl-4 text-sm leading-6 text-coral">
               <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
@@ -832,246 +566,126 @@ export function SessionClient() {
           ) : null}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <div className={`flex min-h-full flex-col ${hasMessages ? "justify-end" : "justify-start"}`}>
-            {booting ? (
-              <div className="space-y-4 pb-4">
-                <div className="h-4 w-2/3 rounded-full bg-field-2" />
-                <div className="stellar-panel ml-auto h-20 w-4/5 rounded-lg" />
-                <div className="h-28 w-5/6 bg-void" />
-              </div>
-            ) : !hasMessages ? (
-              <div className="flex flex-col gap-5 pb-8">
-                <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-                    pick up the thread
-                  </p>
-                  <p className="mt-4 max-w-xl font-display text-[28px] italic leading-snug text-starlight">
-                    {sessionNumber(session) === "1"
-                      ? `Reverie knows nothing about ${SESSION_PERSON_NAME} yet.`
-                      : "Reverie has been dreaming about last time."}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-dim">
-                    Start with what {SESSION_PERSON_NAME} would say, or write your own below.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {starterTurns.map((turn) => (
-                    <button
-                      key={turn}
-                      type="button"
-                      onClick={() => sendMessage(turn)}
-                      className="relative flex max-w-xl items-start gap-4 rounded-lg border border-hairline bg-field-2 px-5 py-3.5 text-left text-[13.5px] leading-6 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.22)] transition hover:border-ember/40 hover:text-starlight"
-                    >
-                      <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
-                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
-                        <MessageCircle aria-hidden="true" size={16} strokeWidth={1.7} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3 md:px-10 lg:px-11">
+          {booting ? (
+            <div className="space-y-4">
+              <div className="h-4 w-1/3 rounded-full bg-field-2" />
+              <div className="stellar-panel h-32" />
+              <div className="stellar-panel ml-auto h-36 w-5/6" />
+            </div>
+          ) : hasMessages ? (
+            <div className="space-y-2 pb-6">
+              {items.map((item) =>
+                item.kind === "memory" ? (
+                  <div
+                    key={item.localId}
+                    className="flex items-center gap-3 py-2"
+                    role="status"
+                  >
+                    <span className="hairline-divider h-px flex-1 opacity-60" />
+                    <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-sage">
+                      <Sparkles aria-hidden="true" size={12} strokeWidth={1.8} />
+                      <span className="truncate">
+                        {item.eyebrow}: {item.content}
                       </span>
-                      <span className="min-w-0">
-                        <RichText text={turn} />
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-7 pb-4">
-                {items.map((item) =>
-                  item.kind === "memory" ? (
-                    <motion.div
-                      key={item.localId}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                      className="flex items-center gap-3"
-                      role="status"
-                    >
-                      <span className="hairline-divider h-px flex-1 opacity-60" />
-                      <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-sage">
-                        <Sparkles aria-hidden="true" size={12} strokeWidth={1.8} />
-                        <span className="truncate">
-                          {item.eyebrow} - {item.content.toLowerCase()}
-                        </span>
-                        {observerModel ? (
-                          <span className="hidden shrink-0 text-[10px] text-dim sm:inline">
-                            observer · {observerModel}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="hairline-divider h-px flex-1 opacity-60" />
-                    </motion.div>
-                  ) : (
-                    <motion.article
-                      key={item.localId}
-                      id={item.backendId}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                      className={item.role === "student" ? "flex justify-end" : "block"}
-                    >
-                      {item.role === "student" ? (
-                        <div className="relative flex max-w-[82%] items-start gap-4 rounded-lg border border-hairline bg-field-2 px-5 py-3.5 text-[15px] leading-7 text-starlight shadow-[0_8px_28px_-18px_rgba(93,64,35,0.18)]">
-                          <span className="absolute bottom-3 left-0 top-3 w-[3px] rounded-full bg-ember" />
-                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-starlight">
-                            <MessageCircle aria-hidden="true" size={16} strokeWidth={1.7} />
-                          </span>
-                          <span className="min-w-0">
-                            <RichText text={item.content} />
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="relative max-w-[94%] text-[15.5px] leading-8 text-starlight">
-                          {chatModel ? (
-                            <p className="mb-2 font-mono text-[10px] leading-none text-dim">
-                              reply · {chatModel}
-                            </p>
-                          ) : null}
-                          {item.content ? (
-                            <RichText text={item.content} />
-                          ) : (
-                            <p className="text-dim">{item.pending ? "Thinking…" : ""}</p>
-                          )}
-                          {item.usedEngrams?.length ? (
-                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-sage">
-                                drawing on
-                              </span>
-                              {item.usedEngrams.map((used) => (
-                                <button
-                                  key={used.engram_id}
-                                  type="button"
-                                  className="inline-flex min-h-7 items-center gap-1.5 rounded-full px-1 py-1 font-mono text-[11px] text-dim transition hover:text-starlight"
-                                  onMouseEnter={() => setHighlightedId(used.engram_id)}
-                                  onMouseLeave={() => setHighlightedId(null)}
-                                  onFocus={() => setHighlightedId(used.engram_id)}
-                                  onBlur={() => setHighlightedId(null)}
-                                  onClick={() => {
-                                    selectEngramById(used.engram_id);
-                                  }}
-                                >
-                                  <span
-                                    className={`h-1.5 w-1.5 rounded-full ${
-                                      memoryDotColors[used.type] ?? "bg-ember"
-                                    }`}
-                                  />
-                                  <span>{memoryLabel(used)}</span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
-                    </motion.article>
-                  )
-                )}
-                <div ref={scrollRef} />
-              </div>
-            )}
-          </div>
+                    </span>
+                    <span className="hairline-divider h-px flex-1 opacity-60" />
+                  </div>
+                ) : (
+                  <MemoryCard
+                    key={item.localId}
+                    actor={item.role === "student" ? "You" : "Reverie"}
+                    timestamp={formatTime(item.createdAt)}
+                    variant={item.role === "student" ? "person" : "reverie"}
+                    tags={item.usedEngrams?.slice(0, 3).map(memoryLabel) ?? []}
+                    confidence={item.role === "tutor" ? confidenceFrom(item.usedEngrams) : undefined}
+                    recall={item.usedEngrams?.length ? "memory recall" : undefined}
+                    pending={item.pending}
+                    onTagClick={(tag) => {
+                      const match = item.usedEngrams?.find((used) => memoryLabel(used) === tag);
+                      if (match) selectEngramById(match.engram_id);
+                    }}
+                  >
+                    {item.content ? (
+                      <RichText text={item.content} />
+                    ) : (
+                      <span className="text-dim">{item.pending ? "Thinking..." : ""}</span>
+                    )}
+                  </MemoryCard>
+                )
+              )}
+              <div ref={scrollRef} />
+            </div>
+          ) : (
+            <div className="space-y-2 pb-6">
+              {sampleCards.map((card) => (
+                <MemoryCard
+                  key={`${card.actor}-${card.timestamp}-${card.content}`}
+                  actor={card.actor}
+                  timestamp={card.timestamp}
+                  variant={card.variant}
+                  tags={card.tags}
+                  confidence={card.confidence}
+                  recall={card.recall}
+                >
+                  {card.content}
+                </MemoryCard>
+              ))}
+              {!session ? (
+                <EmptyState title="Memory engine offline">
+                  <p>Start the backend to replace this reference transcript with live memory.</p>
+                </EmptyState>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <form
-          className="flex h-[var(--reverie-bottom-h)] shrink-0 items-center border-t border-hairline bg-field px-8"
+          className="shrink-0 border-t border-hairline px-6 py-5 md:px-10 lg:px-11"
           onSubmit={(event) => {
             event.preventDefault();
             sendMessage();
           }}
         >
-          {dreaming ? (
-            <div className="flex min-h-14 items-center gap-3 text-sm text-dim">
-              <span className="hairline-divider h-px flex-1" />
-              <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-                dreaming
-              </span>
-              <span className="hairline-divider h-px flex-1" />
-            </div>
-          ) : (
-            <div className="stellar-panel flex w-full items-end gap-3 rounded-[22px] px-4 py-2.5 focus-within:border-ember/50">
-              <label className="sr-only" htmlFor="message">
-                Message
-              </label>
-              <textarea
-                id="message"
-                value={draft}
-                disabled={streaming || !session}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                rows={1}
-                className="min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[16px] leading-7 text-starlight outline-none placeholder:text-dim disabled:cursor-not-allowed disabled:text-faint"
-                placeholder="Type your message…"
-              />
-              <button
-                type="submit"
-                aria-label="Send message"
-                disabled={streaming || !draft.trim() || !session}
-                className="brand-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-field-2 shadow-[0_8px_20px_-12px_rgba(93,64,35,0.42)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <Send aria-hidden="true" size={20} strokeWidth={2} />
-              </button>
-            </div>
-          )}
+          <ComposerChrome
+            onSubmit={() => sendMessage()}
+            disabled={streaming || !draft.trim() || !session || dreaming}
+          >
+            <label className="sr-only" htmlFor="message">
+              Message
+            </label>
+            <textarea
+              id="message"
+              value={draft}
+              disabled={streaming || !session || dreaming}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  sendMessage();
+                }
+              }}
+              rows={1}
+              placeholder="Ask anything about your memories..."
+            />
+          </ComposerChrome>
         </form>
       </section>
 
-      <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-field lg:order-2 lg:h-full lg:min-h-0">
-        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field px-8">
-          <h2 className="font-display text-[20px] font-semibold uppercase tracking-widest text-ember">
-            Memory Constellation
-          </h2>
-          <p className="mt-1.5 max-w-lg font-mono text-[10px] leading-relaxed uppercase tracking-wider text-dim">
-            {memoryCount} memories · {provisionalCount} provisional — every glowing node is something Reverie learned from her own words
-          </p>
-        </header>
-        <div className="relative min-h-0 flex-1">
-          <ConstellationCanvas
-            graph={graph}
-            selectedId={selected?.id ?? null}
-            highlightedId={highlightedId}
-            pulseId={pulseId}
-            event={canvasEvent}
-            onSelect={setSelected}
-          />
-
-          {Object.keys(dreamStages).length ? (
-            <div className="stellar-panel absolute bottom-5 left-8 right-8 rounded-lg p-3">
-              <div className="flex flex-wrap gap-2">
-                {stageList.map((stage) => {
-                  const item = dreamStages[stage];
-                  return (
-                    <div
-                      key={stage}
-                      className={`rounded-full border border-hairline bg-field-2 px-2 py-1 font-mono text-[10px] ${
-                        item?.status === "done"
-                          ? "text-sage"
-                          : item
-                            ? "text-ember"
-                            : "text-dim"
-                      }`}
-                    >
-                      {stage} {item ? stageSummary(item) : ""}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="grid h-[var(--reverie-bottom-h)] shrink-0 border-t border-hairline bg-field lg:grid-cols-[55%_45%]">
-          <BudgetMeter
-            pack={pack}
-            engrams={graph.nodes}
-            onHover={setHighlightedId}
-            onSelect={selectEngramById}
-          />
-          <SessionTimeline sessions={sessions} session={session} dreaming={dreaming} />
-        </div>
-      </section>
+      <BrainMapPanel
+        graph={graph}
+        event={lastMemoryEvent}
+        budget={
+          pack
+            ? {
+                used: pack.used,
+                total: pack.budget,
+                available: Math.max(0, pack.budget - pack.used),
+                percent: (pack.used / Math.max(1, pack.budget)) * 100
+              }
+            : undefined
+        }
+      />
 
       <MemoryInspector engram={selected} onClose={() => setSelected(null)} />
     </div>

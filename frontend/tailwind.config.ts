@@ -32,6 +32,7 @@ const config: Config = {
       },
       fontFamily: {
         display: ["var(--font-display)", "Georgia", "Times New Roman", "serif"],
+        body: ["var(--font-body)", "Georgia", "Times New Roman", "serif"],
         sans: ["var(--font-sans)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "SFMono-Regular", "Consolas", "monospace"]
       }

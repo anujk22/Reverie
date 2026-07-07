@@ -2,7 +2,7 @@
 
 import { Check, Circle, Play, Radio } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ConstellationCanvas } from "@/components/ConstellationCanvas";
+import { BrainMapPanel, EmptyState, PageHeader, TagPill } from "@/components/ReverieUI";
 import {
   apiUrl,
   fetchGraph,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { onDemoGraphRefresh } from "@/lib/demoBus";
 import { modelId } from "@/lib/health";
+import { labelText } from "@/lib/text";
 import { useHealthStatus } from "@/lib/useHealthStatus";
 
 type DreamStage = {
@@ -40,7 +41,7 @@ const stageTiles = [
 ];
 
 function stageLabel(stage: string) {
-  return stage.replace("_", " ");
+  return labelText(stage);
 }
 
 function reportStats(report: DreamReport | null) {
@@ -84,7 +85,7 @@ function countPhrase(key: string, value: number) {
 }
 
 function countText(stage: string, counts: Record<string, unknown>) {
-  if (stage === "report") return "cycle summary ready";
+  if (stage === "report") return "Cycle Summary Ready";
 
   const entries = Object.entries(counts).filter(
     ([key, value]) => key !== "duration_ms" && typeof value === "number" && value !== 0
@@ -100,14 +101,14 @@ function countText(stage: string, counts: Record<string, unknown>) {
   const nested = Object.entries(counts).filter(
     ([, value]) => value && typeof value === "object" && !Array.isArray(value)
   );
-  if (nested.length) return "cycle summary ready";
+  if (nested.length) return "Cycle Summary Ready";
 
-  return "no changes needed";
+  return "No Changes Needed";
 }
 
 function pendingText(stage: string) {
-  if (stage === "report") return "ready to summarize";
-  return `ready to ${stageLabel(stage)}`;
+  if (stage === "report") return "Ready to Summarize";
+  return `Ready to ${stageLabel(stage)}`;
 }
 
 function stageFromReport(report: DreamReport | null, stage: string): DreamStage | null {
@@ -129,13 +130,13 @@ function durationMs(report: DreamReport | null) {
 }
 
 function formatDuration(value: number | null) {
-  if (value === null) return "finished";
+  if (value === null) return "Finished";
   if (value >= 1000) {
-    return `finished in ${(value / 1000).toLocaleString(undefined, {
+    return `Finished in ${(value / 1000).toLocaleString(undefined, {
       maximumFractionDigits: 1
     })}s`;
   }
-  return `finished in ${value.toLocaleString()}ms`;
+  return `Finished in ${value.toLocaleString()}ms`;
 }
 
 function statCount(report: DreamReport | null, stage: string, key: string) {
@@ -194,7 +195,7 @@ export function DreamClient() {
   const [stages, setStages] = useState<Record<string, DreamStage>>({});
   const [running, setRunning] = useState(false);
   const [selected, setSelected] = useState<Engram | null>(null);
-  const [canvasEvent, setCanvasEvent] = useState<RuntimeEvent | null>(null);
+  const [lastMemoryEvent, setLastMemoryEvent] = useState<RuntimeEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -236,7 +237,7 @@ export function DreamClient() {
           }
         }
         if (event.kind === "memory_event") {
-          setCanvasEvent(event);
+          setLastMemoryEvent(event);
           window.setTimeout(() => fetchGraph().then(setGraph).catch(() => undefined), 350);
         }
       } catch {
@@ -280,38 +281,28 @@ export function DreamClient() {
   const fillPercent =
     doneCount <= 1 ? 0 : Math.min(100, ((doneCount - 1) / (stageList.length - 1)) * 100);
   const dreamModel = modelId(healthStatus, "dream");
+  const activeMemories = graph.nodes.filter((node) => node.status === "active").slice(0, 6);
 
   return (
-    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+    <div className="memory-page-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-              dream cycle
-            </p>
-            <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
-              Reverie dreams between sessions.
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
-              Between sessions, Reverie replays what it heard, keeps what mattered, and
-              lets the rest fade.
-            </p>
-            {dreamModel ? (
-              <p className="mt-3 inline-flex rounded-full border border-hairline bg-field-2 px-3 py-1 font-mono text-[11px] text-dim">
-                dreaming on {dreamModel}
-              </p>
-            ) : null}
-          </div>
+        <PageHeader
+          eyebrow="Memories"
+          title="Reverie dreams between sessions."
+          description="Between sessions, Reverie replays what it heard, keeps what mattered, and lets the rest fade."
+          meta={dreamModel ? <TagPill>Dreaming on {dreamModel}</TagPill> : null}
+          actions={
           <button
             type="button"
             onClick={startDream}
             disabled={running}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+            className="premium-button premium-button-primary"
           >
             <Play aria-hidden="true" size={17} strokeWidth={1.8} />
-            <span>{running ? "dreaming" : "run dream cycle"}</span>
+            <span>{running ? "Dreaming" : "Run Dream Cycle"}</span>
           </button>
-        </header>
+          }
+        />
 
         {error ? (
           <p className="relative pl-4 text-sm leading-6 text-coral">
@@ -320,21 +311,12 @@ export function DreamClient() {
           </p>
         ) : null}
 
-        <section className="stellar-panel relative h-[55vh] min-h-[360px] overflow-hidden rounded-lg">
-          <div className={`h-full transition-opacity duration-200 ${running ? "opacity-70" : ""}`}>
-            <ConstellationCanvas
-              graph={graph}
-              selectedId={selected?.id ?? null}
-              highlightedId={selected?.id ?? null}
-              pulseId={running ? selected?.id ?? null : null}
-              event={canvasEvent}
-              onSelect={setSelected}
-            />
-          </div>
+        <section className="memory-map-wrap">
+          <BrainMapPanel variant="embedded" graph={graph} event={lastMemoryEvent} />
           {running ? (
             <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-4">
-              <div className="dream-shimmer rounded-full border border-ember/30 bg-field/75 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-glow">
-                dreaming...
+              <div className="dream-shimmer rounded-full border border-ember/40 bg-[#17110d]/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-glow">
+                Dreaming...
               </div>
             </div>
           ) : null}
@@ -401,7 +383,7 @@ export function DreamClient() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="stellar-panel rounded-lg p-5">
             <p className="text-[14px] font-medium text-starlight">
-              latest report
+              Latest Report
             </p>
             {report ? (
               <div className="mt-4 space-y-5">
@@ -427,7 +409,7 @@ export function DreamClient() {
                           {total.toLocaleString()}
                         </p>
                         <p className="mt-2 text-[13px] font-medium text-starlight">
-                          {tile.label}
+                          {labelText(tile.label)}
                         </p>
                       </div>
                     );
@@ -447,25 +429,23 @@ export function DreamClient() {
                   className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ember/40 bg-field-2 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
                 >
                   <Play aria-hidden="true" size={17} strokeWidth={1.8} />
-                  <span>{running ? "dreaming" : "run dream cycle"}</span>
+                  <span>{running ? "Dreaming" : "Run Dream Cycle"}</span>
                 </button>
               </div>
             )}
           </section>
 
           <section className="stellar-panel rounded-lg p-5">
-            <p className="text-[14px] font-medium text-starlight">
-              selected memory
-            </p>
+            <p className="text-[14px] font-medium text-starlight">Selected Memory</p>
             {selected ? (
               <div className="mt-4">
                 <p className="brand-gradient-text font-mono text-[10px] uppercase tracking-[0.08em]">
-                  {selected.type.replace("_", " ")}
+                  {labelText(selected.type)}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{selected.content}</p>
                 <div className="mt-4">
                   <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-dim">
-                    <span>strength</span>
+                    <span>Strength</span>
                     <span>{selected.strength.toFixed(2)}</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-void">
@@ -476,17 +456,28 @@ export function DreamClient() {
                   </div>
                 </div>
                 <p className="mt-3 font-mono text-[11px] text-dim">
-                  confidence {selected.confidence.toFixed(2)}
+                  Confidence {selected.confidence.toFixed(2)}
                 </p>
               </div>
             ) : (
-              <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-field-2 text-faint">
-                  <Circle aria-hidden="true" size={22} strokeWidth={1.5} />
-                </span>
-                <p className="mt-4 max-w-56 text-sm leading-6 text-dim">
-                  Select a star to inspect the memory that moved during the cycle.
-                </p>
+              <div className="mt-4 space-y-3">
+                {activeMemories.length ? (
+                  activeMemories.map((memory) => (
+                    <button
+                      key={memory.id}
+                      type="button"
+                      onClick={() => setSelected(memory)}
+                      className="memory-list-item"
+                    >
+                      <span>{labelText(memory.type)}</span>
+                      <strong>{memory.content}</strong>
+                    </button>
+                  ))
+                ) : (
+                  <EmptyState title="No memories yet">
+                    <p>Run a session, then dream, to populate this memory ledger.</p>
+                  </EmptyState>
+                )}
               </div>
             )}
           </section>

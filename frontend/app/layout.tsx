@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Bodoni_Moda, Great_Vibes, IBM_Plex_Mono, Inter, Newsreader } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
@@ -11,18 +11,35 @@ const sans = Inter({
   display: "swap"
 });
 
-const mono = JetBrains_Mono({
+const mono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  display: "swap"
+  display: "swap",
+  weight: ["400", "500", "600"]
 });
 
-const serif = Fraunces({
+const display = Bodoni_Moda({
   subsets: ["latin"],
-  style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
-  axes: ["opsz"]
+  weight: ["400", "500", "600", "700"],
+  adjustFontFallback: false
+});
+
+const body = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
+  adjustFontFallback: false
+});
+
+const wordmark = Great_Vibes({
+  subsets: ["latin"],
+  variable: "--font-wordmark",
+  display: "swap",
+  weight: "400"
 });
 
 export const metadata: Metadata = {
@@ -35,7 +52,10 @@ export default function RootLayout({
   children
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
+    <html
+      lang="en"
+      className={`${sans.variable} ${mono.variable} ${display.variable} ${body.variable} ${wordmark.variable}`}
+    >
       <body>
         <AppShell>{children}</AppShell>
       </body>

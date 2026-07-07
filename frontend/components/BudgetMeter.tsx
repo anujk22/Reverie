@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Engram, MemoryPack, MemoryPackItem } from "@/lib/api";
 import { modelId } from "@/lib/health";
-import { uiText } from "@/lib/text";
+import { labelText, uiText } from "@/lib/text";
 import { useHealthStatus } from "@/lib/useHealthStatus";
 
 const typeColors: Record<string, string> = {
@@ -18,15 +18,15 @@ const typeColors: Record<string, string> = {
 
 function scoreLine(item: MemoryPackItem) {
   const labels: Record<string, string> = {
-    sim: "match",
-    strength: "strength",
-    recency: "recency",
-    prior: "priority"
+    sim: "Match",
+    strength: "Strength",
+    recency: "Recency",
+    prior: "Priority"
   };
   const parts = Object.entries(item.breakdown ?? {}).map(
-    ([key, value]) => `${labels[key] ?? key.replace(/_/g, " ")} ${value.toFixed(2)}`
+    ([key, value]) => `${labels[key] ?? labelText(key)} ${value.toFixed(2)}`
   );
-  return parts.length ? parts.join(" · ") : `score ${item.score.toFixed(2)}`;
+  return parts.length ? parts.join(" · ") : `Score ${item.score.toFixed(2)}`;
 }
 
 export function BudgetMeter({
@@ -61,10 +61,10 @@ export function BudgetMeter({
     <section className="flex h-full flex-col justify-center px-8 py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-sage">
-          Working memory
+          Working Memory
         </h2>
         <p className="font-mono text-[13px] text-starlight">
-          {used.toLocaleString()} / {budget.toLocaleString()} tokens
+          {used.toLocaleString()} / {budget.toLocaleString()} Tokens
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export function BudgetMeter({
                   {hovered === item.engram_id ? (
                     <div className="absolute bottom-5 left-1/2 z-20 w-72 -translate-x-1/2 rounded-lg border border-hairline bg-field-2 p-3 shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)]">
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
-                        {item.tokens} tokens · {item.type}
+                        {item.tokens} Tokens · {labelText(item.type)}
                       </p>
                       <p className="mt-2 text-xs leading-5 text-starlight">
                         {uiText(nodeById.get(item.engram_id)?.content ?? item.content)}
@@ -129,7 +129,7 @@ export function BudgetMeter({
           >
             <span className={`h-1.5 w-1.5 rounded-full ${typeColors[item.type] ?? "bg-ember"}`} />
             <span>
-              {item.type.replace("_", " ")} · {item.tokens}
+              {labelText(item.type)} · {item.tokens}
             </span>
           </button>
         ))}
@@ -139,7 +139,7 @@ export function BudgetMeter({
         {excluded.length ? (
           excluded.map((item) => (
             <p key={item.engram_id}>
-              excluded: {uiText(item.content)} · {item.reason}
+              Excluded: {uiText(item.content)} · {labelText(item.reason)}
             </p>
           ))
         ) : (
@@ -147,7 +147,7 @@ export function BudgetMeter({
         )}
       </div>
       {embedModel ? (
-        <p className="mt-1 font-mono text-[10px] text-dim">retrieval · {embedModel}</p>
+        <p className="mt-1 font-mono text-[10px] text-dim">Retrieval · {embedModel}</p>
       ) : null}
     </section>
   );

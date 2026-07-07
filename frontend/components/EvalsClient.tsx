@@ -2,6 +2,7 @@
 
 import { BarChart3, Play, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { EmptyState, PageHeader } from "@/components/ReverieUI";
 import {
   apiUrl,
   fetchEvalResults,
@@ -11,6 +12,7 @@ import {
   type RuntimeEvent,
   type SmokeEvalResult
 } from "@/lib/api";
+import { labelText } from "@/lib/text";
 
 type MetricSpec = {
   title: string;
@@ -36,9 +38,9 @@ const conditionTone: Record<string, string> = {
 };
 
 const legend = [
-  { label: "no memory", className: "bg-faint" },
-  { label: "full history", className: "bg-moth" },
-  { label: "reverie", className: "brand-gradient" }
+  { label: "No Memory", className: "bg-faint" },
+  { label: "Full History", className: "bg-moth" },
+  { label: "Reverie", className: "brand-gradient" }
 ];
 
 function asNumber(value: unknown) {
@@ -66,14 +68,14 @@ function conditionKey(row: Record<string, unknown>) {
 
 function conditionLabel(row: Record<string, unknown>) {
   const key = conditionKey(row);
-  if (key.includes("no memory")) return "no memory";
-  if (key.includes("full history")) return "full history";
-  if (key.includes("reverie")) return "reverie";
-  return key || "condition";
+  if (key.includes("no memory")) return "No Memory";
+  if (key.includes("full history")) return "Full History";
+  if (key.includes("reverie")) return "Reverie";
+  return key ? labelText(key) : "Condition";
 }
 
 function rowLabel(row: Record<string, unknown>) {
-  const session = row.session ? `session ${row.session}` : "";
+  const session = row.session ? `Session ${row.session}` : "";
   return [conditionLabel(row), session].filter(Boolean).join(" · ");
 }
 
@@ -83,18 +85,18 @@ function conditionClass(row: Record<string, unknown>) {
 }
 
 function formatScore(value: number | null) {
-  if (value === null) return "waiting on run";
+  if (value === null) return "Waiting on Run";
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function formatTokens(value: number | null) {
-  if (value === null) return "waiting on run";
+  if (value === null) return "Waiting on Run";
   return value.toLocaleString();
 }
 
 function formatLatency(value: number | null) {
-  if (value === null) return "waiting on run";
-  if (value < 0) return "not reported";
+  if (value === null) return "Waiting on Run";
+  if (value < 0) return "Not Reported";
   return `${value.toLocaleString()}ms`;
 }
 
@@ -151,7 +153,7 @@ function mean(values: number[]) {
 }
 
 function formatMean(value: number | null) {
-  if (value === null) return "waiting";
+  if (value === null) return "Waiting";
   return value.toLocaleString(undefined, {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1
@@ -159,23 +161,23 @@ function formatMean(value: number | null) {
 }
 
 function formatDelta(reverie: number | null, baseline: number | null) {
-  if (reverie === null || baseline === null) return "waiting on run";
+  if (reverie === null || baseline === null) return "Waiting on Run";
   if (baseline === 0) {
     return `${(reverie - baseline).toLocaleString(undefined, {
       maximumFractionDigits: 2,
       signDisplay: "always"
-    })} vs no memory`;
+    })} vs No Memory`;
   }
   const delta = ((reverie - baseline) / Math.abs(baseline)) * 100;
   return `${delta.toLocaleString(undefined, {
     maximumFractionDigits: 0,
     signDisplay: "always"
-  })}% vs no memory`;
+  })}% vs No Memory`;
 }
 
 function formatTokenSavings(reverie: number | null, fullHistory: number | null) {
-  if (reverie === null || fullHistory === null) return "waiting on run";
-  return `${Math.max(0, fullHistory - reverie).toLocaleString()} tokens saved`;
+  if (reverie === null || fullHistory === null) return "Waiting on Run";
+  return `${Math.max(0, fullHistory - reverie).toLocaleString()} Tokens Saved`;
 }
 
 function smokeNumber(call: Record<string, unknown> | null, key: string) {
@@ -183,7 +185,7 @@ function smokeNumber(call: Record<string, unknown> | null, key: string) {
 }
 
 function modeLabel(value: string) {
-  return value === "mock" ? "mock" : value === "live" ? "live" : value;
+  return value === "mock" ? "Mock" : value === "live" ? "Live" : labelText(value);
 }
 
 function humanPurpose(value: string) {
@@ -197,7 +199,7 @@ function humanPurpose(value: string) {
     eval_judge: "Judge calls",
     extract_session_level: "Dream extraction"
   };
-  return labels[value] ?? value.replace(/_/g, " ");
+  return labels[value] ?? labelText(value);
 }
 
 function humanError(error: unknown) {
@@ -225,7 +227,7 @@ function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: Met
     <section className="stellar-panel rounded-lg p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[14px] font-medium text-starlight">
-          {title}
+          {labelText(title)}
         </h2>
         <BarChart3 aria-hidden="true" className="text-dim" size={17} strokeWidth={1.8} />
       </div>
@@ -323,20 +325,20 @@ export function EvalsClient() {
 
     return [
       {
-        label: "Reverie personalization",
+        label: "Reverie Personalization",
         value: formatScore(reverieScore),
-        note: "score from the memory condition"
+        note: "Score from the memory condition"
       },
       {
-        label: "Lift over baseline",
+        label: "Lift over Baseline",
         value: formatDelta(reverieScore, noMemoryScore),
-        note: "compared with no memory",
+        note: "Compared with No Memory",
         accent: true
       },
       {
-        label: "Context efficiency",
+        label: "Context Efficiency",
         value: formatTokenSavings(reverieTokens, fullHistoryTokens),
-        note: "compared with full history"
+        note: "Compared with Full History"
       }
     ];
   }, [results]);
@@ -380,12 +382,12 @@ export function EvalsClient() {
     const keys = ["tokens", "value"];
     return [
       {
-        label: "no memory",
+        label: "No Memory",
         tokens: sumCondition(results.tokens, ["no memory"], keys),
         className: "bg-faint"
       },
       {
-        label: "full history",
+        label: "Full History",
         tokens: sumCondition(results.tokens, ["full history"], keys),
         className: "bg-moth"
       },
@@ -427,39 +429,33 @@ export function EvalsClient() {
   return (
     <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-              eval honesty
-            </p>
-            <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
-              Does memory make the response more personal?
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
-              Scores come from real runs only. Nothing is staged.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <PageHeader
+          eyebrow="Insights"
+          title="Does memory make the response more personal?"
+          description="Scores come from real runs only. Nothing is staged."
+          actions={
+          <>
             <button
               type="button"
               onClick={runFullEval}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+              className="premium-button premium-button-primary"
             >
               <Play aria-hidden="true" size={17} strokeWidth={1.8} />
-              <span>{loading ? "running" : "run evals"}</span>
+              <span>{loading ? "Running" : "Run Evals"}</span>
             </button>
             <button
               type="button"
               onClick={runSmoke}
               disabled={loading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-field-2/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-dim transition hover:text-starlight disabled:cursor-not-allowed disabled:text-faint"
+              className="premium-button"
             >
               <ShieldCheck aria-hidden="true" size={17} strokeWidth={1.8} />
-              <span>run smoke judge</span>
+              <span>Run Smoke Judge</span>
             </button>
-          </div>
-        </header>
+          </>
+          }
+        />
 
         {error ? (
           <p className="relative pl-4 text-sm leading-6 text-coral">
@@ -471,10 +467,10 @@ export function EvalsClient() {
         {loading && progress ? (
           <section className="stellar-panel rounded-lg p-4">
             <p className="text-[14px] font-medium text-starlight">
-              live eval progress
+              Live Eval Progress
             </p>
             <p className="mt-2 text-sm leading-6 text-starlight">
-              {progress.condition.replace(/_/g, " ")} · session {progress.session}
+              {labelText(progress.condition)} · Session {progress.session}
             </p>
           </section>
         ) : null}
@@ -500,7 +496,7 @@ export function EvalsClient() {
             {replyTokenTotals.length ? (
               <section className="stellar-panel rounded-lg p-6">
                 <p className="text-[14px] font-medium text-starlight">
-                  Reply-token comparison
+                  Reply-Token Comparison
                 </p>
                 <div className="mt-5 space-y-4">
                   {replyTokenTotals.map((item) => (
@@ -545,7 +541,7 @@ export function EvalsClient() {
             {results.headline ? (
               <section className="stellar-panel rounded-lg p-6">
                 <p className="text-[14px] font-medium text-starlight">
-                  takeaway
+                  Takeaway
                 </p>
                 <p className="mt-3 font-display text-[38px] leading-[1.05] text-starlight">
                   {results.headline}
@@ -562,30 +558,29 @@ export function EvalsClient() {
             {results.forgetting_check ? (
               <section className="stellar-panel rounded-lg p-5">
                 <p className="text-[14px] font-medium text-starlight">
-                  forgetting check
+                  Forgetting Check
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">
                   Forgetting check:{" "}
                   {results.forgetting_check === "pass"
-                    ? "passed, the stale limits quiz memory never resurfaced."
-                    : "needs review, the stale limits quiz memory resurfaced."}
+                    ? "Passed, the stale limits quiz memory never resurfaced."
+                    : "Needs review, the stale limits quiz memory resurfaced."}
                 </p>
               </section>
             ) : null}
           </div>
         ) : (
           <section className="stellar-panel rounded-lg p-6">
-            <p className="text-[14px] font-medium text-starlight">
-              waiting for real comparisons
-            </p>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
+            <EmptyState title="Waiting for real comparisons">
+              <p>
               No live eval run yet. Run the suite to compare Reverie against no-memory
               and full-history baselines.
-            </p>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-dim">
+              </p>
+              <p>
               Scores come from real runs only, so this page stays quiet until the
               comparison is ready.
-            </p>
+              </p>
+            </EmptyState>
           </section>
         )}
 
@@ -594,7 +589,7 @@ export function EvalsClient() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-[14px] font-medium text-starlight">
-                  smoke judge
+                  Smoke Judge
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{smoke.reason}</p>
               </div>
@@ -605,17 +600,17 @@ export function EvalsClient() {
             {smoke.llm_call ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-4">
                 {[
-                  { label: "mode", value: modeLabel(smoke.mode) },
+                  { label: "Mode", value: modeLabel(smoke.mode) },
                   {
-                    label: "prompt tokens",
+                    label: "Prompt Tokens",
                     value: formatTokens(smokeNumber(smoke.llm_call, "prompt_tokens"))
                   },
                   {
-                    label: "completion tokens",
+                    label: "Completion Tokens",
                     value: formatTokens(smokeNumber(smoke.llm_call, "completion_tokens"))
                   },
                   {
-                    label: "latency",
+                    label: "Latency",
                     value: formatLatency(smokeNumber(smoke.llm_call, "latency_ms"))
                   }
                 ].map((item) => (
@@ -634,7 +629,7 @@ export function EvalsClient() {
         {results?.observed_llm_tokens ? (
           <section className="stellar-panel rounded-lg p-5">
             <p className="text-[14px] font-medium text-starlight">
-              observed model tokens
+              Observed Model Tokens
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {Object.entries(results.observed_llm_tokens).map(([purpose, tokens]) => (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { RichText } from "@/components/RichText";
 import { fetchEngramDetail, type Engram, type EngramDetail } from "@/lib/api";
+import { labelText } from "@/lib/text";
 
 const typeText: Record<string, string> = {
   misconception: "text-coral",
@@ -31,15 +32,15 @@ function shortDate(value?: string) {
 
 function eventLabel(value: string) {
   const labels: Record<string, string> = {
-    "engram.observed": "observed",
-    "engram.consolidated": "consolidated",
-    "engram.merged": "merged",
-    "engram.superseded": "rewritten",
-    "engram.reinforced": "recalled",
-    "engram.decayed": "softened",
-    "engram.archived": "let go"
+    "engram.observed": "Observed",
+    "engram.consolidated": "Consolidated",
+    "engram.merged": "Merged",
+    "engram.superseded": "Rewritten",
+    "engram.reinforced": "Recalled",
+    "engram.decayed": "Softened",
+    "engram.archived": "Let Go"
   };
-  return labels[value] ?? value.replace(/^engram\./, "").replace(/_/g, " ");
+  return labels[value] ?? labelText(value.replace(/^engram\./, ""));
 }
 
 export function MemoryInspector({
@@ -97,15 +98,15 @@ export function MemoryInspector({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className={`font-mono text-[11px] uppercase tracking-[0.22em] ${typeClass}`}>
-            {current.type.replace("_", " ")}
+            {labelText(current.type)}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="rounded-full border border-hairline bg-field-2 px-2 py-1 font-mono text-[10px] uppercase text-dim">
-              {current.status}
+              {labelText(current.status)}
             </span>
             {current.provisional ? (
               <span className="rounded-full border border-ember/40 px-2 py-1 font-mono text-[10px] uppercase text-ember">
-                provisional
+                Provisional
               </span>
             ) : null}
           </div>
@@ -129,7 +130,7 @@ export function MemoryInspector({
           <RichText
             text={`'${trimQuote(detail.provenance[0].content)}' - said ${shortDate(
               detail.provenance[0].created_at
-            ).toLowerCase()}`}
+            )}`}
           />
         </div>
       ) : null}
@@ -142,25 +143,25 @@ export function MemoryInspector({
           />
         </div>
         <p className="mt-2 font-mono text-[12px] text-dim">
-          {current.strength.toFixed(2)} · recalled ×{current.access_count}
+          {current.strength.toFixed(2)} · Recalled ×{current.access_count}
         </p>
       </div>
 
       <dl className="mt-5 grid grid-cols-2 gap-3 rounded-lg border border-hairline bg-field-2/80 p-4 font-mono text-[11px] text-dim">
         <div>
-          <dt>confidence</dt>
+          <dt>Confidence</dt>
           <dd className="mt-1 text-starlight">{current.confidence.toFixed(2)}</dd>
         </div>
         <div>
-          <dt>strength</dt>
+          <dt>Strength</dt>
           <dd className="mt-1 text-starlight">{current.strength.toFixed(2)}</dd>
         </div>
         <div>
-          <dt>recalled</dt>
+          <dt>Recalled</dt>
           <dd className="mt-1 text-starlight">{current.access_count}x</dd>
         </div>
         <div>
-          <dt>born</dt>
+          <dt>Born</dt>
           <dd className="mt-1 text-starlight">{shortDate(current.created_at)}</dd>
         </div>
       </dl>
@@ -178,7 +179,7 @@ export function MemoryInspector({
 
       {current.superseded_by ? (
         <div className="mt-5 rounded-lg border border-coral/40 bg-field-2 p-3 text-sm leading-5 text-coral">
-          overwritten by a newer memory
+          Overwritten by a newer memory
         </div>
       ) : null}
 

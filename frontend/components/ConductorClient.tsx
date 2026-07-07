@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HealthPanel } from "@/components/HealthPanel";
+import { PageHeader } from "@/components/ReverieUI";
 import {
   advanceClock,
   apiUrl,
@@ -22,6 +23,7 @@ import {
   runLatestDream,
   type SessionRecord
 } from "@/lib/api";
+import { labelText } from "@/lib/text";
 
 type ActionStatus = {
   state: "idle" | "running" | "done" | "error";
@@ -36,7 +38,7 @@ type ActionCard = {
 };
 
 function initialStatus(): ActionStatus {
-  return { state: "idle", message: "idle" };
+  return { state: "idle", message: "Idle" };
 }
 
 function statusTone(state: ActionStatus["state"]) {
@@ -106,7 +108,7 @@ export function ConductorClient() {
         run: async () => {
           await resetDemo();
           setActiveSession(null);
-          return "reset complete";
+          return "Reset Complete";
         }
       },
       {
@@ -115,7 +117,7 @@ export function ConductorClient() {
         icon: ScrollText,
         run: async () => {
           const session = await playScript("session1", "Session 1 · store migration");
-          return `played ${session.title}`;
+          return `Played ${session.title}`;
         }
       },
       {
@@ -129,7 +131,7 @@ export function ConductorClient() {
           } else {
             await runLatestDream();
           }
-          return "dream cycle complete";
+          return "Dream Cycle Complete";
         }
       },
       {
@@ -138,7 +140,7 @@ export function ConductorClient() {
         icon: Clock3,
         run: async () => {
           const result = await advanceClock(1);
-          return `clock offset ${Math.round(result.clock_offset_seconds / 86400)} days`;
+          return `Clock Offset ${Math.round(result.clock_offset_seconds / 86400)} Days`;
         }
       },
       {
@@ -147,7 +149,7 @@ export function ConductorClient() {
         icon: CalendarDays,
         run: async () => {
           const result = await advanceClock(3);
-          return `clock offset ${Math.round(result.clock_offset_seconds / 86400)} days`;
+          return `Clock Offset ${Math.round(result.clock_offset_seconds / 86400)} Days`;
         }
       },
       {
@@ -156,7 +158,7 @@ export function ConductorClient() {
         icon: ScrollText,
         run: async () => {
           const session = await playScript("session2", "Session 2 · going live");
-          return `played ${session.title}`;
+          return `Played ${session.title}`;
         }
       },
       {
@@ -165,7 +167,7 @@ export function ConductorClient() {
         icon: BarChart3,
         run: async () => {
           const results = await runEvalSuite();
-          return results.real_run ? "eval comparison ready" : "mock eval complete";
+          return results.real_run ? "Eval Comparison Ready" : "Mock Eval Complete";
         }
       }
     ],
@@ -174,7 +176,7 @@ export function ConductorClient() {
 
   const runAction = useCallback(async (index: number) => {
     const card = cards[index];
-    setStatus(index, { state: "running", message: "running" });
+    setStatus(index, { state: "running", message: "Running" });
     try {
       const message = await card.run();
       setStatus(index, { state: "done", message });
@@ -202,17 +204,11 @@ export function ConductorClient() {
   return (
     <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
-        <header>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-            conductor
-          </p>
-          <h1 className="display-glow mt-3 max-w-3xl font-display text-[46px] font-medium leading-[1.02] text-starlight">
-            Demo control room.
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-dim">
-            Drive the recording from repeatable actions while the app stays on live backend paths.
-          </p>
-        </header>
+        <PageHeader
+          eyebrow="Settings"
+          title="Demo control room."
+          description="Drive the recording from repeatable actions while the app stays on live backend paths."
+        />
 
         <div className="grid gap-4 lg:grid-cols-2">
           <HealthPanel />
@@ -240,16 +236,16 @@ export function ConductorClient() {
                     )}`}
                     aria-live="polite"
                   >
-                    {status.message}
+                    {labelText(status.message)}
                   </p>
                   <button
                     type="button"
                     onClick={() => runAction(index)}
                     disabled={running}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-hairline bg-field/80 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:border-ember/50 hover:text-glow disabled:cursor-not-allowed disabled:text-faint"
+                    className="premium-button"
                   >
                     <Play aria-hidden="true" size={17} strokeWidth={1.8} />
-                    <span>{running ? "running" : "run action"}</span>
+                    <span>{running ? "Running" : "Run Action"}</span>
                   </button>
                 </div>
               </section>
