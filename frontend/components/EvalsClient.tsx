@@ -314,20 +314,26 @@ export function EvalsClient() {
   const headlineTiles = useMemo<HeadlineTile[]>(() => {
     const personalizationKeys = ["score", "value", "personalization"];
     const tokenKeys = ["tokens", "value"];
-    const reverieScore = findConditionValue(results?.personalization, ["reverie"], personalizationKeys);
-    const noMemoryScore = findConditionValue(
+    const reverieScore = meanCondition(results?.personalization, ["reverie"], personalizationKeys);
+    const noMemoryScore = meanCondition(
       results?.personalization,
       ["no memory"],
       personalizationKeys
     );
-    const reverieTokens = findConditionValue(results?.tokens, ["reverie"], tokenKeys);
-    const fullHistoryTokens = findConditionValue(results?.tokens, ["full history"], tokenKeys);
+    const reverieRows = conditionRows(results?.tokens, ["reverie"]);
+    const fullHistoryRows = conditionRows(results?.tokens, ["full history"]);
+    const reverieTokens = reverieRows.length
+      ? sumCondition(results?.tokens, ["reverie"], tokenKeys)
+      : null;
+    const fullHistoryTokens = fullHistoryRows.length
+      ? sumCondition(results?.tokens, ["full history"], tokenKeys)
+      : null;
 
     return [
       {
         label: "Reverie Personalization",
-        value: formatScore(reverieScore),
-        note: "Score from the memory condition"
+        value: reverieScore === null ? "Waiting on Run" : formatMean(reverieScore),
+        note: "Mean score from the memory condition"
       },
       {
         label: "Lift over Baseline",
@@ -502,7 +508,7 @@ export function EvalsClient() {
                   {replyTokenTotals.map((item) => (
                     <div
                       key={item.label}
-                      className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_110px] md:items-center"
+                      className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_150px] md:items-center"
                     >
                       <p className="text-sm font-medium text-starlight">{item.label}</p>
                       <div className="h-3 overflow-hidden rounded-full bg-hairline/70">
@@ -511,7 +517,7 @@ export function EvalsClient() {
                           style={{ width: `${Math.max(3, (item.tokens / maxReplyTokens) * 100)}%` }}
                         />
                       </div>
-                      <p className="font-mono text-[13px] text-dim md:text-right">
+                      <p className="font-display text-[28px] leading-none text-starlight md:text-right">
                         {item.tokens.toLocaleString()}
                       </p>
                     </div>
