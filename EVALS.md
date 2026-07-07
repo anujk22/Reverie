@@ -1,19 +1,19 @@
 # Reverie Evals
 
-Run date: 2026-07-06 22:36:36 EDT
+Run date: 2026-07-07 12:22:40 EDT
 
-Headline: +0.8 personalization vs no memory with 72% fewer reply-context tokens than full history
+Headline: +0.5 personalization vs no memory with 71% fewer reply-context tokens than full history
 
 ## Personalization
 
 | Condition | Session | Score |
 | --- | ---: | ---: |
-| no_memory | 2 | 2.0 |
-| no_memory | 3 | 2.0 |
-| full_history | 2 | 3.667 |
-| full_history | 3 | 3.667 |
-| reverie | 2 | 3.0 |
-| reverie | 3 | 2.667 |
+| no_memory | 2 | 5.0 |
+| no_memory | 3 | 4.0 |
+| full_history | 2 | 4.333 |
+| full_history | 3 | 5.0 |
+| reverie | 2 | 5.0 |
+| reverie | 3 | 5.0 |
 
 ## Recall Precision
 
@@ -31,25 +31,25 @@ under pipeline totals below; eval-judge calls are excluded everywhere
 
 | Condition | Session | Tokens |
 | --- | ---: | ---: |
-| no_memory | 1 | 2349 |
-| no_memory | 2 | 2345 |
-| no_memory | 3 | 2361 |
-| full_history | 1 | 2394 |
-| full_history | 2 | 11039 |
-| full_history | 3 | 21451 |
-| reverie | 1 | 2384 |
-| reverie | 2 | 3454 |
-| reverie | 3 | 3957 |
+| no_memory | 1 | 2920 |
+| no_memory | 2 | 2907 |
+| no_memory | 3 | 2916 |
+| full_history | 1 | 2989 |
+| full_history | 2 | 13004 |
+| full_history | 3 | 22348 |
+| reverie | 1 | 2929 |
+| reverie | 2 | 3626 |
+| reverie | 3 | 4394 |
 
 ## Pipeline totals across all conditions (by call purpose)
 
 | Purpose | Tokens |
 | --- | ---: |
-| consolidate | 16157 |
-| embed | 1104 |
-| eval_judge | 18299 |
-| judge | 580 |
-| observer | 16154 |
-| tutor | 51734 |
+| consolidate | 13885 |
+| embed | 1107 |
+| eval_judge | 18344 |
+| judge | 588 |
+| observer | 15919 |
+| tutor | 58033 |
 
 Forgetting check: pass.

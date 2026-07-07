@@ -73,7 +73,7 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 **Screen:** /evals with real numbers. Popout the token comparison.
 
-> We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored [X] on personalization versus [Y], recalled [Z] percent of planted facts, and used [N] percent fewer tokens than full history. Measured, not asserted.
+> We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored 5.0 on personalization versus 4.5, recalled 100 percent of planted facts, and used 71 percent fewer tokens than full history. Measured, not asserted.
 
 **Pre-decided contingencies (locked now, not at 2 a.m. on edit night):**
 
