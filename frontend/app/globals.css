@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --shell: #241b16;
   --void: #f3eadc;
   --field: #faf5ec;
   --field-2: #fffdf8;
@@ -34,7 +35,7 @@
 html,
 body {
   min-height: 100%;
-  background: var(--void);
+  background: var(--shell);
 }
 
 body {
@@ -43,8 +44,8 @@ body {
   font-family: var(--font-sans), Inter, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
   background-image:
-    radial-gradient(110% 70% at 68% 0%, rgba(216, 92, 63, 0.08), transparent 56%),
-    linear-gradient(180deg, var(--void), var(--void));
+    radial-gradient(90% 70% at 72% 0%, rgba(216, 92, 63, 0.14), transparent 58%),
+    linear-gradient(180deg, var(--shell), var(--shell));
   background-attachment: fixed;
 }
 
@@ -68,6 +69,15 @@ input:focus-visible {
 
 button {
   touch-action: manipulation;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button:active,
+  a:active {
+    transform: translateY(1px);
+  }
 }
 
 canvas {
@@ -108,7 +118,7 @@ time {
   position: relative;
   background:
     radial-gradient(90% 70% at 78% 0%, rgba(216, 92, 63, 0.075), transparent 60%),
-    linear-gradient(180deg, var(--void), var(--void));
+    linear-gradient(180deg, var(--field), var(--field));
 }
 
 .cosmic-shell::before {

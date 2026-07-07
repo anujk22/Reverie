@@ -183,7 +183,7 @@ export function MemoryInspector({
       ) : null}
 
       <section className="mt-7">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+        <h3 className="text-[14px] font-medium text-starlight">
           Provenance
         </h3>
         <div className="mt-3 grid gap-3">
@@ -218,7 +218,7 @@ export function MemoryInspector({
       </section>
 
       <section className="mt-7">
-        <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+        <h3 className="text-[14px] font-medium text-starlight">
           Lifecycle
         </h3>
         <ol className="mt-3">

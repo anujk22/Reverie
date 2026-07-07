@@ -115,6 +115,49 @@ function findConditionValue(
   return row ? rowValue(row, keys) : null;
 }
 
+function conditionRows(
+  rows: Array<Record<string, unknown>> | undefined,
+  names: string[]
+) {
+  return (rows ?? []).filter((item) => {
+    const condition = conditionKey(item);
+    return names.some((name) => condition.includes(name));
+  });
+}
+
+function meanCondition(
+  rows: Array<Record<string, unknown>> | undefined,
+  names: string[],
+  keys: string[]
+) {
+  const values = conditionRows(rows, names)
+    .map((row) => rowValue(row, keys))
+    .filter((value): value is number => value !== null);
+  return mean(values);
+}
+
+function sumCondition(
+  rows: Array<Record<string, unknown>> | undefined,
+  names: string[],
+  keys: string[]
+) {
+  return conditionRows(rows, names).reduce((total, row) => {
+    return total + (rowValue(row, keys) ?? 0);
+  }, 0);
+}
+
+function mean(values: number[]) {
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+}
+
+function formatMean(value: number | null) {
+  if (value === null) return "waiting";
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  });
+}
+
 function formatDelta(reverie: number | null, baseline: number | null) {
   if (reverie === null || baseline === null) return "waiting on run";
   if (baseline === 0) {
@@ -181,7 +224,7 @@ function ChartBlock({ title, rows, valueKeys, kind, lowerIsBetter = false }: Met
   return (
     <section className="stellar-panel rounded-lg p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+        <h2 className="text-[14px] font-medium text-starlight">
           {title}
         </h2>
         <BarChart3 aria-hidden="true" className="text-dim" size={17} strokeWidth={1.8} />
@@ -323,6 +366,39 @@ export function EvalsClient() {
     ];
   }, [results]);
 
+  const personalizationVerdict = useMemo(() => {
+    if (!results?.real_run) return null;
+    const keys = ["score", "value", "personalization"];
+    return {
+      reverie: meanCondition(results.personalization, ["reverie"], keys),
+      noMemory: meanCondition(results.personalization, ["no memory"], keys)
+    };
+  }, [results]);
+
+  const replyTokenTotals = useMemo(() => {
+    if (!results?.real_run) return [];
+    const keys = ["tokens", "value"];
+    return [
+      {
+        label: "no memory",
+        tokens: sumCondition(results.tokens, ["no memory"], keys),
+        className: "bg-faint"
+      },
+      {
+        label: "full history",
+        tokens: sumCondition(results.tokens, ["full history"], keys),
+        className: "bg-moth"
+      },
+      {
+        label: "Reverie",
+        tokens: sumCondition(results.tokens, ["reverie"], keys),
+        className: "brand-gradient"
+      }
+    ];
+  }, [results]);
+
+  const maxReplyTokens = Math.max(1, ...replyTokenTotals.map((item) => item.tokens));
+
   async function runFullEval() {
     setLoading(true);
     setError(null);
@@ -394,7 +470,7 @@ export function EvalsClient() {
 
         {loading && progress ? (
           <section className="stellar-panel rounded-lg p-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+            <p className="text-[14px] font-medium text-starlight">
               live eval progress
             </p>
             <p className="mt-2 text-sm leading-6 text-starlight">
@@ -405,10 +481,53 @@ export function EvalsClient() {
 
         {results?.real_run ? (
           <div className="space-y-6">
+            {personalizationVerdict ? (
+              <section className="stellar-panel rounded-lg p-6">
+                <p className="font-display text-[34px] leading-tight text-starlight md:text-[46px]">
+                  Reverie{" "}
+                  <span className="brand-gradient-text">
+                    {formatMean(personalizationVerdict.reverie)}
+                  </span>{" "}
+                  vs{" "}
+                  <span className="brand-gradient-text">
+                    {formatMean(personalizationVerdict.noMemory)}
+                  </span>{" "}
+                  without memory.
+                </p>
+              </section>
+            ) : null}
+
+            {replyTokenTotals.length ? (
+              <section className="stellar-panel rounded-lg p-6">
+                <p className="text-[14px] font-medium text-starlight">
+                  Reply-token comparison
+                </p>
+                <div className="mt-5 space-y-4">
+                  {replyTokenTotals.map((item) => (
+                    <div
+                      key={item.label}
+                      className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_110px] md:items-center"
+                    >
+                      <p className="text-sm font-medium text-starlight">{item.label}</p>
+                      <div className="h-3 overflow-hidden rounded-full bg-hairline/70">
+                        <div
+                          className={`h-full rounded-full ${item.className}`}
+                          style={{ width: `${Math.max(3, (item.tokens / maxReplyTokens) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="font-mono text-[13px] text-dim md:text-right">
+                        {item.tokens.toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <section className="grid gap-4 md:grid-cols-3">
               {headlineTiles.map((tile) => (
                 <div key={tile.label} className="stellar-panel rounded-lg p-5">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                  <p className="text-[13px] font-medium text-starlight">
                     {tile.label}
                   </p>
                   <p
@@ -425,7 +544,7 @@ export function EvalsClient() {
 
             {results.headline ? (
               <section className="stellar-panel rounded-lg p-6">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                <p className="text-[14px] font-medium text-starlight">
                   takeaway
                 </p>
                 <p className="mt-3 font-display text-[38px] leading-[1.05] text-starlight">
@@ -442,7 +561,7 @@ export function EvalsClient() {
 
             {results.forgetting_check ? (
               <section className="stellar-panel rounded-lg p-5">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                <p className="text-[14px] font-medium text-starlight">
                   forgetting check
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">
@@ -456,7 +575,7 @@ export function EvalsClient() {
           </div>
         ) : (
           <section className="stellar-panel rounded-lg p-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
+            <p className="text-[14px] font-medium text-starlight">
               waiting for real comparisons
             </p>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-starlight">
@@ -474,7 +593,7 @@ export function EvalsClient() {
           <section className="stellar-panel rounded-lg p-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                <p className="text-[14px] font-medium text-starlight">
                   smoke judge
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{smoke.reason}</p>
@@ -501,7 +620,7 @@ export function EvalsClient() {
                   }
                 ].map((item) => (
                   <div key={item.label} className="rounded-lg border border-hairline bg-field-2/80 p-3">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
+                    <p className="text-[13px] font-medium text-starlight">
                       {item.label}
                     </p>
                     <p className="mt-1 font-mono text-lg text-starlight">{item.value}</p>
@@ -514,7 +633,7 @@ export function EvalsClient() {
 
         {results?.observed_llm_tokens ? (
           <section className="stellar-panel rounded-lg p-5">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+            <p className="text-[14px] font-medium text-starlight">
               observed model tokens
             </p>
             <div className="mt-3 flex flex-wrap gap-2">

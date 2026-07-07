@@ -224,7 +224,7 @@ export function ConductorClient() {
               <section key={card.title} className="stellar-panel flex flex-col rounded-lg p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                    <p className="text-[14px] font-medium text-starlight">
                       {index + 1} · {card.title}
                     </p>
                     <p className="mt-3 text-sm leading-6 text-starlight">{card.description}</p>

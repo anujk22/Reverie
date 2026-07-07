@@ -29,8 +29,8 @@ function AppShellFrame({ children }: { children: ReactNode }) {
   const directorActive = director.status !== "idle";
 
   return (
-    <div className="min-h-dvh bg-void text-starlight md:p-3">
-      <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-[72px] rounded-l-lg border border-hairline bg-field md:flex md:flex-col md:items-center">
+    <div className="min-h-dvh bg-shell text-starlight md:p-3">
+      <aside className="fixed bottom-3 left-3 top-3 z-30 hidden w-[72px] rounded-l-lg border border-hairline bg-field-2 md:flex md:flex-col md:items-center">
         <Link
           href="/"
           className="flex h-[var(--reverie-header-h)] w-full items-center justify-center border-b border-hairline font-display text-[22px] italic leading-none text-starlight [writing-mode:vertical-rl]"
@@ -78,7 +78,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-hairline bg-field/95 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-20 border-b border-hairline bg-field-2/95 backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/" className="font-display text-xl italic">
             Reverie
@@ -111,7 +111,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-dvh md:ml-[72px] md:min-h-[calc(100dvh-1.5rem)] md:rounded-r-lg md:border-y md:border-r md:border-hairline md:bg-void">
+      <main className="min-h-dvh md:ml-[72px] md:min-h-[calc(100dvh-1.5rem)] md:rounded-r-lg md:border-y md:border-r md:border-hairline md:bg-field">
         {children}
       </main>
     </div>

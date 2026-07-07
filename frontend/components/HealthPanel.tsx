@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { healthUrl, isMockMode, type HealthStatus } from "@/lib/health";
+import { useMemo } from "react";
+import { isMockMode, type HealthStatus } from "@/lib/health";
+import { useHealthStatus, type HealthLoadState } from "@/lib/useHealthStatus";
 
-type LoadState = "loading" | "online" | "offline";
-
-function stateLabel(state: LoadState) {
+function stateLabel(state: HealthLoadState) {
   if (state === "loading") return "checking";
   return state;
 }
@@ -18,56 +17,19 @@ function readiness(value: unknown) {
 }
 
 export function HealthPanel() {
-  const [state, setState] = useState<LoadState>("loading");
-  const [status, setStatus] = useState<HealthStatus | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadHealth() {
-      setState("loading");
-      try {
-        const response = await fetch(healthUrl(), {
-          headers: { Accept: "application/json" },
-          cache: "no-store"
-        });
-        if (!response.ok) {
-          throw new Error(`${response.status} ${response.statusText}`);
-        }
-        const data = (await response.json()) as HealthStatus;
-        if (!cancelled) {
-          setStatus(data);
-          setState("online");
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setStatus({
-            ok: false,
-            error:
-              error instanceof Error && error.message.toLowerCase().includes("failed to fetch")
-                ? "memory engine unreachable"
-                : "memory engine unavailable"
-          });
-          setState("offline");
-        }
-      }
-    }
-
-    loadHealth();
-    const interval = window.setInterval(loadHealth, 15000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, []);
+  const { status, state } = useHealthStatus();
+  const viewStatus: HealthStatus | null = useMemo(
+    () => status ?? (state === "offline" ? { ok: false, error: "memory engine unavailable" } : null),
+    [state, status]
+  );
 
   const models = useMemo(() => {
-    if (!status?.model_ids) return "not reported";
-    if (Array.isArray(status.model_ids)) return status.model_ids.join(", ");
-    return Object.values(status.model_ids).join(", ");
-  }, [status]);
+    if (!viewStatus?.model_ids) return "not reported";
+    if (Array.isArray(viewStatus.model_ids)) return viewStatus.model_ids.join(", ");
+    return Object.values(viewStatus.model_ids).join(", ");
+  }, [viewStatus]);
 
-  const mock = isMockMode(status);
+  const mock = isMockMode(viewStatus);
 
   return (
     <section className="stellar-panel rounded-lg p-5">
@@ -90,24 +52,24 @@ export function HealthPanel() {
         </div>
         <div>
           <dt className="text-dim">Backend</dt>
-          <dd className="mt-1 font-mono text-xs">{readiness(status?.ok)}</dd>
+          <dd className="mt-1 font-mono text-xs">{readiness(viewStatus?.ok)}</dd>
         </div>
         <div>
           <dt className="text-dim">Memory store</dt>
-          <dd className="mt-1 font-mono text-xs">{readiness(status?.db)}</dd>
+          <dd className="mt-1 font-mono text-xs">{readiness(viewStatus?.db)}</dd>
         </div>
         <div>
           <dt className="text-dim">Model link</dt>
-          <dd className="mt-1 font-mono text-xs">{readiness(status?.dashscope_reachable)}</dd>
+          <dd className="mt-1 font-mono text-xs">{readiness(viewStatus?.dashscope_reachable)}</dd>
         </div>
         <div className="sm:col-span-2">
           <dt className="text-dim">Model routing</dt>
           <dd className="mt-1 break-words font-mono text-xs">{models}</dd>
         </div>
-        {status?.error ? (
+        {viewStatus?.error ? (
           <div className="sm:col-span-2">
             <dt className="text-dim">Last signal</dt>
-            <dd className="mt-1 font-mono text-xs text-warning">{status.error}</dd>
+            <dd className="mt-1 font-mono text-xs text-warning">{viewStatus.error}</dd>
           </div>
         ) : null}
       </dl>

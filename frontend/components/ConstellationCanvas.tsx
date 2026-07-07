@@ -933,13 +933,13 @@ function drawPanelAtmosphere(
   context.stroke();
   context.setLineDash([]);
 
-  context.strokeStyle = "rgba(151,101,66,0.13)";
+  context.strokeStyle = "rgba(151,101,66,0.055)";
   context.lineWidth = 1;
-  for (let index = 0; index < 9; index += 1) {
-    const y = height * 0.18 + index * height * 0.085;
+  for (let index = 0; index < 8; index += 1) {
+    const y = height * 0.2 + index * height * 0.075;
     context.beginPath();
-    context.moveTo(width * 0.76, y);
-    context.bezierCurveTo(width * 0.86, y - 22, width * 0.94, y + 18, width * 1.04, y - 10);
+    context.moveTo(width * 0.08, y);
+    context.lineTo(width * 0.92, y);
     context.stroke();
   }
 

@@ -14,6 +14,8 @@ import {
   type RuntimeEvent
 } from "@/lib/api";
 import { onDemoGraphRefresh } from "@/lib/demoBus";
+import { modelId } from "@/lib/health";
+import { useHealthStatus } from "@/lib/useHealthStatus";
 
 type DreamStage = {
   stage: string;
@@ -186,6 +188,7 @@ function humanError(error: unknown) {
 }
 
 export function DreamClient() {
+  const { status: healthStatus } = useHealthStatus();
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
   const [report, setReport] = useState<DreamReport | null>(null);
   const [stages, setStages] = useState<Record<string, DreamStage>>({});
@@ -276,6 +279,7 @@ export function DreamClient() {
   const doneCount = stageViews.filter((stage) => stage.state === "done").length;
   const fillPercent =
     doneCount <= 1 ? 0 : Math.min(100, ((doneCount - 1) / (stageList.length - 1)) * 100);
+  const dreamModel = modelId(healthStatus, "dream");
 
   return (
     <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
@@ -292,6 +296,11 @@ export function DreamClient() {
               Between sessions, Reverie replays what it heard, keeps what mattered, and
               lets the rest fade.
             </p>
+            {dreamModel ? (
+              <p className="mt-3 inline-flex rounded-full border border-hairline bg-field-2 px-3 py-1 font-mono text-[11px] text-dim">
+                dreaming on {dreamModel}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -350,7 +359,7 @@ export function DreamClient() {
                       state === "done"
                         ? "border-sage/50 bg-field text-sage"
                         : state === "running"
-                          ? "border-ember/60 bg-field text-ember ember-glow"
+                          ? "border-ember/70 bg-field text-ember ring-2 ring-ember/20"
                           : "border-hairline bg-field text-faint"
                     }`}
                   >
@@ -391,7 +400,7 @@ export function DreamClient() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="stellar-panel rounded-lg p-5">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+            <p className="text-[14px] font-medium text-starlight">
               latest report
             </p>
             {report ? (
@@ -404,20 +413,21 @@ export function DreamClient() {
                     {formatDuration(duration)}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4">
                   {stageTiles.map((tile) => {
                     const item = stageFromReport(report, tile.stage);
                     const total = statCount(report, tile.stage, tile.key) || sumCounts(item?.counts);
                     return (
-                      <div
-                        key={tile.label}
-                        className="rounded-lg border border-hairline bg-field-2/80 p-3"
-                      >
-                        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-dim">
-                          {tile.label}
-                        </p>
-                        <p className="mt-1 font-mono text-lg text-starlight">
+                      <div key={tile.label} className="min-w-0">
+                        <p
+                          className={`font-display text-[56px] font-medium leading-none md:text-[64px] ${
+                            total > 0 ? "text-ember" : "text-faint"
+                          }`}
+                        >
                           {total.toLocaleString()}
+                        </p>
+                        <p className="mt-2 text-[13px] font-medium text-starlight">
+                          {tile.label}
                         </p>
                       </div>
                     );
@@ -444,7 +454,7 @@ export function DreamClient() {
           </section>
 
           <section className="stellar-panel rounded-lg p-5">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+            <p className="text-[14px] font-medium text-starlight">
               selected memory
             </p>
             {selected ? (
@@ -470,9 +480,14 @@ export function DreamClient() {
                 </p>
               </div>
             ) : (
-              <p className="mt-4 text-sm leading-6 text-dim">
-                Select a star to inspect the memory that moved during the cycle.
-              </p>
+              <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-hairline bg-field-2 text-faint">
+                  <Circle aria-hidden="true" size={22} strokeWidth={1.5} />
+                </span>
+                <p className="mt-4 max-w-56 text-sm leading-6 text-dim">
+                  Select a star to inspect the memory that moved during the cycle.
+                </p>
+              </div>
             )}
           </section>
         </div>

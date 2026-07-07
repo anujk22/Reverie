@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { Engram, MemoryPack, MemoryPackItem } from "@/lib/api";
+import { modelId } from "@/lib/health";
 import { uiText } from "@/lib/text";
+import { useHealthStatus } from "@/lib/useHealthStatus";
 
 const typeColors: Record<string, string> = {
   misconception: "bg-coral",
@@ -38,11 +40,13 @@ export function BudgetMeter({
   onHover: (id: string | null) => void;
   onSelect?: (id: string) => void;
 }) {
+  const { status: healthStatus } = useHealthStatus();
   const [hovered, setHovered] = useState<string | null>(null);
   const budget = pack?.budget ?? 1200;
   const used = pack?.used ?? 0;
   const winners = pack?.winners ?? [];
   const excluded = pack?.excluded?.slice(0, 2) ?? [];
+  const embedModel = modelId(healthStatus, "embed");
 
   const nodeById = useMemo(() => {
     return new Map(engrams.map((engram) => [engram.id, engram]));
@@ -142,6 +146,9 @@ export function BudgetMeter({
           <p>No exclusions yet.</p>
         )}
       </div>
+      {embedModel ? (
+        <p className="mt-1 font-mono text-[10px] text-dim">retrieval · {embedModel}</p>
+      ) : null}
     </section>
   );
 }

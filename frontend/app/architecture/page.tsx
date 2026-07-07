@@ -35,7 +35,7 @@ const stack = [
   ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
   [
     "Qwen on Alibaba Cloud",
-    "qwen-flash observer · qwen-plus assistant · qwen-max dreams and judges · text-embedding-v4"
+    "observer · assistant · dreams and judges · embeddings, reported live by /api/health"
   ],
   ["Deployment", "Docker Compose · Nginx · ECS-ready runtime"]
 ];
@@ -59,13 +59,13 @@ export default function ArchitecturePage() {
             Reverie is a domain-agnostic memory engine.
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-dim">
-            The learning scenario is the hardest memory workload we could give it:
-            one person, learning something difficult, across multiple sessions, over weeks.
+            The demo scenario is the hardest memory workload we could give it:
+            one person, under pressure, returning across multiple sessions.
           </p>
         </header>
 
         <section className="stellar-panel rounded-lg p-5 md:p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+          <p className="text-[14px] font-medium text-starlight">
             zero domain knowledge
           </p>
           <p className="mt-3 max-w-4xl font-display text-[30px] leading-tight text-starlight md:text-[38px]">
@@ -76,7 +76,7 @@ export default function ArchitecturePage() {
           <div className="mt-5 grid gap-3 md:grid-cols-4">
             {swaps.map(([name, detail]) => (
               <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+                <p className="text-[13px] font-medium text-starlight">
                   {name}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-starlight">{detail}</p>
@@ -99,7 +99,7 @@ export default function ArchitecturePage() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+                      <p className="text-[13px] font-medium text-starlight">
                         {layer.eyebrow}
                       </p>
                       <Icon
@@ -148,7 +148,7 @@ export default function ArchitecturePage() {
         <section className="grid gap-4 lg:grid-cols-2">
           <div className="stellar-panel rounded-lg p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+              <p className="text-[14px] font-medium text-starlight">
                 storage
               </p>
               <Database aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
@@ -156,7 +156,7 @@ export default function ArchitecturePage() {
             <div className="mt-5 grid gap-3">
               {storage.map(([name, detail]) => (
                 <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+                  <p className="text-[13px] font-medium text-starlight">
                     {name}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-starlight">{detail}</p>
@@ -167,7 +167,7 @@ export default function ArchitecturePage() {
 
           <div className="stellar-panel rounded-lg p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-dim">
+              <p className="text-[14px] font-medium text-starlight">
                 runtime stack
               </p>
               <Cloud aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
@@ -178,7 +178,7 @@ export default function ArchitecturePage() {
                   key={name}
                   className="grid gap-2 rounded-lg border border-hairline bg-field-2/80 p-3 md:grid-cols-[170px_1fr]"
                 >
-                  <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ember">
+                  <p className="text-[13px] font-medium text-starlight">
                     {name}
                   </p>
                   <p className="text-sm leading-6 text-starlight">{detail}</p>

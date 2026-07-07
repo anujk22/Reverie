@@ -32,3 +32,10 @@ export function isMockMode(status: HealthStatus | null) {
       status.mode === "fallback"
   );
 }
+
+export function modelId(status: HealthStatus | null, role: string) {
+  const models = status?.model_ids;
+  if (!models || Array.isArray(models)) return null;
+  const value = models[role];
+  return typeof value === "string" && value.trim() ? value : null;
+}

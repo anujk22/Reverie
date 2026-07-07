@@ -39,7 +39,9 @@ import {
   type RuntimeEvent,
   type SessionRecord
 } from "@/lib/api";
+import { modelId } from "@/lib/health";
 import { uiText } from "@/lib/text";
+import { useHealthStatus } from "@/lib/useHealthStatus";
 
 type ChatMessage = {
   kind: "message";
@@ -336,6 +338,7 @@ function SessionTimeline({
 }
 
 export function SessionClient() {
+  const { status: healthStatus } = useHealthStatus();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
   const [pack, setPack] = useState<MemoryPack | null>(null);
@@ -756,6 +759,8 @@ export function SessionClient() {
   const hasMessages = items.some((item) => item.kind === "message");
   const memoryCount = graph.nodes.length;
   const provisionalCount = graph.nodes.filter((node) => node.provisional).length;
+  const chatModel = modelId(healthStatus, "chat");
+  const observerModel = modelId(healthStatus, "observer");
 
   return (
     <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
@@ -881,9 +886,9 @@ export function SessionClient() {
                   item.kind === "memory" ? (
                     <motion.div
                       key={item.localId}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4 }}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       className="flex items-center gap-3"
                       role="status"
                     >
@@ -893,6 +898,11 @@ export function SessionClient() {
                         <span className="truncate">
                           {item.eyebrow} - {item.content.toLowerCase()}
                         </span>
+                        {observerModel ? (
+                          <span className="hidden shrink-0 text-[10px] text-dim sm:inline">
+                            observer · {observerModel}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="hairline-divider h-px flex-1 opacity-60" />
                     </motion.div>
@@ -917,6 +927,11 @@ export function SessionClient() {
                         </div>
                       ) : (
                         <div className="relative max-w-[94%] text-[15.5px] leading-8 text-starlight">
+                          {chatModel ? (
+                            <p className="mb-2 font-mono text-[10px] leading-none text-dim">
+                              reply · {chatModel}
+                            </p>
+                          ) : null}
                           {item.content ? (
                             <RichText text={item.content} />
                           ) : (

@@ -9,6 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        shell: "#241B16",
         void: "#F3EADC",
         field: "#FAF5EC",
         "field-2": "#FFFDF8",
