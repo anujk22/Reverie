@@ -1,3 +1,5 @@
+_Historical document from the build. The demo domain has since moved from calculus tutoring to a commerce-migration scenario; current truth lives in README.md and docs/ARCHITECTURE.md._
+
 # Reverie — Build Progress
 
 ## Environment Report

@@ -4,7 +4,7 @@ Reverie is a subject-agnostic memory engine: the core pipeline extracts typed
 observations about a person, consolidates them during a dream cycle, decays or
 supersedes stale memories, and assembles a budgeted recall pack before the next
 response. The demo scenario is the hardest memory workload we could give it: one
-person, learning something difficult, across multiple sessions, over weeks.
+person, under pressure, returning across multiple sessions over days.
 
 The engine contains zero domain knowledge. Swap one script file and the same
 engine remembers a customer across support tickets, a patient across visits, an
@@ -45,7 +45,7 @@ Model routing matches depth to cognitive function: `qwen-flash` handles the high
 
 ## Product Center
 
-The visible product center is memory, not mathematics:
+The visible product center is memory, not the commerce scenario:
 
 - Observer events create provisional engrams.
 - Dream stages replay, distill, deduplicate, reconcile, decay, and report.

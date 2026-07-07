@@ -1,3 +1,5 @@
+_Historical document from the build. The demo domain has since moved from calculus tutoring to a commerce-migration scenario; current truth lives in README.md and docs/ARCHITECTURE.md._
+
 REVERIE — Product Requirements Document
 The tutor that dreams about you between sessions
 Hackathon: Global AI Hackathon Series with Qwen Cloud (Devpost / Alibaba Cloud) Track: Track 1 — MemoryAgent Deadline: July 9, 2026, 5:00 PM EDT One-liner: An AI tutor with a real memory architecture — it observes how a student learns, consolidates those observations into structured, inspectable memories while they're gone ("dreaming"), and opens the next session already knowing their weak spots. Every part of the memory lifecycle is visible on screen. Author: Fable 5 (lead architect). Executor: Codex (100% of code). Owner: Saf.

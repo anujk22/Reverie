@@ -17,3 +17,4 @@ frontend/out/
 frontend/*.tsbuildinfo
 .gstack/
 fable.md
+codex-task.md
