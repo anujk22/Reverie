@@ -19,7 +19,7 @@ const config: Config = {
         ember: "#D85C3F",
         glow: "#F1784A",
         gold: "#D78B09",
-        sage: "#778267",
+        sage: "#586A49",
         coral: "#E26345",
         moth: "#946A49",
         bg: "#F3EADC",

@@ -754,15 +754,97 @@ export function ConstellationCanvas({
     canvas.height = Math.floor(size.height * dpr);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const frame = frameRef.current;
-    context.clearRect(0, 0, size.width, size.height);
-    context.fillStyle = "#F3EADC";
-    context.fillRect(0, 0, size.width, size.height);
+    const dormant = nodesRef.current.length === 0;
 
-    const art = brainImageReady ? brainArtRef.current : null;
-    if (frame && art) {
-      drawBrainArtwork(context, artworkRect(frame, art.source), art.source);
+    function draw(time: number) {
+      if (!context) return;
+	      const frame = frameRef.current;
+	      context.clearRect(0, 0, size.width, size.height);
+	      context.fillStyle = "#faf5ec";
+	      context.fillRect(0, 0, size.width, size.height);
+
+	      if (frame) {
+	        drawPanelAtmosphere(
+	          context,
+	          size.width,
+	          size.height,
+	          frame,
+	          time,
+	          motionReduced,
+	          nodesRef.current.length
+	        );
+	        const vitality = dormant ? 0.72 : 1;
+	        const art = brainImageReady ? brainArtRef.current : null;
+	        if (art && !dormant) {
+	          const wakefulness = Math.min(0.24, 0.12 + nodesRef.current.length * 0.018);
+	          const rect = artworkRect(frame, art.source);
+	          context.save();
+	          context.globalAlpha = wakefulness;
+	          drawBrainArtwork(context, rect, art.source);
+	          context.restore();
+	        }
+	        drawBrainBase(context, frame, time, motionReduced, vitality);
+	        drawFibers(context, frame, fibersRef.current, time, motionReduced, vitality, !dormant);
+	        drawCore(context, frame, time, motionReduced, vitality);
+	        drawBrainRim(context, frame, time, motionReduced, vitality);
+	      }
+
+      const radiusScale = Math.max(0.55, Math.min(1, Math.min(size.width, size.height) / 480));
+
+      if (frame) {
+        for (const link of linksRef.current) {
+          const source = resolveNode(link.source);
+          const target = resolveNode(link.target);
+          if (!source || !target) continue;
+          drawCurvedLink(context, frame, source, target, link.type);
+        }
+      }
+
+      for (const node of nodesRef.current) {
+        const x = (node.x ?? size.width / 2) + ambientDrift(node.seed, time, motionReduced);
+        const y =
+          (node.y ?? size.height / 2) +
+          ambientDrift((node.seed * 3) % 1, time + 1200, motionReduced);
+        drawNode(context, node.engram, x, y, radiusScale, {
+          selected: selectedId === node.id,
+          highlighted: highlightedId === node.id,
+          pulse: pulseId === node.id,
+          time
+        });
+      }
+
+      drawTransientEvents(
+        context,
+        nodesRef.current,
+        transientsRef.current,
+        time,
+        size.width,
+        size.height,
+        motionReduced
+      );
+      transientsRef.current = transientsRef.current.filter(
+        (item) => time - item.start < 2400
+      );
+
+      if (size.width > 460) {
+        drawStrongLabels(
+          context,
+          nodesRef.current,
+          size.width,
+          size.height,
+          radiusScale,
+          time,
+          motionReduced
+        );
+      }
+
+      animationRef.current = window.requestAnimationFrame(draw);
     }
+
+    animationRef.current = window.requestAnimationFrame(draw);
+    return () => {
+      if (animationRef.current) window.cancelAnimationFrame(animationRef.current);
+    };
   }, [
     brainImageReady,
     graphKey,
@@ -974,24 +1056,40 @@ function drawPanelAtmosphere(
   height: number,
   frame: BrainFrame,
   time: number,
-  reduced: boolean
+  reduced: boolean,
+  nodeCount: number
 ) {
-  const breath = reduced ? 1 : 0.86 + Math.sin(time / 5200) * 0.14;
+  const breath = reduced ? 1 : 0.9 + Math.sin(time / 5200) * 0.1;
+  const presence = (0.66 + Math.min(nodeCount, 8) * 0.035) * breath;
   context.save();
 
   const wash = context.createRadialGradient(
     frame.coreX,
-    frame.coreY,
-    frame.scale * 0.02,
+    frame.coreY + frame.scale * 0.02,
+    frame.scale * 0.06,
+    frame.coreX,
+    frame.coreY + frame.scale * 0.02,
+    frame.scale * 1.18
+  );
+  wash.addColorStop(0, `rgba(216,92,63,${0.13 * presence})`);
+  wash.addColorStop(0.38, `rgba(242,183,119,${0.14 * presence})`);
+  wash.addColorStop(0.72, `rgba(255,253,248,${0.2 * presence})`);
+  wash.addColorStop(1, "rgba(250,245,236,0)");
+  context.fillStyle = wash;
+  context.fillRect(0, 0, width, height);
+
+  const edge = context.createRadialGradient(
     frame.coreX,
     frame.coreY,
-    frame.scale * 0.82
+    frame.scale * 0.52,
+    frame.coreX,
+    frame.coreY,
+    Math.max(width, height) * 0.82
   );
-  wash.addColorStop(0, `rgba(216,92,63,${0.16 * breath})`);
-  wash.addColorStop(0.42, "rgba(242,183,119,0.13)");
-  wash.addColorStop(0.74, "rgba(255,253,248,0.2)");
-  wash.addColorStop(1, "rgba(243,234,220,0)");
-  context.fillStyle = wash;
+  edge.addColorStop(0, "rgba(250,245,236,0)");
+  edge.addColorStop(0.72, "rgba(120,91,62,0.018)");
+  edge.addColorStop(1, "rgba(93,64,35,0.048)");
+  context.fillStyle = edge;
   context.fillRect(0, 0, width, height);
 
   const orbitColor = "rgba(151,101,66,0.22)";
@@ -1068,7 +1166,10 @@ function drawBrainArtwork(
 ) {
   context.save();
   context.globalCompositeOperation = "source-over";
+  context.globalAlpha = 1;
+  context.filter = "grayscale(0.82) saturate(0.18) contrast(0.86) brightness(1.06)";
   context.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+  context.filter = "none";
   context.restore();
 }
 
@@ -1096,6 +1197,41 @@ function drawBrainBase(
   wash.addColorStop(1, "rgba(243,234,220,0)");
   context.fillStyle = wash;
   context.fill();
+
+  context.globalCompositeOperation = "source-over";
+  context.lineWidth = 1.2;
+  context.strokeStyle = `rgba(151,101,66,${0.22 * vitality})`;
+  traceBrainPath(context, frame);
+  context.stroke();
+  context.restore();
+}
+
+function drawBrainRim(
+  context: CanvasRenderingContext2D,
+  frame: BrainFrame,
+  time: number,
+  reduced: boolean,
+  vitality: number
+) {
+  const shimmer = reduced ? 1 : 0.75 + Math.sin(time / 3600) * 0.25;
+  context.save();
+  context.globalCompositeOperation = "source-over";
+
+  const outline = context.createLinearGradient(frame.minX, frame.coreY, frame.maxX, frame.coreY);
+  outline.addColorStop(0, `rgba(151,101,66,${0.42 * vitality * shimmer})`);
+  outline.addColorStop(0.5, `rgba(216,92,63,${0.44 * vitality})`);
+  outline.addColorStop(1, `rgba(215,139,9,${0.38 * vitality * shimmer})`);
+
+  context.strokeStyle = outline;
+  context.lineWidth = Math.max(1, frame.scale * 0.0022);
+  traceBrainPath(context, frame);
+  context.stroke();
+
+  context.shadowBlur = 0;
+  context.strokeStyle = `rgba(216,92,63,${0.2 * vitality})`;
+  context.lineWidth = Math.max(1, frame.scale * 0.0012);
+  traceBrainPath(context, frame);
+  context.stroke();
 
   context.restore();
 }

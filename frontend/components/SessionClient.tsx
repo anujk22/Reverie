@@ -68,6 +68,7 @@ type DreamStage = {
 };
 
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
+const SESSION_PERSON_NAME = "Lena";
 const SESSION_ONE_TITLE = "Session 1 · store migration";
 const SESSION_TWO_TITLE = "Session 2 · going live";
 
@@ -93,8 +94,8 @@ const memoryDotColors: Record<string, string> = {
   preference: "bg-moth",
   affect: "bg-moth",
   goal: "bg-ember",
-  fact: "bg-ember",
-  strategy_outcome: "bg-ember"
+  fact: "bg-sage",
+  strategy_outcome: "bg-sage"
 };
 
 const markerEyebrows: Record<string, string> = {
@@ -143,12 +144,17 @@ function shortDate(value?: string) {
 }
 
 function sessionEyebrow(session: SessionRecord | null) {
-  return [shortDate(session?.started_at), "Lena Park", normalizedSessionTitle(session)].join(" · ");
+  return [shortDate(session?.started_at), normalizedSessionTitle(session)].join(" · ");
 }
 
 function sessionHeadline(session: SessionRecord | null) {
-  const topic = sessionTopic(session);
-  return `${topic.charAt(0).toUpperCase()}${topic.slice(1)}.`;
+  if (!session) {
+    const topic = sessionTopic(session);
+    return `${topic.charAt(0).toUpperCase()}${topic.slice(1)}.`;
+  }
+  return sessionNumber(session) === "1"
+    ? `${SESSION_PERSON_NAME} arrives.`
+    : `${SESSION_PERSON_NAME} returns.`;
 }
 
 function stageSummary(stage: DreamStage) {
@@ -304,7 +310,7 @@ function SessionTimeline({
           <div key={stop.key} className="flex min-w-0 flex-1 items-center gap-3">
             <span
               className={`inline-flex min-w-0 items-center gap-2 whitespace-nowrap ${
-                stop.current ? "text-ember" : stop.complete ? "text-starlight" : "text-dim"
+                stop.current ? "text-ember" : stop.complete ? "text-sage" : "text-dim"
               }`}
             >
               {stop.kind === "dream" ? (
@@ -748,6 +754,8 @@ export function SessionClient() {
     ? sessionTwoStarterTurns
     : sessionOneStarterTurns;
   const hasMessages = items.some((item) => item.kind === "message");
+  const memoryCount = graph.nodes.length;
+  const provisionalCount = graph.nodes.filter((node) => node.provisional).length;
 
   return (
     <div className="cosmic-shell grid min-h-dvh overflow-hidden md:min-h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-1.5rem)] lg:grid-cols-[minmax(390px,44%)_minmax(0,56%)]">
@@ -767,7 +775,7 @@ export function SessionClient() {
                 type="button"
                 disabled={!session || dreaming || streaming}
                 onClick={() => runDream()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-ember bg-transparent px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ember transition hover:bg-ember hover:text-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-hairline bg-field-2 px-4 py-2 text-[13px] font-medium text-starlight transition hover:border-ember hover:bg-ember hover:text-field-2 disabled:cursor-not-allowed disabled:border-hairline disabled:text-faint"
               >
                 <Moon aria-hidden="true" size={16} strokeWidth={1.8} />
                 <span>End session</span>
@@ -776,7 +784,7 @@ export function SessionClient() {
                 type="button"
                 aria-label="More session actions"
                 onClick={() => setMenuOpen((open) => !open)}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-field-2 text-dim transition hover:text-starlight"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-field-2 text-starlight transition hover:border-ember hover:bg-ember hover:text-field-2"
               >
                 <MoreHorizontal aria-hidden="true" size={18} strokeWidth={1.8} />
               </button>
@@ -841,11 +849,11 @@ export function SessionClient() {
                   </p>
                   <p className="mt-4 max-w-md font-display text-[28px] italic leading-snug text-starlight">
                     {sessionNumber(session) === "1"
-                      ? "Reverie knows nothing about Lena yet."
+                      ? `Reverie knows nothing about ${SESSION_PERSON_NAME} yet.`
                       : "Reverie has been dreaming about last time."}
                   </p>
                   <p className="mt-3 text-sm leading-6 text-dim">
-                    Start with what Lena would say, or write your own below.
+                    Start with what {SESSION_PERSON_NAME} would say, or write your own below.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -880,7 +888,7 @@ export function SessionClient() {
                       role="status"
                     >
                       <span className="hairline-divider h-px flex-1 opacity-60" />
-                      <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-ember">
+                      <span className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-sage">
                         <Sparkles aria-hidden="true" size={12} strokeWidth={1.8} />
                         <span className="truncate">
                           {item.eyebrow} - {item.content.toLowerCase()}
@@ -916,7 +924,7 @@ export function SessionClient() {
                           )}
                           {item.usedEngrams?.length ? (
                             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
+                              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-sage">
                                 drawing on
                               </span>
                               {item.usedEngrams.map((used) => (
@@ -1001,13 +1009,13 @@ export function SessionClient() {
         </form>
       </section>
 
-      <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-void lg:order-2 lg:h-full lg:min-h-0">
-        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field/35 px-8">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
-            the mind
+      <section className="order-1 flex h-[58dvh] min-h-[520px] flex-col bg-field lg:order-2 lg:h-full lg:min-h-0">
+        <header className="flex h-[var(--reverie-header-h)] shrink-0 flex-col justify-center border-b border-hairline bg-field px-8">
+          <p className="font-display text-[24px] font-medium text-starlight">
+            {SESSION_PERSON_NAME}&apos;s mind
           </p>
-          <p className="mt-2 max-w-sm font-mono text-[11px] leading-5 text-dim">
-            {graph.nodes.length} memories · {graph.nodes.filter((node) => node.provisional).length} provisional
+          <p className="mt-2 max-w-sm font-mono text-[12px] leading-5 text-dim">
+            {memoryCount} memories · {provisionalCount} provisional — every dot is something Reverie learned from her own words
           </p>
         </header>
         <div className="relative min-h-0 flex-1">

@@ -10,8 +10,8 @@ const typeColors: Record<string, string> = {
   preference: "bg-moth",
   affect: "bg-moth",
   goal: "bg-ember",
-  fact: "bg-ember",
-  strategy_outcome: "bg-ember"
+  fact: "bg-sage",
+  strategy_outcome: "bg-sage"
 };
 
 function scoreLine(item: MemoryPackItem) {
@@ -56,7 +56,7 @@ export function BudgetMeter({
   return (
     <section className="flex h-full flex-col justify-center px-8 py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-ember">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-sage">
           Working memory
         </h2>
         <p className="font-mono text-[13px] text-starlight">
