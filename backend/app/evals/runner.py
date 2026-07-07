@@ -243,7 +243,12 @@ async def play_baseline_condition(
             "Open this learning session with one concise first response.",
             history,
         )
-        opening = await llm_client.complete_tutor(opening_prompt, [], session["id"])
+        opening = await llm_client.complete_tutor(
+            opening_prompt,
+            [],
+            session["id"],
+            temperature=0.1,
+        )
         database.insert_utterance(session["id"], "tutor", opening)
         if index in (2, 3):
             score, real = await score_opening(opening, session["id"])
@@ -312,6 +317,7 @@ async def play_reverie_condition(
             "Open this learning session with one concise first response.",
             pack["winners"],
             session["id"],
+            temperature=0.1,
         )
         database.insert_utterance(session["id"], "tutor", opening)
         if index in (2, 3):
