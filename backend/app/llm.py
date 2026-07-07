@@ -679,6 +679,7 @@ def build_tutor_prompt(student_message: str, memory_pack: list[dict[str, Any]]) 
         procedural_block,
         semantic_block,
         "Use the app clock date and current session title supplied by the session layer.",
+        has_memories=bool(memory_pack),
     )
 
 

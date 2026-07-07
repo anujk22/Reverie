@@ -100,12 +100,31 @@ def default_session_title(count: int) -> str:
     return f"Session {count} · {DEFAULT_SESSION_TOPIC}"
 
 
+SESSION_OPEN_WITH_MEMORIES = """At the start of a session (first reply only), open like someone who genuinely
+remembers this person: name the ONE most relevant past struggle or win concretely
+(what she got wrong or fixed last time, in plain words), and shape the reply around
+her known preferences (exact values and steps, not links) before advancing the task.
+If no relevant memory exists, skip this.
+If the retrieved memory pack contains affect, also adapt the tone briefly and
+naturally: lower pressure, reassure, or make the next step feel smaller. Do not
+quote the emotion clinically."""
+
+SESSION_OPEN_WITHOUT_MEMORIES = """You have no stored memories of this person. Use only what their current message
+explicitly contains. Never claim, imply, or invent shared history (no "last time,"
+no "as we discussed," no remembered fixes or settings). Open by taking the message
+at face value and asking one useful question."""
+
+
 def build_tutor_system_prompt(
     student_message: str,
     procedural_block: str,
     semantic_block: str,
     session_context: str,
+    has_memories: bool = True,
 ) -> str:
+    session_open_directive = (
+        SESSION_OPEN_WITH_MEMORIES if has_memories else SESSION_OPEN_WITHOUT_MEMORIES
+    )
     return f"""{TUTOR_PERSONA}
 
 RESPONSE DIRECTIVES (from procedural memory, follow these):
@@ -117,14 +136,7 @@ PERSON MODEL (from semantic memory, believed true with stated confidence):
 SESSION CONTEXT:
 {session_context}
 
-At the start of a session (first reply only), open like someone who genuinely
-remembers this person: name the ONE most relevant past struggle or win concretely
-(what she got wrong or fixed last time, in plain words), and shape the reply around
-her known preferences (exact values and steps, not links) before advancing the task.
-If no relevant memory exists, skip this.
-If the retrieved memory pack contains affect, also adapt the tone briefly and
-naturally: lower pressure, reassure, or make the next step feel smaller. Do not
-quote the emotion clinically.
+{session_open_directive}
 
 CURRENT MESSAGE:
 {student_message}
