@@ -1,6 +1,6 @@
 # Alibaba Cloud Deployment Proof
 
-**Proof recording (backend running on Alibaba Cloud ECS):** `<PASTE VIDEO LINK>`
+**Proof recording (backend running on Alibaba Cloud ECS):** https://youtu.be/JRWeV3wfYt4
 
 The backend was deployed to an Alibaba Cloud ECS instance using
 [`deploy.sh`](../deploy.sh), which builds the Docker images and brings the
