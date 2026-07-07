@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.db import Database
 import app.llm as llm_module
+import app.memory.observer as observer_module
 from app.memory.observer import observe_exchange
 import app.memory.dream as dream_module
 import app.memory.retrieval_service as retrieval_service
@@ -16,6 +17,7 @@ def build_temp_database(tmp_path, monkeypatch) -> Database:
     database.migrate()
     database.reset_demo()
     monkeypatch.setattr(llm_module, "db", database)
+    monkeypatch.setattr(observer_module, "db", database)
     monkeypatch.setattr(dream_module, "db", database)
     monkeypatch.setattr(retrieval_service, "db", database)
     return database
