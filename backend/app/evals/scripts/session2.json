@@ -8,8 +8,8 @@
   ],
   "turns": [
     {
-      "student": "Can we pick up from yesterday? I remember I mixed up the nested thing with product rule, but I want to try a worked one first.",
-      "expected_tags": ["worked_examples", "chain_rule", "product_rule"]
+      "student": "Can we pick up from a few days ago? Where did I leave off?",
+      "expected_tags": ["chain_rule"]
     },
     {
       "student": "For (3x^2 + 5)^4, I think the outside derivative is 4(3x^2 + 5)^3, and then I multiply by 6x for the inside. Is that finally the move?",

@@ -1,16 +1,18 @@
 # Reverie — 3-Minute Demo Video Script
 
-Target runtime: ~2:55. Narration: ElevenLabs (~420 words, slight slowdown ~0.95x on the forgetting and close beats).
+Target runtime: ~2:55 (hard cap 3:00 — lock the cut at ≤2:57). Narration: ElevenLabs (~390 words; slow to ~0.95x on the forgetting beat and the final thesis line only — the close's list reads at 1x, it does not fit slowed). The word count is deliberately under-stuffed: the film breathes through the name animation, the dream choreography, and the forgetting hold.
 Format: 10s failure cold open → cinematic name animation → live demo with zoom/popout edits → close.
 Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **never MOCK** (visible MOCK chip is disqualifying per project rules).
 
 **Framing rules (non-negotiable):** the words "tutor," "tutoring," and "student" never appear in this video. The persona is **Lena**. The learning scenario is presented as a deliberate *stress test* of the engine, never as the product category. Reverie is a memory engine — infrastructure with a visible mind.
 
-**Blockers before recording:**
+**Blockers before recording (item 1 is the critical path — nothing downstream matters until it lands):**
 
-- [ ] Live eval run complete — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat
+- [ ] **Live eval run complete** — fills the bracketed numbers `[X] [Y] [Z] [N]` in the Evals beat. Both contingencies are pre-decided in that beat; no judgment calls on edit night.
 - [x] Repositioning pass landed (Maya → Lena everywhere, affect-adaptive session opening verified — commit 55d5bda)
-- [ ] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a plain generic chat mock blanking on a returning user)
+- [x] Session 2 script timeline fixed — "yesterday" → "a few days ago," and Lena no longer announces her own misconception or preference (the recall has to be earned, not prompted)
+- [ ] ~14s of "amnesiac assistant" footage for the cold open (no_memory eval condition on screen, or a staged generic chat blanking on a returning user — staged footage is fine here because it isn't Reverie, but it must show zero Reverie chrome and no MOCK chip)
+- [ ] Film mode replayed end-to-end **twice** on the live Docker stack before any take counts as good
 
 ---
 
@@ -54,9 +56,9 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 ## [01:35 – 02:10] RECALL — THE PAYOFF
 
-**Screen:** Session 2 opens. ZOOM on budget meter filling, then on the assistant's reply citing the misconception.
+**Screen:** Session 2 opens. ZOOM on budget meter filling, then on the assistant's reply citing the misconception unprompted.
 
-> Lena returns. Reverie doesn't reload her transcript — it retrieves under a budget. Twelve hundred tokens, scored on relevance, strength, and recency. It knows what she got wrong days ago — she never repeated it.
+> Lena returns. Reverie doesn't reload her transcript — it retrieves under a budget. Twelve hundred tokens, scored on relevance, strength, and recency. It knows what she got wrong three days ago — she never had to say it twice.
 
 **Screen:** hold on the reply's gentle, low-pressure phrasing.
 
@@ -66,19 +68,25 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 > And it shows its work: what it recalled, what it left out, and why.
 
-## [02:10 – 02:35] EVALS
+## [02:10 – 02:30] EVALS
 
 **Screen:** /evals with real numbers. Popout the token comparison.
 
 > We measured it against two baselines — no memory at all, and stuffing the entire history into context. Reverie scored [X] on personalization versus [Y], recalled [Z] percent of planted facts, and used [N] percent fewer tokens than full history. Measured, not asserted.
 
-*Fallback rule (decided in advance, not on edit night): if the personalization delta vs. no-memory is under 1 point OR planted-fact recall is under 80%, cut this beat down to the token-efficiency claim only. Token efficiency vs. full-history is structurally guaranteed to be large, so it is always safe to state.*
+**Pre-decided contingencies (locked now, not at 2 a.m. on edit night):**
 
-## [02:35 – 02:55] CLOSE
+- **No completed real run by record time** → cut this beat entirely (standing ruling: no real run, no eval claims). Cover the ~20s by extending the recall beat's stillness and playing the spare architecture line over the close.
+- **Real run but underwhelming** — underwhelming means personalization delta (Reverie − no-memory) **< 1.0 point** or planted-fact recall **< 80%** → keep the beat, cut the VO to the token-efficiency sentence only ("…and used [N] percent fewer tokens than full history. Measured, not asserted."). Token efficiency vs. full-history is structurally guaranteed to be large, so it is always safe to state.
+- The numbers spoken must match `EVALS.md` exactly. Never a favorable subset.
+
+## [02:30 – 02:55] CLOSE
 
 **Screen:** /architecture card, then pull back to the fully-lit brain.
 
-> And the engine contains zero domain knowledge — no curriculum, no calculus. Swap one script file, and the same engine remembers a customer across support tickets, a patient across visits, an engineer across your codebase. The test suite proves it. Typed memories, event sourcing, dreams, decay, budgeted recall — running on Qwen, on Alibaba Cloud. Your AI shouldn't meet its users for the first time, every time.
+> And the engine contains zero domain knowledge. Swap one script file, and it remembers a customer across support tickets, a patient across visits, an engineer across your codebase — the test suite proves it. Typed memories, event sourcing, dreams, decay, budgeted recall, on Qwen, on Alibaba Cloud. Your AI shouldn't meet its users for the first time, every time.
+
+*(The list reads at 1x; slow to 0.95x only on the final thesis sentence, with a half-beat before it.)*
 
 **Screen:** beat. Logo.
 
@@ -88,9 +96,10 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 ## Production notes
 
-- **Zoom discipline:** zoom only when the VO names a pixel (toast, quote, meter, dimming node, the gentle reply). The UI is dark and atmospheric — constant motion reads as chaos. Wide-and-still is the default; zoom is the emphasis.
-- **The affect beat (01:50) is the emotional center of the film.** Give it stillness: no zoom movement while the line lands, just the reply on screen. This is the moment a judge retells to another judge.
+- **Zoom discipline:** zoom only when the VO names a pixel (toast, quote, meter, dimming node, the gentle reply). Wide-and-still is the default; zoom is the emphasis — constant motion reads as chaos.
+- **The affect beat (~01:55) is the emotional center of the film.** Give it stillness: no zoom movement while the line lands, just the reply on screen. This is the moment a judge retells to another judge.
 - **Pauses:** the script has deliberate beats ("Watch —", the close). Insert real 0.5–1s gaps in the edit; don't rely on TTS to breathe.
+- **Lock picture to VO:** generate and time the ElevenLabs read *before* cutting. If the total read pushes the cut past 2:57, trim the close's list ("Typed memories, … budgeted recall") — never the thesis line, never the pauses.
 - **Proof-listen** the ElevenLabs output at 1x before export (artifact check).
 - **Record big, punch in later:** capture at full display resolution; do zooms in post so text stays sharp.
 - **Test the export** at 1080p at Devpost-embed size — if the budget meter isn't readable, judges can't read it either.
@@ -98,4 +107,6 @@ Editor: Kite. Footage spine: film mode (`?film=1`), live backend only — **neve
 
 ## Order of operations
 
-1. Repositioning pass lands (rename + affect beat) → 2. run evals live, fill brackets → 3. rehearse film mode live twice → 4. record footage → 5. generate VO → 6. cut in Kite → 7. export, watch on laptop, submit.
+1. Run evals live, fill brackets or trigger a pre-decided contingency → 2. rehearse film mode live twice on the Docker stack → 3. record footage → 4. generate VO and time it → 5. cut in Kite, picture locked to VO → 6. export, watch at Devpost-embed size, submit.
+
+Item 1 is the critical path. Everything after it is execution, not decision.
