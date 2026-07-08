@@ -400,6 +400,8 @@ class LLMClient:
             "- type must be one of: misconception, mastery, preference, affect, goal, fact, strategy_outcome.\n"
             "- content: one sentence, third person, specific and testable. Bad: "
             f"\"{OBSERVER_BAD_EXAMPLE}\". Good: \"{OBSERVER_GOOD_EXAMPLE}\"\n"
+            "- The Bad/Good examples are format illustrations only. NEVER copy or paraphrase them into "
+            "output; extract only claims grounded in the transcript below.\n"
             "- Only claims supported by the transcript. Every engram MUST include at least one exact source quote.\n"
             "- Type assignment must be supported by the quoted evidence, not by surrounding labels or assumptions.\n"
             "- Do not create a misconception merely because the student mentions a past error; only create one "

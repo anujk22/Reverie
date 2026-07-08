@@ -36,11 +36,28 @@ MOCK_LAUNCH_MARKERS = ("sale date", "going live", "launch")
 MOCK_SHIPPING_MARKERS = ("shipping zone", "shipping-zone")
 MOCK_MASTERY_MARKERS = ("retry failed order sync is enabled", "retries are enabled", "webhook retries are not automatic")
 MOCK_MISCONCEPTION_TRIGGERS = ("automatic", "never enabled", "webhook retries")
-MOCK_MISCONCEPTION_QUOTE_MARKERS = ("automatic", "webhook retries")
-MOCK_STEP_QUOTE_MARKERS = ("exact steps", "real values", "links")
-MOCK_LAUNCH_QUOTE_MARKERS = ("sale date", "going live", "launch")
-MOCK_AFFECT_QUOTE_MARKERS = ("frustrated", "failed order", "sync error")
-MOCK_MASTERY_QUOTE_MARKERS = ("enabled",)
+MOCK_MISCONCEPTION_QUOTE_MARKERS = ("thought webhook retries happened automatically",)
+MOCK_STEP_QUOTE_MARKERS = (
+    "keep it exact, with values",
+    "exact steps with real values",
+    "Please give the exact values",
+)
+MOCK_LAUNCH_QUOTE_MARKERS = (
+    "sale date is close",
+    "minutes before going live",
+    "fresh order before launch",
+    "must be Enabled before launch",
+)
+MOCK_AFFECT_QUOTE_MARKERS = (
+    "close, and I am frustrated",
+    "I am frustrated because the test",
+    "That feels calmer. A short checklist",
+    "sale date was close",
+)
+MOCK_MASTERY_QUOTE_MARKERS = (
+    "Retry failed order sync is Enabled",
+    "webhook retries are not automatic",
+)
 MOCK_MISCONCEPTION_TAGS = ["webhook_retries", "order_sync"]
 MOCK_PREFERENCE_TAGS = ["step_by_step", "real_values"]
 MOCK_GOAL_TAGS = ["launch", "sale_date", "store_migration"]
