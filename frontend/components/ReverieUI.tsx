@@ -431,32 +431,34 @@ export function BrainMapPanel({
       <div className="brain-stage">
         <div className="brain-ambient brain-ambient-a" />
         <div className="brain-ambient brain-ambient-b" />
-        <Image
-          src="/assets/brainbest.png"
-          alt="Autobiographical memory network shaped like a brain"
-          width={1438}
-          height={1230}
-          priority
-          className="brain-image"
-        />
-        <div className="brain-live-layer" aria-hidden="true">
-          {nodes.map((node) => {
-            const isEventNode = eventEngramId === node.id;
-            const eventClass =
-              event?.kind === "memory_event" && isEventNode
-                ? ` brain-memory-node-event brain-memory-node-${event.event_type.replace(
-                    /^engram\./,
-                    ""
-                  )}`
-                : "";
-            return (
-              <span
-                key={`${node.id}-${isEventNode ? eventId : "idle"}`}
-                className={`brain-memory-node brain-memory-node-${node.status}${eventClass}`}
-                style={nodeStyle(node)}
-              />
-            );
-          })}
+        <div className="brain-artwork-frame">
+          <Image
+            src="/assets/brainbest.png"
+            alt="Autobiographical memory network shaped like a brain"
+            width={1438}
+            height={1230}
+            priority
+            className="brain-image"
+          />
+          <div className="brain-live-layer" aria-hidden="true">
+            {nodes.map((node) => {
+              const isEventNode = eventEngramId === node.id;
+              const eventClass =
+                event?.kind === "memory_event" && isEventNode
+                  ? ` brain-memory-node-event brain-memory-node-${event.event_type.replace(
+                      /^engram\./,
+                      ""
+                    )}`
+                  : "";
+              return (
+                <span
+                  key={`${node.id}-${isEventNode ? eventId : "idle"}`}
+                  className={`brain-memory-node brain-memory-node-${node.status}${eventClass}`}
+                  style={nodeStyle(node)}
+                />
+              );
+            })}
+          </div>
         </div>
         <div className="brain-particle brain-particle-a" />
         <div className="brain-particle brain-particle-b" />

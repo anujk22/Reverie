@@ -2,6 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDemoDirector } from "@/components/DemoDirector";
 import { MemoryInspector } from "@/components/MemoryInspector";
 import {
   BrainMapPanel,
@@ -142,10 +143,14 @@ function waitForDemoTyping(ms: number, signal?: AbortSignal) {
   });
 }
 
+function stripMemoryToastPrefix(content: string) {
+  return content.replace(/^\s*(Noticed|Reinforced|Rewritten):\s*/i, "").trim();
+}
+
 function markerContent(event: RuntimeEvent) {
   if (event.kind !== "memory_event") return null;
-  if (event.toast) return String(event.toast);
-  if (event.engram) return event.engram.content;
+  if (event.toast) return stripMemoryToastPrefix(String(event.toast));
+  if (event.engram) return stripMemoryToastPrefix(event.engram.content);
   return null;
 }
 
@@ -196,6 +201,7 @@ function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
 }
 
 export function SessionClient() {
+  const director = useDemoDirector();
   const [session, setSession] = useState<SessionRecord | null>(null);
   const [graph, setGraph] = useState<MemoryGraph>(emptyGraph);
   const [pack, setPack] = useState<MemoryPack | null>(null);
@@ -214,6 +220,7 @@ export function SessionClient() {
     ((message?: string, signal?: AbortSignal) => Promise<void>) | null
   >(null);
   const initialBootStartedRef = useRef(false);
+  const bootRequestRef = useRef(0);
 
   const loadGraph = useCallback(async () => {
     const data = await fetchGraph();
@@ -225,32 +232,30 @@ export function SessionClient() {
     return data;
   }, []);
 
-  const startSession = useCallback(async (title?: string) => {
-    const created = await createSession(title);
-    sessionRef.current = created;
-    setSession(created);
-    setPack(created.memory_pack ?? null);
-    setItems([]);
-    return created;
-  }, []);
-
   const boot = useCallback(async () => {
+    const requestId = bootRequestRef.current + 1;
+    bootRequestRef.current = requestId;
     setBooting(true);
     setError(null);
     try {
       const [sessions, graphData] = await Promise.all([listSessions(), fetchGraph()]);
       const latest = sessions.sessions[sessions.sessions.length - 1] ?? null;
-      const active = latest && !latest.ended_at ? latest : await startSession(SESSION_ONE_TITLE);
+      const active = latest && !latest.ended_at ? latest : await createSession(SESSION_ONE_TITLE);
+      const nextPack = active.memory_pack ?? (await fetchMemoryPack(active.id));
+      if (bootRequestRef.current !== requestId) return;
       sessionRef.current = active;
       setSession(active);
       setGraph(graphData);
-      setPack(active.memory_pack ?? (await fetchMemoryPack(active.id)));
+      setPack(nextPack);
     } catch (err) {
+      if (bootRequestRef.current !== requestId) return;
       setError(humanError(err));
     } finally {
-      setBooting(false);
+      if (bootRequestRef.current === requestId) {
+        setBooting(false);
+      }
     }
-  }, [startSession]);
+  }, []);
 
   useEffect(() => {
     if (initialBootStartedRef.current) return;
@@ -483,6 +488,11 @@ export function SessionClient() {
 
     const unsubscribeReload = onDemoReload(async ({ resolve, reject }) => {
       try {
+        bootRequestRef.current += 1;
+        sessionRef.current = null;
+        setSession(null);
+        setPack(null);
+        setGraph(emptyGraph);
         setItems([]);
         setDraft("");
         setSelected(null);
@@ -540,9 +550,14 @@ export function SessionClient() {
   }, [boot, dreaming, loadGraph, streaming]);
 
   const hasMessages = items.some((item) => item.kind === "message");
+  const directorActive = director.status !== "idle";
   return (
     <div className="grid min-h-dvh overflow-hidden bg-field lg:h-dvh lg:grid-cols-[minmax(560px,46%)_minmax(0,54%)]">
-      <section className="cosmic-shell flex min-h-dvh flex-col border-hairline lg:h-dvh lg:min-h-0 lg:border-r">
+      <section
+        className={`cosmic-shell flex min-h-dvh flex-col border-hairline transition-[padding] lg:h-dvh lg:min-h-0 lg:border-r ${
+          directorActive ? "pb-56 md:pb-52" : ""
+        }`}
+      >
         <header className="relative shrink-0 px-6 pb-4 pt-8 md:px-10 lg:px-11 lg:pt-10">
           <div className="min-w-0">
             <div className="min-w-0">

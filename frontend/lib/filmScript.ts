@@ -101,13 +101,25 @@ export const filmScript: DemoBeat[] = [
   },
   {
     id: "remember",
-    caption: "It remembered frustration, and lowered the pressure.",
+    caption: "The reply changes shape: lower pressure, exact values.",
     page: "/",
     action: {
       type: "send_message",
       text: "Can you keep it exact, with values, not links?"
     },
     autoAdvanceMs: 2000
+  },
+  {
+    id: "affect-receipt",
+    caption: "Not a vibe — a typed affect memory, with a receipt, recalled under budget.",
+    page: "/",
+    action: {
+      type: "show_engram_inspector",
+      engramType: "affect",
+      contains: "frustrat",
+      holdMs: 6000
+    },
+    autoAdvanceMs: 500
   },
   {
     id: "measured",

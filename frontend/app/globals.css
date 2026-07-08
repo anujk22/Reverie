@@ -705,6 +705,9 @@ button.tag-pill {
 }
 
 .brain-stage {
+  --brain-art-top: 46%;
+  --brain-art-width: min(82vw, 820px);
+  --brain-art-max-width: 82%;
   position: relative;
   z-index: 1;
   flex: 1;
@@ -712,43 +715,41 @@ button.tag-pill {
 }
 
 .brain-map-panel-embedded .brain-stage {
+  --brain-art-top: 50%;
+  --brain-art-width: min(72vw, 600px);
+  --brain-art-max-width: 86%;
   min-height: 390px;
+}
+
+.brain-artwork-frame {
+  position: absolute;
+  left: 50%;
+  top: var(--brain-art-top);
+  z-index: 1;
+  width: var(--brain-art-width);
+  max-width: var(--brain-art-max-width);
+  aspect-ratio: 1438 / 1230;
+  transform: translate(-50%, -50%);
 }
 
 .brain-image {
   position: absolute;
-  left: 50%;
-  top: 46%;
-  z-index: 1;
-  width: min(82vw, 820px);
-  max-width: 86%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  height: 100%;
+  width: 100%;
   filter:
     drop-shadow(0 0 24px rgba(255, 122, 69, 0.28))
     drop-shadow(0 0 42px rgba(223, 157, 55, 0.2))
     saturate(1.08);
 }
 
-.brain-map-panel-embedded .brain-image {
-  top: 50%;
-  width: min(72vw, 760px);
-}
-
 .brain-live-layer {
   pointer-events: none;
   position: absolute;
-  left: 50%;
-  top: 46%;
+  inset: 0;
   z-index: 2;
-  width: min(82vw, 820px);
-  max-width: 86%;
-  aspect-ratio: 1438 / 1230;
-  transform: translate(-50%, -50%);
-}
-
-.brain-map-panel-embedded .brain-live-layer {
-  top: 50%;
-  width: min(72vw, 760px);
+  height: 100%;
+  width: 100%;
 }
 
 .brain-memory-node {
@@ -1215,12 +1216,34 @@ button.tag-pill {
 }
 
 @media (max-width: 1280px) {
-  .brain-image {
-    width: min(88vw, 720px);
+  .brain-stage {
+    --brain-art-width: min(88vw, 720px);
   }
 
   .brain-callout {
     width: 150px;
+  }
+}
+
+@media (max-height: 920px) {
+  .brain-stage {
+    --brain-art-top: 47%;
+    --brain-art-width: min(78vw, 720px);
+  }
+
+  .brain-map-panel-embedded .brain-stage {
+    --brain-art-width: min(70vw, 600px);
+  }
+}
+
+@media (max-height: 840px) {
+  .brain-stage {
+    --brain-art-top: 49%;
+    --brain-art-width: min(72vw, 640px);
+  }
+
+  .brain-map-panel-embedded .brain-stage {
+    --brain-art-width: min(68vw, 580px);
   }
 }
 
@@ -1291,10 +1314,10 @@ button.tag-pill {
     display: none;
   }
 
-  .brain-image {
-    top: 49%;
-    width: min(96vw, 560px);
-    max-width: 96%;
+  .brain-stage {
+    --brain-art-top: 49%;
+    --brain-art-width: min(96vw, 560px);
+    --brain-art-max-width: 96%;
   }
 
   .page-header h1 {
