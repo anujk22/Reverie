@@ -253,7 +253,8 @@ function alphaFor(engram: Engram) {
   if (engram.status === "archived") return 0.15;
   if (engram.status === "superseded") return 0.28;
   if (engram.provisional) return 0.58;
-  return 0.68 + Math.max(0, Math.min(1, engram.strength)) * 0.28;
+  // Wide ramp so decayed-but-active memories visibly fade on camera.
+  return 0.24 + Math.max(0, Math.min(1, engram.strength)) * 0.72;
 }
 
 function resolveNode(value: string | CanvasNode) {

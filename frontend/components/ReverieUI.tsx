@@ -245,7 +245,7 @@ function nodeStyle(engram: Engram) {
   const size = 6 + Math.max(0, Math.min(1, engram.importance)) * 12;
   return {
     "--node-color": brainNodeColors[engram.type] ?? "#ff7446",
-    "--node-opacity": engram.status === "archived" ? 0.28 : 0.58 + strength * 0.42,
+    "--node-opacity": engram.status === "archived" ? 0.22 : 0.3 + strength * 0.7,
     height: `${size}px`,
     left: `${point.x}%`,
     top: `${point.y}%`,
@@ -350,7 +350,7 @@ export function ContextBudgetMeter({
   available = 72000,
   percent = 64
 }: ContextBudgetMeterProps) {
-  const safePercent = Math.max(0, Math.min(100, percent));
+  const safePercent = Math.round(Math.max(0, Math.min(100, percent)));
   return (
     <section className="context-budget" aria-label="Context budget">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -474,7 +474,7 @@ export function BrainMapPanel({
         ))}
       </div>
 
-      <ContextBudgetMeter {...(budget ?? {})} />
+      {budget ? <ContextBudgetMeter {...budget} /> : null}
     </aside>
   );
 }
