@@ -272,7 +272,10 @@ function visibleBrainNodes(graph: MemoryGraph | undefined, event: RuntimeEvent |
 }
 
 function compactNumber(value: number) {
-  return value >= 1000 ? `${Math.round(value / 1000)}K` : value.toLocaleString();
+  if (value < 1000) return value.toLocaleString();
+  const thousands = value / 1000;
+  const formatted = Number.isInteger(thousands) ? `${thousands}` : thousands.toFixed(1);
+  return `${formatted}K`;
 }
 
 export function MetadataChip({ label, value }: MetadataChipProps) {

@@ -172,12 +172,12 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
     [router]
   );
 
-  const syncSessionPage = useCallback(async (signal?: AbortSignal) => {
+  const syncSessionPage = useCallback(async (signal?: AbortSignal, session?: SessionRecord) => {
     let lastError: unknown = null;
     for (let index = 0; index < 24; index += 1) {
       throwIfAborted(signal);
       try {
-        await reloadDemoSession();
+        await reloadDemoSession(session);
         return;
       } catch (err) {
         lastError = err;
@@ -225,7 +225,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
         throwIfAborted(signal);
         currentSessionRef.current = await createSession(action.createSessionTitle);
         await navigateTo(beat.page, signal);
-        await syncSessionPage(signal);
+        await syncSessionPage(signal, currentSessionRef.current);
         return;
       }
 
@@ -235,7 +235,7 @@ export function DemoDirectorProvider({ children }: { children: ReactNode }) {
           await fetchMemoryPack(currentSessionRef.current.id);
         }
         await navigateTo(beat.page, signal);
-        await syncSessionPage(signal);
+        await syncSessionPage(signal, currentSessionRef.current);
         return;
       }
 
@@ -567,7 +567,7 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
-      <div className="pointer-events-auto fixed right-3 top-3 flex items-center gap-2 rounded-full border border-hairline bg-field-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)] md:right-5 md:top-5">
+      <div className="pointer-events-auto fixed left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-full border border-hairline bg-field-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)] md:top-5">
         <span className="text-starlight">Film</span>
         <span className="text-faint">·</span>
         <span>{stateLabel}</span>

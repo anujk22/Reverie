@@ -226,6 +226,49 @@ def test_session_level_dream_does_not_duplicate_existing_affect(tmp_path, monkey
     assert report["stats"]["distill"]["confirmed"] == 0
 
 
+def test_session_level_dream_rejects_candidate_quoted_only_from_tutor_lines(
+    tmp_path, monkeypatch
+):
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("session tutor-only anchor")
+    database.insert_utterance(
+        session["id"],
+        "student",
+        "I need exact steps before launch.",
+    )
+    database.insert_utterance(
+        session["id"],
+        "tutor",
+        "You sound frustrated that the order sync failed late.",
+    )
+
+    async def fake_extract_session_level_engrams(
+        transcript, existing_engrams, session_id=None
+    ):
+        return [
+            {
+                "type": "affect",
+                "content": "Felt frustrated that the order sync failed late.",
+                "subject_tags": ["frustration"],
+                "confidence": 0.8,
+                "importance": 0.7,
+                "source_quotes": ["frustrated that the order sync failed late"],
+            }
+        ]
+
+    monkeypatch.setattr(
+        dream_module.llm_client,
+        "extract_session_level_engrams",
+        fake_extract_session_level_engrams,
+    )
+
+    confirmed = asyncio.run(dream_module.add_session_level_engrams(session["id"]))
+
+    assert confirmed == 0
+    assert database.all_engrams() == []
+    assert database.events_after() == []
+
+
 def test_newer_mastery_supersedes_older_misconception(tmp_path, monkeypatch):
     database = build_temp_database(tmp_path, monkeypatch)
     session = database.create_session("contradiction winner")

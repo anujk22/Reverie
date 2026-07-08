@@ -11,7 +11,12 @@ from app.db import db, new_id, row_to_engram
 from app.llm import llm_client
 from app.memory.decay import DecayInput, compute_strength
 from app.memory.dedupe import find_duplicate_memory
-from app.memory.observer import quote_sources, quote_supported
+from app.memory.observer import (
+    quote_anchors_student_utterance,
+    quote_has_substance,
+    quote_sources,
+    quote_supported,
+)
 from app.memory.retrieval import cosine
 from app.models import CandidateEngram
 from app.subject import memory_toast
@@ -192,7 +197,11 @@ async def add_session_level_engrams(session_id: str) -> int:
             continue
         if candidate.type not in {"affect", "strategy_outcome"}:
             continue
+        if not all(quote_has_substance(quote) for quote in candidate.source_quotes):
+            continue
         if not all(quote_supported(quote, transcript) for quote in candidate.source_quotes):
+            continue
+        if not any(quote_anchors_student_utterance(quote, utterances) for quote in candidate.source_quotes):
             continue
         source_ids: list[str] = []
         for quote in candidate.source_quotes:

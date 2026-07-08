@@ -136,6 +136,73 @@ def test_observer_rejects_quotes_only_anchored_in_older_window(tmp_path, monkeyp
     assert database.events_after() == []
 
 
+def test_observer_rejects_candidate_anchored_only_in_final_tutor_reply(
+    tmp_path, monkeypatch
+) -> None:
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("tutor-only anchor")
+    database.insert_utterance(
+        session["id"],
+        "student",
+        "I thought webhook retries happened automatically after the failed sync.",
+    )
+    database.insert_utterance(
+        session["id"],
+        "tutor",
+        "Webhook retries must be explicitly enabled before launch.",
+    )
+    install_observer_fakes(
+        monkeypatch,
+        [
+            candidate(
+                content="Believes webhook retries must be explicitly enabled before launch.",
+                quote="must be explicitly enabled before launch",
+                kind="misconception",
+            )
+        ],
+    )
+
+    asyncio.run(observe_exchange(session["id"]))
+
+    assert database.all_engrams() == []
+    assert database.events_after() == []
+
+
+def test_observer_accepts_student_quote_with_tutor_supporting_quote(
+    tmp_path, monkeypatch
+) -> None:
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("student plus tutor support")
+    student = database.insert_utterance(
+        session["id"],
+        "student",
+        "I thought webhook retries happened automatically after the failed sync.",
+    )
+    tutor = database.insert_utterance(
+        session["id"],
+        "tutor",
+        "Webhook retries must be explicitly enabled before launch.",
+    )
+    supported = candidate(
+        content="Believes failed order-sync webhooks retry automatically.",
+        quote="thought webhook retries happened automatically",
+        kind="misconception",
+    )
+    supported["source_quotes"].append("must be explicitly enabled before launch")
+    install_observer_fakes(monkeypatch, [supported])
+
+    asyncio.run(observe_exchange(session["id"]))
+
+    engrams = database.all_engrams()
+    events = database.events_after()
+    assert len(engrams) == 1
+    assert [event["event_type"] for event in events] == ["engram.observed"]
+    assert [item["id"] for item in database.engram_detail(engrams[0]["id"])["provenance"]] == [
+        student["id"],
+        tutor["id"],
+    ]
+
+
 def test_observer_dedupes_near_identical_candidates_in_one_pass(tmp_path, monkeypatch) -> None:
     database = build_temp_database(tmp_path, monkeypatch)
     session = database.create_session("candidate dedupe")

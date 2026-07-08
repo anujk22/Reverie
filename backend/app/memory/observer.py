@@ -28,16 +28,23 @@ def quote_has_substance(quote: str) -> bool:
     return len(re.findall(r"[A-Za-z0-9']+", quote)) >= 4
 
 
-def current_exchange_utterances(utterances: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    if len(utterances) >= 2:
-        student, tutor = utterances[-2], utterances[-1]
-        if student["role"] == "student" and tutor["role"] == "tutor":
-            return [student, tutor]
-    return utterances[-1:]
+def final_student_utterance(utterances: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for item in reversed(utterances):
+        if item["role"] == "student":
+            return item
+    return None
 
 
-def quote_anchors_current_exchange(quote: str, utterances: list[dict[str, Any]]) -> bool:
-    return any(quote_supported(quote, item["content"]) for item in current_exchange_utterances(utterances))
+def quote_anchors_final_student(quote: str, utterances: list[dict[str, Any]]) -> bool:
+    student = final_student_utterance(utterances)
+    return bool(student and quote_supported(quote, student["content"]))
+
+
+def quote_anchors_student_utterance(quote: str, utterances: list[dict[str, Any]]) -> bool:
+    return any(
+        item["role"] == "student" and quote_supported(quote, item["content"])
+        for item in utterances
+    )
 
 
 def quote_sources(quote: str, utterances: list[dict[str, Any]]) -> list[str]:
@@ -70,7 +77,7 @@ async def observe_exchange(session_id: str) -> None:
             continue
         if not all(quote_supported(quote, transcript) for quote in candidate.source_quotes):
             continue
-        if not any(quote_anchors_current_exchange(quote, utterances) for quote in candidate.source_quotes):
+        if not any(quote_anchors_final_student(quote, utterances) for quote in candidate.source_quotes):
             continue
 
         source_ids: list[str] = []

@@ -41,7 +41,7 @@ export const filmScript: DemoBeat[] = [
     action: {
       type: "send_message",
       text:
-        "The last order sync failed halfway through, and I thought webhook retries happened automatically. The sale date is close, and I am frustrated."
+        "The last order sync failed halfway through, and I thought webhook retries happened automatically. The sale date is close, and I am frustrated that this broke so late."
     },
     autoAdvanceMs: 2000
   },

@@ -191,13 +191,11 @@ function formatTime(value: Date) {
 
 function findDemoEngram(nodes: Engram[], criteria: DemoEngramCriteria) {
   const contains = criteria.contains?.toLowerCase();
-  return (
-    nodes.find((node) => {
-      if (criteria.type && node.type !== criteria.type) return false;
-      if (contains && !node.content.toLowerCase().includes(contains)) return false;
-      return true;
-    }) ?? null
+  const typeMatches = nodes.filter(
+    (node) => node.status === "active" && (!criteria.type || node.type === criteria.type)
   );
+  if (!contains) return typeMatches[0] ?? null;
+  return typeMatches.find((node) => node.content.toLowerCase().includes(contains)) ?? typeMatches[0] ?? null;
 }
 
 export function SessionClient() {
@@ -486,9 +484,10 @@ export function SessionClient() {
       }
     });
 
-    const unsubscribeReload = onDemoReload(async ({ resolve, reject }) => {
+    const unsubscribeReload = onDemoReload(async ({ session: nextSession, resolve, reject }) => {
       try {
-        bootRequestRef.current += 1;
+        const requestId = bootRequestRef.current + 1;
+        bootRequestRef.current = requestId;
         sessionRef.current = null;
         setSession(null);
         setPack(null);
@@ -499,9 +498,28 @@ export function SessionClient() {
         setLastMemoryEvent(null);
         setDreaming(false);
         setError(null);
+        if (nextSession) {
+          setBooting(true);
+          const [graphData, nextPack] = await Promise.all([
+            fetchGraph(),
+            nextSession.memory_pack ?? fetchMemoryPack(nextSession.id)
+          ]);
+          if (bootRequestRef.current !== requestId) {
+            resolve();
+            return;
+          }
+          sessionRef.current = nextSession;
+          setSession(nextSession);
+          setGraph(graphData);
+          setPack(nextPack);
+          setBooting(false);
+          resolve();
+          return;
+        }
         await boot();
         resolve();
       } catch (err) {
+        setBooting(false);
         reject(err);
       }
     });

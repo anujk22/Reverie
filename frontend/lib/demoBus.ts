@@ -1,4 +1,4 @@
-import type { EngramType } from "@/lib/api";
+import type { EngramType, SessionRecord } from "@/lib/api";
 
 export type DemoSendDetail = {
   text: string;
@@ -8,6 +8,7 @@ export type DemoSendDetail = {
 };
 
 export type DemoReloadDetail = {
+  session?: SessionRecord;
   resolve: () => void;
   reject: (error: unknown) => void;
 };
@@ -136,12 +137,12 @@ export function closeDemoInspector() {
   });
 }
 
-export function reloadDemoSession() {
+export function reloadDemoSession(session?: SessionRecord) {
   if (!reloadHandler) {
     return Promise.reject(new Error("Session page is not ready."));
   }
 
   return new Promise<void>((resolve, reject) => {
-    reloadHandler?.({ resolve, reject });
+    reloadHandler?.({ session, resolve, reject });
   });
 }
