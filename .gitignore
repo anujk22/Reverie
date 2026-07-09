@@ -16,6 +16,7 @@ frontend/.next/
 frontend/out/
 frontend/*.tsbuildinfo
 .gstack/
+AGENTS.md
 fable.md
 codex-task.md
 PRODUCT.md
