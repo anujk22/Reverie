@@ -567,36 +567,6 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
-      <div className="pointer-events-auto fixed left-1/2 top-3 flex -translate-x-1/2 items-center gap-2 rounded-full border border-hairline bg-field-2 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-dim shadow-[0_8px_28px_-12px_rgba(93,64,35,0.14)] md:top-5">
-        <span className="text-starlight">Film</span>
-        <span className="text-faint">·</span>
-        <span>{stateLabel}</span>
-        <span className="text-faint">·</span>
-        <span>
-          {currentBeatIndex + 1}/{totalBeats}
-        </span>
-        <button
-          type="button"
-          aria-label={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
-          onClick={toggleAutoplay}
-          className="ml-1 flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-ember transition hover:text-glow"
-        >
-          {autoplay ? (
-            <Pause aria-hidden="true" size={14} strokeWidth={1.8} />
-          ) : (
-            <Play aria-hidden="true" size={14} strokeWidth={1.8} />
-          )}
-        </button>
-        <button
-          type="button"
-          aria-label="Exit film mode"
-          onClick={exit}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-dim transition hover:text-starlight"
-        >
-          <X aria-hidden="true" size={14} strokeWidth={1.8} />
-        </button>
-      </div>
-
       <div className="fixed inset-x-3 bottom-4 flex justify-center md:inset-x-6 md:bottom-6">
         <div className="stellar-panel pointer-events-auto relative w-full max-w-3xl overflow-hidden rounded-lg px-4 py-3 md:px-6 md:py-4">
           {busy ? <div className="dream-shimmer absolute inset-x-0 top-0 h-px" /> : null}
@@ -616,7 +586,12 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
               ) : null}
             </div>
 
-            <div className="flex shrink-0 items-center gap-3">
+            <div className="flex shrink-0 items-center justify-end gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
+                <span className="text-starlight">Film</span>
+                <span className="text-faint"> · </span>
+                {stateLabel}
+              </span>
               <div className="flex items-center gap-1.5" aria-label="Demo beat progress">
                 {filmScript.map((beat, index) => (
                   <span
@@ -634,6 +609,26 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
               <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
                 {currentBeatIndex + 1}/{totalBeats}
               </span>
+              <button
+                type="button"
+                aria-label={autoplay ? "Pause auto-advance" : "Resume auto-advance"}
+                onClick={toggleAutoplay}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-ember transition hover:text-glow"
+              >
+                {autoplay ? (
+                  <Pause aria-hidden="true" size={14} strokeWidth={1.8} />
+                ) : (
+                  <Play aria-hidden="true" size={14} strokeWidth={1.8} />
+                )}
+              </button>
+              <button
+                type="button"
+                aria-label="Exit film mode"
+                onClick={exit}
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline bg-field text-dim transition hover:text-starlight"
+              >
+                <X aria-hidden="true" size={14} strokeWidth={1.8} />
+              </button>
             </div>
           </div>
 

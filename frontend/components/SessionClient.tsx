@@ -649,6 +649,12 @@ export function SessionClient() {
               )}
               <div ref={scrollRef} />
             </div>
+          ) : session ? (
+            <div className="pb-6">
+              <EmptyState title="No messages yet">
+                <p>Memories form from what is said here.</p>
+              </EmptyState>
+            </div>
           ) : (
             <div className="space-y-2 pb-6">
               {sampleCards.map((card) => (
@@ -664,11 +670,9 @@ export function SessionClient() {
                   {card.content}
                 </MemoryCard>
               ))}
-              {!session ? (
-                <EmptyState title="Memory engine offline">
-                  <p>Start the backend to replace this reference transcript with live memory.</p>
-                </EmptyState>
-              ) : null}
+              <EmptyState title="Memory engine offline">
+                <p>Start the backend to replace this reference transcript with live memory.</p>
+              </EmptyState>
             </div>
           )}
         </div>

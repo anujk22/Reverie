@@ -26,6 +26,23 @@ class CandidateEngram(BaseModel):
     importance: float = Field(ge=0, le=1)
     source_quotes: list[str] = Field(min_length=1, max_length=4)
 
+    @field_validator("subject_tags", mode="before")
+    @classmethod
+    def coerce_tags_from_string(cls, value: Any) -> Any:
+        # qwen models sometimes return comma-joined strings instead of JSON arrays.
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        return value
+
+    @field_validator("source_quotes", mode="before")
+    @classmethod
+    def coerce_quotes_from_string(cls, value: Any) -> Any:
+        # A quote is one exact transcript substring and may contain commas — never split.
+        if isinstance(value, str):
+            stripped = value.strip()
+            return [stripped] if stripped else []
+        return value
+
     @field_validator("subject_tags")
     @classmethod
     def normalize_tags(cls, value: list[str]) -> list[str]:
