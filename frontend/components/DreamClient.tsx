@@ -305,7 +305,7 @@ export function DreamClient() {
         />
 
         {error ? (
-          <p className="relative pl-4 text-sm leading-6 text-coral">
+          <p role="alert" className="relative pl-4 text-sm leading-6 text-starlight">
             <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
             {error}
           </p>

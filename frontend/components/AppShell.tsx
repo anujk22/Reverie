@@ -5,21 +5,21 @@ import type { ReactNode } from "react";
 import {
   Archive,
   BookOpen,
+  Clapperboard,
   Feather,
   Lightbulb,
-  Settings,
-  UserRound
+  Network
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { DemoDirectorProvider, useDemoDirector } from "@/components/DemoDirector";
 import { RuntimeChip } from "@/components/RuntimeChip";
 
 const routes = [
-  { href: "/", label: "Journal", icon: BookOpen },
-  { href: "/dream", label: "Memories", icon: Archive },
-  { href: "/evals", label: "Insights", icon: Lightbulb },
-  { href: "/architecture", label: "People", icon: UserRound },
-  { href: "/conductor", label: "Settings", icon: Settings }
+  { href: "/", label: "Session", icon: BookOpen },
+  { href: "/dream", label: "Dream", icon: Archive },
+  { href: "/evals", label: "Evals", icon: Lightbulb },
+  { href: "/architecture", label: "Architecture", icon: Network },
+  { href: "/conductor", label: "Demo", icon: Clapperboard }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -58,6 +58,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
                 key={route.href}
                 href={route.href}
                 className={`sidebar-link ${active ? "sidebar-link-active" : ""}`}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon aria-hidden="true" size={23} strokeWidth={1.55} />
                 <span>{route.label}</span>
@@ -83,8 +84,15 @@ function AppShellFrame({ children }: { children: ReactNode }) {
         <nav className="mobile-shell-nav" aria-label="Mobile navigation">
           {routes.slice(0, 4).map((route) => {
             const Icon = route.icon;
+            const active =
+              route.href === "/" ? pathname === "/" : pathname.startsWith(route.href);
             return (
-              <Link key={route.href} href={route.href} aria-label={route.label}>
+              <Link
+                key={route.href}
+                href={route.href}
+                aria-label={route.label}
+                aria-current={active ? "page" : undefined}
+              >
                 <Icon aria-hidden="true" size={18} strokeWidth={1.7} />
               </Link>
             );

@@ -61,8 +61,9 @@ const SESSION_ONE_TITLE = "Session 1 · store migration";
 const metadata = [
   ["ID", "LP-90817"],
   ["AGE", "34"],
-  ["OCCUPATION", "Product Designer"],
+  ["ROLE", "Store Operations Lead"],
   ["LOCATION", "Seoul, KR"],
+  ["CONTEXT", "Store Migration"],
   ["MEMORY DEPTH", "Deep"],
   ["RELATIONSHIP", "Self"],
   ["LAST SYNC", "2m ago"]
@@ -72,16 +73,16 @@ const sampleCards = [
   {
     actor: "You",
     timestamp: "09:42 AM",
-    content: "What were the key takeaways from my design review yesterday?",
-    tags: ["design-review"],
+    content: "An order sync failed. I thought webhook retries happened automatically. What should I check first?",
+    tags: ["order-sync", "webhook-retries"],
     variant: "person" as const
   },
   {
     actor: "Reverie",
     timestamp: "09:42 AM",
     content:
-      "The team praised the clarity of your information architecture and empathy in user flows. You noted concerns about the onboarding friction and plan to run a usability test this week.",
-    tags: ["design-review", "ux", "team-feedback"],
+      "Start in Settings → Webhooks. Set Retry failed order sync to Enabled, then confirm Max attempts is 3 before you rerun one failed order.",
+    tags: ["exact-steps", "real-values", "order-sync"],
     confidence: 92,
     recall: "memory recall",
     variant: "reverie" as const
@@ -89,16 +90,16 @@ const sampleCards = [
   {
     actor: "You",
     timestamp: "09:43 AM",
-    content: "Remind me why this matters to me.",
-    tags: ["reflection"],
+    content: "Please give exact values, not documentation links.",
+    tags: ["exact-steps"],
     variant: "person" as const
   },
   {
     actor: "Reverie",
     timestamp: "09:43 AM",
     content:
-      "You care about creating products that feel effortless and human. Reducing friction aligns with your mission to design experiences that respect people's time and attention.",
-    tags: ["values", "mission", "north-star"],
+      "I’ll keep the next check small and concrete: Enabled, 3 attempts, then verify one order reaches Synced.",
+    tags: ["low-pressure", "real-values", "launch"],
     confidence: 95,
     recall: "self model",
     variant: "reverie" as const
@@ -579,9 +580,16 @@ export function SessionClient() {
         <header className="relative shrink-0 px-6 pb-4 pt-8 md:px-10 lg:px-11 lg:pt-10">
           <div className="min-w-0">
             <div className="min-w-0">
+              <p className="mb-4 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-starlight">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-coral" />
+                Visible memory engine
+              </p>
               <h1 className="display-glow whitespace-nowrap font-display text-[58px] font-medium leading-[0.9] text-starlight max-sm:whitespace-normal md:text-[74px] xl:text-[86px]">
                 LENA PARK
               </h1>
+              <p className="mt-4 max-w-xl text-[15px] leading-6 text-dim">
+                Evidence, dream consolidation, and budgeted recall for one returning person.
+              </p>
               <div className="mt-7 flex max-w-[720px] flex-wrap gap-2">
                 {metadata.map(([label, value]) => (
                   <MetadataChip key={label} label={label} value={value} />
@@ -592,7 +600,7 @@ export function SessionClient() {
           </div>
 
           {error ? (
-            <p className="relative mt-4 pl-4 text-sm leading-6 text-coral">
+            <p role="alert" className="relative mt-4 pl-4 text-sm leading-6 text-starlight">
               <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
               {error}
             </p>

@@ -75,10 +75,10 @@ type EmptyStateProps = {
 };
 
 const legend = [
-  { label: "Experiences", className: "bg-[#ff7446]" },
-  { label: "Skills", className: "bg-[#d4dc78]" },
-  { label: "People", className: "bg-[#f4b85e]" },
-  { label: "Goals", className: "bg-[#fb8c91]" }
+  { label: "Observed issues", className: "bg-[#ff7446]" },
+  { label: "Learned patterns", className: "bg-[#d4dc78]" },
+  { label: "Preferences & affect", className: "bg-[#f4b85e]" },
+  { label: "Goals & timing", className: "bg-[#fb8c91]" }
 ];
 
 type BrainRegion = {
@@ -90,68 +90,41 @@ type BrainRegion = {
   matches: (engram: Engram) => boolean;
 };
 
-const designWords = [
-  "design",
-  "ux",
-  "user",
-  "product",
-  "interface",
-  "onboarding",
-  "friction",
-  "architecture",
-  "flow"
-];
-const seoulWords = ["seoul", "korea", "kr", "roots", "home", "location"];
-const creativeWords = [
-  "creative",
-  "workflow",
-  "process",
-  "steps",
-  "webhook",
-  "retry",
-  "migration",
-  "doc"
-];
-const futureWords = ["future", "goal", "plan", "launch", "next", "live", "ship"];
-
 const brainRegions: BrainRegion[] = [
   {
-    key: "design",
-    title: "Design Philosophy",
+    key: "preferences",
+    title: "Personal Preferences",
     className: "left-[4%] top-[25%] max-lg:left-[6%] max-lg:top-[20%]",
     lineClassName: "left-full top-8 h-px w-24 max-xl:w-14",
     lineSide: "right",
-    matches: (engram) =>
-      engram.type === "preference" ||
-      engram.type === "strategy_outcome" ||
-      hasMemorySignal(engram, designWords)
+    matches: (engram) => engram.type === "preference"
   },
   {
-    key: "seoul",
-    title: "Seoul Roots",
+    key: "pressure",
+    title: "Current Pressure",
     className: "left-[7%] top-[66%] max-lg:left-[5%]",
     lineClassName: "left-full top-4 h-px w-28 max-xl:w-16",
     lineSide: "right",
-    matches: (engram) => hasMemorySignal(engram, seoulWords)
+    matches: (engram) => engram.type === "affect" || engram.type === "fact"
   },
   {
-    key: "flow",
-    title: "Creative Flow",
+    key: "knowledge",
+    title: "Working Knowledge",
     className: "right-[3%] top-[24%] text-left max-lg:right-[5%]",
     lineClassName: "right-full top-8 h-px w-24 max-xl:w-14",
     lineSide: "left",
     matches: (engram) =>
+      engram.type === "misconception" ||
       engram.type === "mastery" ||
-      engram.type === "strategy_outcome" ||
-      hasMemorySignal(engram, creativeWords)
+      engram.type === "strategy_outcome"
   },
   {
-    key: "future",
-    title: "Future Vision",
+    key: "goals",
+    title: "Goals & Timing",
     className: "right-[2%] top-[72%] text-left max-lg:right-[4%]",
     lineClassName: "right-full top-4 h-px w-28 max-xl:w-16",
     lineSide: "left",
-    matches: (engram) => engram.type === "goal" || hasMemorySignal(engram, futureWords)
+    matches: (engram) => engram.type === "goal"
   }
 ];
 
@@ -174,15 +147,6 @@ const brainNodeColors: Record<string, string> = {
   preference: "#f4b85e",
   strategy_outcome: "#d4dc78"
 };
-
-function memoryText(engram: Engram) {
-  return `${engram.content} ${engram.subject_tags.join(" ")}`.toLowerCase();
-}
-
-function hasMemorySignal(engram: Engram, words: string[]) {
-  const text = memoryText(engram);
-  return words.some((word) => text.includes(word));
-}
 
 function pluralMemories(value: number) {
   return `${value.toLocaleString()} ${value === 1 ? "Memory" : "Memories"}`;
