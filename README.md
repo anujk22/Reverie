@@ -103,6 +103,15 @@ docker compose up --build
 Open <http://localhost:3000> and verify the backend at
 <http://localhost:8000/api/health>.
 
+### Guided demo
+
+Click the brain icon in the top-left corner to launch Reverie's 12-beat guided
+story across Session, Dream, Evals, and Architecture. It works without a
+DashScope key in deterministic mock mode for local walkthroughs; use the health
+response to confirm that state is honest. For live behavior, set
+`DASHSCOPE_API_KEY` and verify that `/api/health` reports `"mock": false` and the
+expected Qwen model IDs.
+
 ### Verification
 
 ```bash
