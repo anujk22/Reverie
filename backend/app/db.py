@@ -166,6 +166,12 @@ class Database:
             ).fetchone()
             return dict(row) if row else None
 
+    def session_exists(self, session_id: str) -> bool:
+        with self.connection() as conn:
+            return bool(
+                conn.execute("SELECT 1 FROM sessions WHERE id = ?", (session_id,)).fetchone()
+            )
+
     def list_sessions(self) -> list[dict[str, Any]]:
         with self.connection() as conn:
             return [dict(row) for row in conn.execute("SELECT * FROM sessions ORDER BY started_at")]
@@ -290,6 +296,103 @@ class Database:
                 (engram_id, json.dumps(embedding)),
             )
 
+    def correct_engram(
+        self,
+        engram_id: str,
+        content: str,
+        source_utterance_id: str,
+        embedding: list[float],
+    ) -> tuple[dict[str, Any], dict[str, Any]] | None:
+        with self._lock, self.connection() as conn:
+            old_row = conn.execute(
+                "SELECT * FROM engrams WHERE id = ? AND status = 'active'",
+                (engram_id,),
+            ).fetchone()
+            if not old_row:
+                return None
+            old = row_to_engram(old_row)
+            successor_id = new_id("eng")
+            now = clock.iso_now(conn)
+            strength = max(float(old["strength"]), float(old["importance"]))
+            conn.execute(
+                """
+                INSERT INTO engrams
+                  (id, student_id, type, content, subject_tags, confidence, importance,
+                   strength, status, provisional, created_at, last_accessed_at, access_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, 0)
+                """,
+                (
+                    successor_id,
+                    old["student_id"],
+                    old["type"],
+                    content,
+                    json.dumps(old["subject_tags"]),
+                    max(float(old["confidence"]), 0.95),
+                    old["importance"],
+                    strength,
+                    now,
+                    now,
+                ),
+            )
+            conn.execute(
+                "INSERT INTO engram_sources(engram_id, utterance_id) VALUES (?, ?)",
+                (successor_id, source_utterance_id),
+            )
+            conn.execute(
+                "INSERT INTO engram_vectors(engram_id, embedding_json) VALUES (?, ?)",
+                (successor_id, json.dumps(embedding)),
+            )
+            conn.execute(
+                "UPDATE engrams SET status = 'superseded', superseded_by = ? WHERE id = ?",
+                (successor_id, engram_id),
+            )
+            successor_row = conn.execute(
+                "SELECT * FROM engrams WHERE id = ?", (successor_id,)
+            ).fetchone()
+            updated_old_row = conn.execute(
+                "SELECT * FROM engrams WHERE id = ?", (engram_id,)
+            ).fetchone()
+            return row_to_engram(updated_old_row), row_to_engram(successor_row)
+
+    def delete_engram(self, engram_id: str) -> dict[str, Any] | None:
+        with self._lock, self.connection() as conn:
+            row = conn.execute("SELECT * FROM engrams WHERE id = ?", (engram_id,)).fetchone()
+            if not row:
+                return None
+            deleted = row_to_engram(row)
+            lineage_ids = [
+                item["id"]
+                for item in conn.execute(
+                    """
+                    WITH RECURSIVE lineage(id) AS (
+                      SELECT ?
+                      UNION ALL
+                      SELECT e.id FROM engrams e JOIN lineage l ON e.superseded_by = l.id
+                    )
+                    SELECT id FROM lineage
+                    """,
+                    (engram_id,),
+                )
+            ]
+            placeholders = ",".join("?" for _ in lineage_ids)
+            conn.execute(
+                f"DELETE FROM memory_events WHERE engram_id IN ({placeholders})",
+                lineage_ids,
+            )
+            conn.execute(
+                f"DELETE FROM engram_sources WHERE engram_id IN ({placeholders})",
+                lineage_ids,
+            )
+            conn.execute(
+                f"DELETE FROM engram_vectors WHERE engram_id IN ({placeholders})",
+                lineage_ids,
+            )
+            conn.execute(
+                f"DELETE FROM engrams WHERE id IN ({placeholders})",
+                lineage_ids,
+            )
+            return deleted
+
     def reinforce(self, engram_id: str) -> dict[str, Any] | None:
         with self._lock, self.connection() as conn:
             conn.execute(
@@ -313,6 +416,21 @@ class Database:
                 links.append(
                     {"source": row["id"], "target": row["superseded_by"], "type": "supersedes"}
                 )
+            active = [node for node in nodes if node["status"] == "active"]
+            for index, source in enumerate(active):
+                for target in active[index + 1 :]:
+                    shared_tags = sorted(
+                        set(source["subject_tags"]).intersection(target["subject_tags"])
+                    )
+                    if shared_tags:
+                        links.append(
+                            {
+                                "source": source["id"],
+                                "target": target["id"],
+                                "type": "shared_context",
+                                "tags": shared_tags,
+                            }
+                        )
             return {"nodes": nodes, "links": links}
 
     def engram_detail(self, engram_id: str) -> dict[str, Any] | None:

@@ -360,28 +360,40 @@ async def reconcile(session_id: str, stats: dict[str, Any]) -> None:
             similarity = cosine(db.vector_for(misconception["id"]), db.vector_for(mastery["id"]))
             if tag_overlap or similarity > 0.42:
                 pairs.append((misconception, mastery))
+    goals = sorted(
+        (item for item in engrams if item["type"] == "goal"),
+        key=lambda item: item["created_at"],
+    )
+    for index, older in enumerate(goals):
+        for newer in goals[index + 1 :]:
+            tag_overlap = set(older["subject_tags"]) & set(newer["subject_tags"])
+            if tag_overlap and older["content"] != newer["content"]:
+                pairs.append((older, newer))
     semaphore = asyncio.Semaphore(JUDGE_CONCURRENCY)
 
-    async def judge(misconception: dict[str, Any], mastery: dict[str, Any]):
+    async def judge(left: dict[str, Any], right: dict[str, Any]):
         try:
             async with semaphore:
                 verdict = await llm_client.judge_pair(
-                    misconception,
-                    mastery,
+                    left,
+                    right,
                     session_id=session_id,
                     relation="reconcile",
                 )
-            return misconception, mastery, verdict
+            return left, right, verdict
         except Exception:
-            return misconception, mastery, {"verdict": "distinct", "reason": "judge failed"}
+            return left, right, {"verdict": "distinct", "reason": "judge failed"}
 
-    for misconception, mastery, verdict in await asyncio.gather(
-        *(judge(misconception, mastery) for misconception, mastery in pairs)
+    for left, right, verdict in await asyncio.gather(
+        *(judge(left, right) for left, right in pairs)
     ):
         verdict_name = str(verdict.get("verdict", "distinct"))
         counts[f"judged_{verdict_name}"] = counts.get(f"judged_{verdict_name}", 0) + 1
         if verdict_name == "contradiction":
-            winner, loser = choose_contradiction_winner(mastery, misconception)
+            if left["type"] == right["type"] == "goal":
+                winner, loser = choose_newer_version(left, right)
+            else:
+                winner, loser = choose_contradiction_winner(right, left)
             if float(winner["confidence"]) >= 0.6:
                 db.update_engram(
                     loser["id"],
@@ -478,3 +490,11 @@ def choose_contradiction_winner(
     if float(mastery["confidence"]) >= float(misconception["confidence"]):
         return mastery, misconception
     return misconception, mastery
+
+
+def choose_newer_version(
+    left: dict[str, Any], right: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if right["created_at"] >= left["created_at"]:
+        return right, left
+    return left, right

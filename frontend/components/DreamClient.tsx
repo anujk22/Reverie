@@ -284,7 +284,7 @@ export function DreamClient() {
   const activeMemories = graph.nodes.filter((node) => node.status === "active").slice(0, 6);
 
   return (
-    <div className="memory-page-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+    <div className="memory-page-shell secondary-page min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Memories"
@@ -305,24 +305,36 @@ export function DreamClient() {
         />
 
         {error ? (
-          <p role="alert" className="relative pl-4 text-sm leading-6 text-starlight">
+          <p role="alert" className="relative pl-4 text-sm leading-6 text-coral">
             <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
             {error}
           </p>
         ) : null}
 
-        <section className="memory-map-wrap">
-          <BrainMapPanel variant="embedded" graph={graph} event={lastMemoryEvent} />
+        <section id="dream-memory-map" className="memory-map-wrap scroll-mb-52">
+          <BrainMapPanel
+            variant="embedded"
+            graph={graph}
+            event={lastMemoryEvent}
+            selectedId={selected?.id}
+            onSelectMemory={setSelected}
+          />
           {running ? (
-            <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-4">
-              <div className="dream-shimmer rounded-full border border-ember/40 bg-[#17110d]/80 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-glow">
-                Dreaming...
+            <div className="pointer-events-none absolute inset-0 z-[5]">
+              <div className="dream-running-status" role="status" aria-live="polite">
+                <span className="dream-running-rule" aria-hidden="true" />
+                <span className="dream-running-dot" aria-hidden="true" />
+                <span>Dream cycle running</span>
+                <span className="dream-running-rule" aria-hidden="true" />
               </div>
             </div>
           ) : null}
         </section>
 
-        <section className="stellar-panel rounded-lg p-4 md:p-5">
+        <section
+          id="dream-stage-rail"
+          className="stellar-panel secondary-stage-panel scroll-mb-52 rounded-lg p-4 md:p-5"
+        >
             <div className="relative">
               <div className="absolute bottom-4 left-[15px] top-4 w-px bg-hairline md:left-0 md:right-0 md:top-[15px] md:h-px md:w-auto" />
               <div
@@ -380,8 +392,11 @@ export function DreamClient() {
           </div>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="stellar-panel rounded-lg p-5">
+        <div className="space-y-4">
+          <section
+            id="dream-report"
+            className="stellar-panel secondary-report-panel scroll-mb-52 rounded-lg p-5"
+          >
             <p className="text-[14px] font-medium text-starlight">
               Latest Report
             </p>
@@ -460,7 +475,7 @@ export function DreamClient() {
                 </p>
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {activeMemories.length ? (
                   activeMemories.map((memory) => (
                     <button

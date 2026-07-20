@@ -12,6 +12,7 @@ from app.db import db
 from app.memory.decay import DecayInput, compute_strength
 from app.memory.dream import run_dream
 from app.models import ConductorClockRequest
+from app.subject import FILM_SESSION_SCRIPTS
 
 
 router = APIRouter(prefix="/api/conductor", tags=["conductor"])
@@ -66,6 +67,8 @@ async def advance_clock(payload: ConductorClockRequest):
 @router.get("/scripts/{name}")
 async def script(name: str):
     require_demo()
+    if name in FILM_SESSION_SCRIPTS:
+        return FILM_SESSION_SCRIPTS[name]
     path = Path(__file__).resolve().parents[1] / "evals" / "scripts" / f"{name}.json"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Script not found")

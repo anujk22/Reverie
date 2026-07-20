@@ -24,6 +24,7 @@ async def create_session(payload: CreateSessionRequest):
         SESSION_OPEN_RETRIEVAL_QUERY,
         session_id=session["id"],
         phase="session_open",
+        reinforce=False,
     )
     return {**session, "memory_pack": pack}
 
@@ -34,6 +35,7 @@ async def memory_pack(session_id: str, phase: str = "session_open"):
         SESSION_OPEN_RETRIEVAL_QUERY,
         session_id=session_id,
         phase=phase,
+        reinforce=False,
     )
 
 

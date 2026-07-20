@@ -64,6 +64,9 @@ class Settings:
     demo_mode: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
     mock_llm: bool = os.getenv("MOCK_LLM", "").lower() == "true"
     context_budget_tokens: int = int(os.getenv("CONTEXT_BUDGET_TOKENS", "1200"))
+    mid_session_relevance_threshold: float = float(
+        os.getenv("MID_SESSION_RELEVANCE_THRESHOLD", "0.20")
+    )
     clock_offset_seconds: int = int(os.getenv("CLOCK_OFFSET_SECONDS", "0"))
     embed_dim: int = int(os.getenv("EMBED_DIM", "1024"))
     lambda_base: float = float(os.getenv("LAMBDA_BASE", "0.35"))

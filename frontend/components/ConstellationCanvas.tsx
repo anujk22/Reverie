@@ -263,12 +263,12 @@ function resolveNode(value: string | CanvasNode) {
 
 function nodeLabel(engram: Engram) {
   const text = engram.content.toLowerCase();
-  if (text.includes("webhook") || text.includes("retry")) return "webhook retries";
-  if (text.includes("step") || text.includes("real value") || text.includes("doc")) return "exact steps";
-  if (text.includes("frustrated") || text.includes("failed order")) return "low pressure";
-  if (text.includes("sale") || text.includes("launch")) return "launch";
-  if (text.includes("shipping")) return "shipping zone";
-  if (text.includes("order sync")) return "order sync";
+  if (text.includes("one question") || text.includes("direct feedback")) return "direct feedback";
+  if (text.includes("anxious") || text.includes("freezing")) return "interview pressure";
+  if (text.includes("technical detail") || text.includes("impact")) return "answer focus";
+  if (text.includes("interview") || text.includes("monday") || text.includes("friday")) {
+    return "interview timing";
+  }
   return engram.type.replace("_", " ");
 }
 

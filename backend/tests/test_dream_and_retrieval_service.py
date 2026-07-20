@@ -10,6 +10,7 @@ import app.memory.observer as observer_module
 from app.memory.observer import observe_exchange
 import app.memory.dream as dream_module
 import app.memory.retrieval_service as retrieval_service
+import app.tutor as tutor_module
 
 
 def build_temp_database(tmp_path, monkeypatch) -> Database:
@@ -160,6 +161,119 @@ def test_session_open_retrieval_includes_goal_and_preference(tmp_path, monkeypat
     assert "goal" in winner_types
     assert "preference" in winner_types
     assert any("confidence" in item and "strength" in item for item in pack["winners"])
+
+
+def test_greeting_skips_retrieval_and_reinforcement(tmp_path, monkeypatch):
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("greeting")
+    utterance = database.insert_utterance(session["id"], "student", "Hello.")
+    memory = database.insert_engram(
+        {
+            "type": "preference",
+            "content": "Prefers exact step-by-step instructions with real values.",
+            "subject_tags": ["step_by_step"],
+            "confidence": 0.8,
+            "importance": 0.8,
+        },
+        [utterance["id"]],
+        [0.0],
+        provisional=False,
+    )
+
+    async def unexpected_embedding(*_args, **_kwargs):
+        raise AssertionError("Greeting-only turns must not retrieve memory.")
+
+    monkeypatch.setattr(retrieval_service.llm_client, "embed", unexpected_embedding)
+
+    pack = asyncio.run(
+        retrieval_service.assemble_memory_pack("Hello.", session["id"], phase="mid_session")
+    )
+
+    assert pack["used"] == 0
+    assert pack["winners"] == []
+    assert pack["excluded"] == []
+    assert database.engram_detail(memory["id"])["engram"]["access_count"] == 0
+    assert database.events_after() == []
+
+
+def test_greeting_chat_skips_models_and_asks_for_a_task(tmp_path, monkeypatch):
+    database = build_temp_database(tmp_path, monkeypatch)
+    monkeypatch.setattr(tutor_module, "db", database)
+    session = database.create_session("greeting chat")
+
+    async def unexpected_stream(*_args, **_kwargs):
+        raise AssertionError("Greeting-only turns must not call the chat model.")
+        yield ""
+
+    monkeypatch.setattr(tutor_module.llm_client, "stream_tutor", unexpected_stream)
+
+    async def collect():
+        return [chunk async for chunk in tutor_module.chat_stream(session["id"], "Hello.")]
+
+    events = asyncio.run(collect())
+
+    assert '"winners": []' in events[0]
+    assert '"token": "Hello. What would you like to work on?"' in events[1]
+    assert '"reply": "Hello. What would you like to work on?"' in events[2]
+    assert database.events_after() == []
+
+
+def test_mid_session_relevance_gate_rejects_weak_quota_memory(tmp_path, monkeypatch):
+    database = build_temp_database(tmp_path, monkeypatch)
+    session = database.create_session("relevance gate")
+    utterance = database.insert_utterance(session["id"], "student", "source")
+    relevant = database.insert_engram(
+        {
+            "type": "misconception",
+            "content": "Webhook retries are not automatic for a failed order sync.",
+            "subject_tags": ["webhook_retries"],
+            "confidence": 0.9,
+            "importance": 0.9,
+        },
+        [utterance["id"]],
+        [1.0, 0.0],
+        provisional=False,
+    )
+    irrelevant_preference = database.insert_engram(
+        {
+            "type": "preference",
+            "content": "Prefers hiking routes with shaded rest stops.",
+            "subject_tags": ["hiking"],
+            "confidence": 0.8,
+            "importance": 0.8,
+        },
+        [utterance["id"]],
+        [0.0, 1.0],
+        provisional=False,
+    )
+
+    async def query_embedding(*_args, **_kwargs):
+        return [1.0, 0.0]
+
+    monkeypatch.setattr(retrieval_service.llm_client, "embed", query_embedding)
+    pack = asyncio.run(
+        retrieval_service.assemble_memory_pack(
+            "What should I do about webhook retries?",
+            session["id"],
+            phase="mid_session",
+            reinforce=False,
+        )
+    )
+
+    assert [item["engram_id"] for item in pack["winners"]] == [relevant["id"]]
+    assert pack["winners"][0]["semantic_similarity"] == 1.0
+    assert "semantic match" in pack["winners"][0]["selection_reason"].lower()
+    assert pack["excluded"][0]["engram_id"] == irrelevant_preference["id"]
+    assert pack["pipeline"] == {
+        "searched": 2,
+        "eligible": 2,
+        "filtered": 1,
+        "ranked": 1,
+        "selected": 1,
+        "retrieval_ms": pack["pipeline"]["retrieval_ms"],
+    }
+    assert database.engram_detail(relevant["id"])["engram"]["access_count"] == 0
+    assert database.engram_detail(irrelevant_preference["id"])["engram"]["access_count"] == 0
 
 
 def test_session_level_dream_recovers_affect_from_session1_script(tmp_path, monkeypatch):

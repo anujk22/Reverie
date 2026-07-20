@@ -39,27 +39,18 @@ export function RuntimeChip() {
     return "checking";
   }, [mock, state]);
 
-  const offset = Number(status?.clock_offset_seconds ?? 0);
   const degraded = degradedUntil > Date.now();
+  const showPrimaryStatus = mock || state !== "online";
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div
-        className={`min-w-12 rounded-full border bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
-          mock
-            ? "border-gold/50 text-gold"
-            : state === "online"
-              ? "border-sage/40 text-sage"
-              : "border-coral/40 text-coral"
-        }`}
-      >
-        {label}
-      </div>
-      {offset ? (
+      {showPrimaryStatus ? (
         <div
-          className="min-w-12 rounded-full border border-hairline bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none text-dim"
+          className={`min-w-12 rounded-full border bg-field-2 px-2 py-1 text-center font-mono text-[10px] uppercase leading-none ${
+            mock ? "border-gold/50 text-gold" : "border-coral/40 text-coral"
+          }`}
         >
-          {status?.simulated_date ?? "shifted"}
+          {label}
         </div>
       ) : null}
       {degraded ? (

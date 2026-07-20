@@ -1,46 +1,107 @@
 # Reverie
 
-![Reverie session screen](docs/screenshots/final-session-recall-desktop.png)
+![Reverie recalling interview-preparation memory across sessions](docs/screenshots/final-session-recall-desktop.png)
 
-Reverie is a visible memory engine: extraction with provenance receipts, dream consolidation, Ebbinghaus decay, and budgeted retrieval are all watchable in real time.
+Reverie is a visible persistent-memory agent and subject-agnostic memory engine.
+Typed extraction with provenance receipts, dream consolidation,
+Ebbinghaus-style decay, and budgeted retrieval are all watchable in real time.
 
-Headline result from the frozen live evaluation: **4.7 personalization for Reverie vs 1.0 with no memory**, with **68% fewer reply-context tokens than full history**. See the full run in [EVALS.md](./EVALS.md).
+It is built for **Track 1 — MemoryAgent**. The engine persists user preferences
+and experience across sessions, reconciles corrections, reinforces useful
+memories, lets stale context fade, and recalls only what fits a fixed context
+budget.
 
-The film demo follows one person under pressure across two sessions. Lena is preparing for a final interview. Reverie remembers that the date moved from Friday to Monday, that she corrected an overexplaining habit, that she wants one question at a time with direct feedback, and that she froze in the previous interview. It keeps the correction, lets outdated context fade, and adapts the next answer without replaying her transcript.
+## Submission evidence
 
-The engine contains zero domain knowledge. Swap one script file and the same engine remembers a customer across support tickets, a patient across visits, an engineer across a codebase. The test suite proves it.
+| Requirement | Evidence |
+| --- | --- |
+| Alibaba Cloud deployment | [ECS deployment record and deployment status](docs/ALIBABA_DEPLOYMENT_PROOF.md) |
+| Qwen Cloud API usage | [Production endpoint and model routing in `backend/app/config.py`](https://github.com/anujk22/Reverie/blob/main/backend/app/config.py) |
+| Architecture diagram | [System diagram](docs/diagram.svg) and [architecture notes](docs/ARCHITECTURE.md) |
+| Measured memory behavior | [Frozen live evaluation](EVALS.md) and [evaluation harness](backend/app/evals/runner.py) |
+| Reproducible deployment | [Alibaba Cloud ECS deployment guide](docs/DEPLOY.md) and [`deploy.sh`](deploy.sh) |
 
-Memory is the missing layer for any AI that serves the same human twice: a candidate across interview rounds, a patient across visits, a customer across tickets. Context windows aren't memory; they are cost. Reverie makes memory a first-class, inspectable, budgeted system. It remembers not just what changed but how the user felt, and adapts.
+Reverie was deployed as a complete Docker Compose stack on Alibaba Cloud ECS in
+the US (Silicon Valley) region. The instance was released after evidence capture;
+the repository makes no claim that the historical deployment is still online.
 
-What is inside:
+## The problem
 
-- Dream cycle with schema-gated Qwen judges for distillation, duplicate/refinement checks, contradiction handling, and deterministic memory updates.
-- Budgeted retrieval with a measured relevance gate, visible selection reasons, pipeline counts, token usage, and excluded memories.
-- Event-audited memory with provenance-verified extraction, visible consolidation, reinforcement, decay, archive, correction, supersession, and explicit forgetting.
-- Eval harness for no-memory, full-history, and Reverie conditions. Live runs write `EVALS.md`; mock runs stay marked `real_run=false`.
+Context windows are not memory; they are repeated cost. Replaying an entire
+transcript makes every response more expensive, preserves stale facts, and can
+bury the few details that should actually shape the next interaction. Reverie
+turns that hidden process into an inspectable memory lifecycle.
+
+## What Reverie does
+
+The film demo follows Lena across two interview-preparation sessions. Friday
+becomes Monday, an overexplaining habit becomes an impact-first strategy, and a
+preference for one direct question at a time survives into the next session.
+Reverie also remembers the pressure she described and adapts the next response
+without replaying her transcript.
+
+The core memory pipeline is subject-agnostic. Demo vocabulary is isolated to
+[`backend/app/subject.py`](backend/app/subject.py) and evaluation scripts, and
+[`backend/tests/test_engine_purity.py`](backend/tests/test_engine_purity.py)
+enforces that boundary.
+
+## Memory lifecycle
+
+1. `qwen-flash` observes an exchange and proposes typed memories.
+2. Quote gates reject memories without substantive evidence in the transcript.
+3. SQLite persists engrams, vectors, source links, and an append-only event audit.
+4. `qwen-max` distills, deduplicates, and reconciles memories during the dream cycle.
+5. Reinforcement and Ebbinghaus-style decay change memory strength over time.
+6. Semantic relevance, strength, recency, and type priors rank active memories.
+7. Greedy packing selects only memories that fit the 1,200-token context budget.
+8. The frontend renders the backend graph, provenance, lifecycle events, and token usage.
 
 ![Architecture diagram](docs/diagram.svg)
 
-## Qwen Cloud and Alibaba Cloud
+Implementation details are documented in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-Reverie uses the Qwen Cloud DashScope OpenAI-compatible API. The configured base
-URL is `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`.
+## Qwen Cloud integration
 
-The literal endpoint and model IDs are configured in
-[backend/app/config.py](backend/app/config.py). The OpenAI-compatible client is
-initialized with the DashScope API key and base URL in
+All model roles use the DashScope OpenAI-compatible API at
+`https://dashscope-intl.aliyuncs.com/compatible-mode/v1`:
+
+- `qwen-plus` — assistant responses
+- `qwen-flash` — observation and extraction
+- `qwen-max` — dream consolidation and evaluation judging
+- `text-embedding-v4` — embeddings and retrieval
+
+The endpoint and model IDs are defined in
+[backend/app/config.py](backend/app/config.py); the `AsyncOpenAI` client is
+initialized with the environment-provided key and base URL in
 [backend/app/llm.py](backend/app/llm.py).
 
-The production deployment runs on Alibaba Cloud ECS using Docker Compose and
-Nginx. Deployment screenshots are submitted separately through Devpost and are
-not placed inside this repository.
+Reverie was deployed on Alibaba Cloud ECS for submission evidence capture. That
+instance has since been released, so this repository does not claim a currently
+live public endpoint. The [deployment record](docs/ALIBABA_DEPLOYMENT_PROOF.md)
+identifies the production integration and historical topology. Original ECS
+Console and Workbench captures are supplied directly in the Devpost proof field,
+and the reproducible procedure remains in [docs/DEPLOY.md](docs/DEPLOY.md).
 
-Models used:
+## Evaluation
 
-- `qwen-plus` for assistant responses
-- `qwen-flash` for observation and extraction
-- `qwen-max` for dream consolidation and judging
-- `text-embedding-v4` for embeddings and retrieval
+The frozen live evaluation compares identical three-session scripts under
+no-memory, full-history, and Reverie conditions:
+
+| Result | No memory | Full history | Reverie |
+| --- | ---: | ---: | ---: |
+| Personalization mean | 1.0 | 2.5 | **4.7** |
+| Reply-path tokens | 7,271 | 32,764 | **10,598** |
+
+Reverie used **68% fewer reply-path tokens than full history**. It also passed
+all six scripted retrieval checks in sessions 2–3: four expected-tag checks and
+two stale-tag exclusion checks. Personalization was judged by `qwen-max` from
+three judge samples for each of two scored openings per condition.
+
+These are controlled, synthetic workload results—not a user study or a
+production benchmark. The raw numbers, token-accounting boundary, and per-session
+scores are in [EVALS.md](EVALS.md); the harness is in
+[backend/app/evals/runner.py](backend/app/evals/runner.py).
 
 ## Quickstart
 
@@ -49,22 +110,47 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Set `DASHSCOPE_API_KEY` in `.env` for live Qwen calls. Local deterministic fallback:
+Open the frontend at <http://localhost:3000> and backend health at
+<http://localhost:8000/api/health>.
+
+For live Qwen calls, set `DASHSCOPE_API_KEY` in `.env` and keep
+`MOCK_LLM=false`. For deterministic offline use:
 
 ```bash
 MOCK_LLM=true docker compose up --build
 ```
 
-The UI shows a `MOCK` chip whenever the backend has no `DASHSCOPE_API_KEY`, marking the deterministic offline fallback. `GET /api/health` reports `"mock"` and the live Qwen model IDs so you can verify which mode you're in.
+The interface always shows a `MOCK` chip when live Qwen is unavailable, and
+`GET /api/health` reports the mode and configured model IDs.
 
-Frontend: http://localhost:3000<br>
-Backend health: http://localhost:8000/api/health
+## Verification
 
-## Useful Links
+Backend:
 
-- Demo video: [PASTE YOUR PUBLIC PROJECT DEMO VIDEO URL HERE]
-- Eval results: [EVALS.md](./EVALS.md)
-- Submission checklist: [docs/SUBMISSION_CHECKLIST.md](./docs/SUBMISSION_CHECKLIST.md)
-- Submission audit: [scripts/submission-audit.sh](./scripts/submission-audit.sh)
-- Historical build log: [docs/PROGRESS.md](./docs/PROGRESS.md)
-- Architecture: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+```bash
+python3.11 -m venv backend/.venv311
+backend/.venv311/bin/pip install -r backend/requirements.txt
+backend/.venv311/bin/python -m compileall -q backend/app backend/tests
+backend/.venv311/bin/pytest backend/tests
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Repository and containers:
+
+```bash
+docker compose config --quiet
+docker compose build
+```
+
+## License
+
+[MIT](LICENSE)

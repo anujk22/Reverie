@@ -22,3 +22,10 @@ codex-task.md
 PRODUCT.md
 terra-handoff.md
 codex-report.md
+VIDEO_SCRIPT.md
+docs/DEMO_RECORDING.md
+docs/DEVPOST_FINAL.md
+docs/SUBMISSION_CHECKLIST.md
+docs/proof/
+scripts/submission-audit.sh
+scripts/verify-submission-deployment.sh

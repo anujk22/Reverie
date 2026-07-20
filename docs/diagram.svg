@@ -37,7 +37,7 @@
   <text x="96" y="214" class="label">BROWSER</text>
   <text x="96" y="252" class="mono">Next.js UI</text>
   <text x="96" y="282" class="body">Session, Mind, Dream,</text>
-  <text x="96" y="306" class="body">Evals, Conductor</text>
+  <text x="96" y="306" class="body">Evals, Architecture</text>
 
   <rect x="390" y="120" width="500" height="430" rx="10" class="panel"/>
   <text x="420" y="158" class="label">ALIBABA CLOUD ECS</text>
@@ -56,13 +56,13 @@
   <text x="450" y="442" class="body">dream, evals</text>
 
   <rect x="668" y="344" width="174" height="58" rx="8" class="panel"/>
-  <text x="690" y="379" class="mono">Dream worker</text>
+  <text x="690" y="379" class="mono">Dream cycle</text>
   <rect x="668" y="424" width="174" height="58" rx="8" class="panel"/>
   <text x="690" y="459" class="mono">Budgeted recall</text>
 
   <rect x="506" y="590" width="260" height="72" rx="8" class="panel"/>
   <text x="530" y="626" class="mono">SQLite memory ledger</text>
-  <text x="530" y="650" class="body">engrams, events, episodes</text>
+  <text x="530" y="650" class="body">engrams, vectors, sources, events</text>
 
   <rect x="990" y="176" width="220" height="326" rx="10" class="panel"/>
   <text x="1018" y="214" class="label">QWEN CLOUD</text>

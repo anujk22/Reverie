@@ -39,6 +39,18 @@ STOPWORDS = {
 }
 
 LOW_VARIANCE_TYPES = {"affect", "preference", "strategy_outcome"}
+TEMPORAL_VALUES = {
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "today",
+    "tomorrow",
+    "yesterday",
+}
 
 
 def content_tokens(content: str) -> set[str]:
@@ -84,6 +96,10 @@ def lexical_similarity(left: str, right: str) -> float:
 def structurally_duplicate(candidate: dict[str, Any], existing: dict[str, Any]) -> bool:
     if candidate["type"] != existing["type"]:
         return False
+    if candidate["type"] == "goal" and conflicting_temporal_values(
+        candidate["content"], existing["content"]
+    ):
+        return False
 
     similarity = lexical_similarity(candidate["content"], existing["content"])
     candidate_tags = set(candidate.get("subject_tags") or [])
@@ -99,6 +115,12 @@ def structurally_duplicate(candidate: dict[str, Any], existing: dict[str, Any]) 
     return False
 
 
+def conflicting_temporal_values(left: str, right: str) -> bool:
+    left_values = content_tokens(left) & TEMPORAL_VALUES
+    right_values = content_tokens(right) & TEMPORAL_VALUES
+    return bool(left_values and right_values and left_values.isdisjoint(right_values))
+
+
 def find_duplicate_memory(
     candidate: dict[str, Any],
     embedding: list[float],
@@ -109,6 +131,10 @@ def find_duplicate_memory(
     best: tuple[float, dict[str, Any]] | None = None
     for engram in existing_engrams:
         if engram["type"] != candidate["type"]:
+            continue
+        if candidate["type"] == "goal" and conflicting_temporal_values(
+            candidate["content"], engram["content"]
+        ):
             continue
         vector = vector_for(engram["id"])
         embedding_similarity = cosine(vector, embedding) if vector else 0.0

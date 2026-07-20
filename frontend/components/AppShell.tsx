@@ -1,12 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   Archive,
   BookOpen,
-  Clapperboard,
-  Feather,
   Lightbulb,
   Network
 } from "lucide-react";
@@ -18,9 +17,22 @@ const routes = [
   { href: "/", label: "Session", icon: BookOpen },
   { href: "/dream", label: "Dream", icon: Archive },
   { href: "/evals", label: "Evals", icon: Lightbulb },
-  { href: "/architecture", label: "Architecture", icon: Network },
-  { href: "/conductor", label: "Demo", icon: Clapperboard }
+  { href: "/architecture", label: "Architecture", icon: Network }
 ];
+
+function BrainMark({ size }: { size: number }) {
+  return (
+    <Image
+      aria-hidden="true"
+      alt=""
+      src="/assets/brain-mark.svg"
+      width={size}
+      height={size}
+      unoptimized
+      className="brain-mark"
+    />
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -44,7 +56,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
           onClick={() => director.start()}
         >
           <span>
-            <Feather aria-hidden="true" size={31} strokeWidth={1.8} />
+            <BrainMark size={34} />
           </span>
         </button>
 
@@ -98,7 +110,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
             );
           })}
           <button type="button" aria-label="Play Reverie demo story" onClick={() => director.start()}>
-            <Feather aria-hidden="true" size={18} strokeWidth={1.7} />
+            <BrainMark size={20} />
           </button>
         </nav>
       </header>

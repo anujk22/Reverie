@@ -1,46 +1,95 @@
-# Deploying Reverie on Alibaba ECS
+# Deploying Reverie on Alibaba Cloud ECS
 
-M0 requires a public `/api/health` endpoint running on Alibaba Cloud ECS.
+This document preserves the repeatable deployment procedure used for Reverie's
+Alibaba Cloud ECS deployment. The submission instance was released after evidence
+capture, so no currently live public endpoint is claimed. The deployment record
+is preserved in
+[`ALIBABA_DEPLOYMENT_PROOF.md`](./ALIBABA_DEPLOYMENT_PROOF.md); the original ECS
+Console and Workbench screenshots are attached directly to the Devpost proof
+field.
 
-1. Provision an Ubuntu 22.04 ECS instance. The target may be free-tier sized
-   (`1 vCPU / 1 GB` or `2 vCPU / 2 GB`); deployment is designed not to build
-   on the instance.
-2. Open inbound ports 22, 80, and optionally 443.
-3. Install Docker and the Docker Compose plugin.
-4. Copy `.env.example` to `.env` and set `DASHSCOPE_API_KEY`.
-5. From this repo, run:
+## Deployment Procedure
+
+### ECS prerequisites
+
+Provision an Ubuntu 22.04 ECS instance with enough disk and memory for the
+prebuilt Docker images. Open inbound ports 22 and 80; open 443 only if TLS is
+configured. Install Docker Engine, the Docker Compose plugin, `rsync`, and
+`scp` access for the deployment user.
+
+The deployment script builds `linux/amd64` images locally, ships them to ECS,
+loads them, and starts the stack without compiling on the instance.
+
+### Environment setup
+
+On the ECS instance, create `.env` from `.env.example` and set the live
+`DASHSCOPE_API_KEY`. Never put that value in a screenshot, commit, or public
+document. For a live deployment, keep `MOCK_LLM=false` and confirm the health
+response says `"mock": false`.
+
+### Deploy command
+
+From the repository root on the build machine:
 
 ```bash
-DEPLOY_HOST=ubuntu@YOUR_ECS_IP ./deploy.sh
+DEPLOY_HOST="ubuntu@$ECS_HOST" ./deploy.sh
 ```
 
-`deploy.sh` builds `linux/amd64` Docker images locally on the dev Mac, saves
-them to `/tmp/reverie-images.tar`, ships that tarball to ECS, loads the images
-there, creates/enables a 2 GB swap file as insurance, and starts the stack with
-`docker compose up -d --no-build`. The ECS instance only runs containers; it
-does not compile Python or Next.js.
+`deploy.sh` uses Docker Buildx, `docker save`, `rsync`, `scp`, and SSH. It does
+not copy `.env`, databases, virtual environments, or private keys.
+Set `ECS_HOST` in the shell to the target IP address or hostname before running
+the command; do not write it into the repository.
 
-6. Verify:
+### Local verification on ECS
+
+Run these commands from the deployed repository directory on the ECS instance:
 
 ```bash
-curl http://YOUR_ECS_IP/api/health
+docker compose ps
+curl -s http://localhost/api/health | python3 -m json.tool
 ```
 
-The M5 unlock gate is met when that public health endpoint is served from the
-ECS Docker stack and returns `ok` plus live DashScope model ids.
+The health response must contain:
 
-## M0 Recording Checklist
+```json
+{
+  "ok": true,
+  "db": true,
+  "dashscope_reachable": true,
+  "mock": false,
+  "model_ids": {
+    "chat": "qwen-plus",
+    "observer": "qwen-flash",
+    "dream": "qwen-max",
+    "embed": "text-embedding-v4",
+    "judge": "qwen-max"
+  }
+}
+```
 
-- Browser at `http://YOUR_ECS_IP/api/health` showing `ok`, model ids, and DashScope reachability.
-- Alibaba Cloud console showing the running instance and region.
-- Terminal on the instance showing `docker compose ps`.
-- One live chat turn in the deployed app.
+From an external machine, use the same process-only `ECS_HOST` value:
 
-## ECS Status - Honest Note
+```bash
+curl -s "http://$ECS_HOST/api/health" | python3 -m json.tool
+```
 
-Verification is currently blocked by Alibaba Cloud ECS account access, not by the app build.
+### Troubleshooting
 
-- Timeline: `<PLACEHOLDER: add Anuj screenshot/date of identity verification issue>`
-- Ticket references: `<PLACEHOLDER: hackathon Discord or Alibaba support ticket>`
-- Fallback of record: include a permalink to `backend/app/llm.py` proving DashScope OpenAI-compatible usage, plus a live local recording that shows model-call token logs and `/api/health`.
-- Execution plan: when access lands, run `DEPLOY_HOST=ubuntu@YOUR_ECS_IP ./deploy.sh`; the stack is already configured for Docker Compose, Nginx, FastAPI, Next.js, SQLite volume persistence, and Qwen environment variables.
+- If the containers are not `Up`, run `docker compose logs --tail=100` and
+  inspect the failing service without displaying `.env`.
+- If `mock` is `true`, check the live key and `MOCK_LLM`; do not present that
+  run as deployment proof.
+- If `dashscope_reachable` is `false`, check the endpoint, key permissions,
+  ECS egress, and the configured Qwen model IDs.
+- If the public endpoint fails but localhost works, check the ECS security
+  group and port 80/Nginx configuration.
+
+## Evidence boundary
+
+The repository contains the required production code using the Qwen Cloud
+endpoint. Original visual evidence captured while the ECS instance was running
+is attached directly to the Devpost proof field. Those captures show the Alibaba
+Cloud ECS Console, Workbench, running Docker containers, database health,
+DashScope reachability, `mock: false`, and the configured Qwen model IDs. The
+instance identifiers and public IP shown in the captures belong to the released
+historical instance.

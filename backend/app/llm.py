@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import math
+import re
 import time
 from typing import Any, AsyncIterator, TypeVar
 
@@ -51,6 +52,9 @@ from .subject import (
     OBSERVER_GOOD_EXAMPLE,
     SUBJECT_TAG_VOCABULARY,
     build_tutor_system_prompt,
+    mock_film_extract,
+    mock_film_tutor_reply,
+    subject_reference_for,
 )
 
 
@@ -65,6 +69,8 @@ RETRY_DELAYS = (1, 2, 4)
 class LLMClient:
     def __init__(self) -> None:
         self.settings = settings
+        self._health_cache: tuple[float, dict[str, Any]] | None = None
+        self._health_lock = asyncio.Lock()
 
     def _client(self):
         from openai import AsyncOpenAI
@@ -190,32 +196,42 @@ class LLMClient:
                 "embed_model": self.settings.embed_model,
                 "judge_model": self.settings.judge_model,
             }
-        try:
-            start = time.perf_counter()
-            text = await self.complete_tutor(
-                "Say ok.", [], session_id=None, purpose="health", max_words=1
-            )
-            return {
-                "reachable": True,
-                "latency_ms": int((time.perf_counter() - start) * 1000),
-                "chat_model": self.settings.chat_model,
-                "observer_model": self.settings.observer_model,
-                "dream_model": self.settings.dream_model,
-                "embed_model": self.settings.embed_model,
-                "judge_model": self.settings.judge_model,
-                "sample": text[:32],
-            }
-        except Exception as exc:  # pragma: no cover - depends on network
-            return {
-                "reachable": False,
-                "mode": "live",
-                "error": str(exc),
-                "chat_model": self.settings.chat_model,
-                "observer_model": self.settings.observer_model,
-                "dream_model": self.settings.dream_model,
-                "embed_model": self.settings.embed_model,
-                "judge_model": self.settings.judge_model,
-            }
+        now = time.monotonic()
+        if self._health_cache and now - self._health_cache[0] < 60:
+            return {**self._health_cache[1], "cached": True}
+
+        async with self._health_lock:
+            now = time.monotonic()
+            if self._health_cache and now - self._health_cache[0] < 60:
+                return {**self._health_cache[1], "cached": True}
+            try:
+                start = time.perf_counter()
+                text = await self.complete_tutor(
+                    "Say ok.", [], session_id=None, purpose="health", max_words=1
+                )
+                result = {
+                    "reachable": True,
+                    "latency_ms": int((time.perf_counter() - start) * 1000),
+                    "chat_model": self.settings.chat_model,
+                    "observer_model": self.settings.observer_model,
+                    "dream_model": self.settings.dream_model,
+                    "embed_model": self.settings.embed_model,
+                    "judge_model": self.settings.judge_model,
+                    "sample": text[:32],
+                }
+            except Exception as exc:  # pragma: no cover - depends on network
+                result = {
+                    "reachable": False,
+                    "mode": "live",
+                    "error": str(exc),
+                    "chat_model": self.settings.chat_model,
+                    "observer_model": self.settings.observer_model,
+                    "dream_model": self.settings.dream_model,
+                    "embed_model": self.settings.embed_model,
+                    "judge_model": self.settings.judge_model,
+                }
+            self._health_cache = (time.monotonic(), result)
+            return result
 
     async def embed(self, text: str, session_id: str | None = None) -> list[float]:
         if not self.settings.live_llm_enabled:
@@ -675,25 +691,44 @@ def build_tutor_prompt(student_message: str, memory_pack: list[dict[str, Any]]) 
         if item.get("type") in {"misconception", "mastery", "goal", "fact"}
     ]
     procedural_block = "\n".join(
-        f"- {item['content']} (confidence {item.get('confidence', 0):.2f})"
+        json.dumps(
+            {
+                "type": item.get("type"),
+                "confidence": round(float(item.get("confidence", 0)), 2),
+                "content": item.get("content", ""),
+            },
+            ensure_ascii=False,
+        )
         for item in procedural
-    ) or "- No durable response directives yet."
+    ) or "- No relevant response-style evidence selected."
     semantic_block = "\n".join(
-        f"- {item['type'].upper()} ({item.get('confidence', 0):.2f}): {item['content']}"
+        json.dumps(
+            {
+                "type": item.get("type"),
+                "confidence": round(float(item.get("confidence", 0)), 2),
+                "content": item.get("content", ""),
+            },
+            ensure_ascii=False,
+        )
         for item in semantic
-    ) or "- No durable person model yet."
+    ) or "- No relevant person-model evidence selected."
     return build_tutor_system_prompt(
         student_message,
         procedural_block,
         semantic_block,
         "Use the app clock date and current session title supplied by the session layer.",
+        subject_reference_for(
+            " ".join(
+                [student_message, *(str(item.get("content", "")) for item in memory_pack)]
+            )
+        ),
         has_memories=bool(memory_pack),
     )
 
 
 def mock_embedding(text: str, dim: int) -> list[float]:
     vector = [0.0] * dim
-    for token in text.lower().replace("'", "").split():
+    for token in re.findall(r"[a-z0-9']+", text.lower()):
         digest = hashlib.sha256(token.encode("utf-8")).digest()
         index = int.from_bytes(digest[:2], "big") % dim
         sign = 1 if digest[2] % 2 == 0 else -1
@@ -706,6 +741,9 @@ def mock_tutor_reply(
     student_message: str, memory_pack: list[dict[str, Any]], max_words: int
 ) -> str:
     lower = student_message.lower()
+    film_reply = mock_film_tutor_reply(student_message, memory_pack)
+    if film_reply:
+        return film_reply
     remembers_retry = any(
         any(marker in item.get("content", "").lower() for marker in MOCK_RECALL_MARKERS)
         for item in memory_pack
@@ -728,6 +766,9 @@ def mock_tutor_reply(
 
 
 def mock_extract(transcript: str) -> list[dict[str, Any]]:
+    film_candidates = mock_film_extract(transcript)
+    if film_candidates is not None:
+        return film_candidates
     lower = transcript.lower()
     found: list[dict[str, Any]] = []
     if "automatic" in lower and any(marker in lower for marker in MOCK_RECALL_MARKERS):
@@ -800,6 +841,8 @@ def mock_extract(transcript: str) -> list[dict[str, Any]]:
 
 
 def mock_session_level_extract(transcript: str) -> list[dict[str, Any]]:
+    if mock_film_extract(transcript) is not None:
+        return []
     lower = transcript.lower()
     found: list[dict[str, Any]] = []
     if any(marker in lower for marker in MOCK_AFFECT_MARKERS):

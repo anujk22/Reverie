@@ -30,7 +30,7 @@ export type Engram = {
 
 export type MemoryGraph = {
   nodes: Engram[];
-  links: Array<{ source: string; target: string; type: string }>;
+  links: Array<{ source: string; target: string; type: string; tags?: string[] }>;
 };
 
 export type SessionRecord = {
@@ -52,6 +52,8 @@ export type MemoryPackItem = {
   strength?: number;
   tokens: number;
   score: number;
+  semantic_similarity?: number;
+  selection_reason?: string;
   breakdown: Record<string, number>;
 };
 
@@ -66,6 +68,14 @@ export type MemoryPack = {
   used: number;
   winners: MemoryPackItem[];
   excluded: ExcludedMemory[];
+  pipeline?: {
+    searched: number;
+    eligible: number;
+    filtered: number;
+    ranked: number;
+    selected: number;
+    retrieval_ms: number;
+  };
 };
 
 export type Utterance = {
@@ -172,7 +182,14 @@ async function jsonRequest<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `${response.status} ${response.statusText}`);
+    let message = text;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (typeof parsed.detail === "string") message = parsed.detail;
+    } catch {
+      // Keep a non-JSON response body as the most useful error detail.
+    }
+    throw new Error(message || `${response.status} ${response.statusText}`);
   }
   return (await response.json()) as T;
 }
@@ -194,6 +211,21 @@ export function fetchGraph() {
 
 export function fetchEngramDetail(id: string) {
   return jsonRequest<EngramDetail>(`/api/memory/engrams/${id}`);
+}
+
+export function correctEngram(id: string, sessionId: string, content: string) {
+  return jsonRequest<{ previous: Engram; engram: Engram }>(`/api/memory/engrams/${id}/correct`, {
+    method: "POST",
+    body: JSON.stringify({ session_id: sessionId, content })
+  });
+}
+
+export function forgetEngram(id: string, sessionId?: string) {
+  const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+  return jsonRequest<{ ok: boolean; deleted_engram_id: string }>(
+    `/api/memory/engrams/${id}${query}`,
+    { method: "DELETE" }
+  );
 }
 
 export function fetchMemoryPack(sessionId: string) {
@@ -248,10 +280,4 @@ export function advanceClock(days: number) {
     method: "POST",
     body: JSON.stringify({ days })
   });
-}
-
-export function fetchConductorScript(name: string) {
-  return jsonRequest<{ title: string; turns: Array<{ student: string }> }>(
-    `/api/conductor/scripts/${name}`
-  );
 }

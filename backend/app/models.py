@@ -104,8 +104,13 @@ class MemoryPackItem(BaseModel):
     engram_id: str
     content: str
     type: str
+    subject_tags: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0, le=1)
+    strength: float = Field(ge=0, le=1)
     tokens: int
     score: float
+    semantic_similarity: float
+    selection_reason: str
     breakdown: dict[str, float]
 
 
@@ -115,11 +120,21 @@ class ExcludedMemory(BaseModel):
     reason: str
 
 
+class RetrievalPipeline(BaseModel):
+    searched: int
+    eligible: int
+    filtered: int
+    ranked: int
+    selected: int
+    retrieval_ms: int
+
+
 class MemoryPack(BaseModel):
     budget: int
     used: int
     winners: list[MemoryPackItem]
     excluded: list[ExcludedMemory]
+    pipeline: RetrievalPipeline
 
 
 class ChatRequest(BaseModel):
@@ -128,6 +143,16 @@ class ChatRequest(BaseModel):
 
 class CreateSessionRequest(BaseModel):
     title: str | None = None
+
+
+class CorrectEngramRequest(BaseModel):
+    session_id: str = Field(min_length=4, max_length=80)
+    content: str = Field(min_length=8, max_length=500)
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, value: str) -> str:
+        return value.strip()
 
 
 class ConductorClockRequest(BaseModel):

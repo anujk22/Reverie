@@ -32,8 +32,8 @@ const storage = [
 ];
 
 const stack = [
-  ["Frontend", "Next.js App Router · live constellation canvas · streaming updates"],
-  ["Backend", "FastAPI · SQLite memory ledger · dream worker · recall service"],
+  ["Frontend", "Next.js App Router · backend-driven Active Map · streaming updates"],
+  ["Backend", "FastAPI · SQLite memory ledger · dream cycle · recall service"],
   [
     "Qwen on Alibaba Cloud",
     "Observer · assistant · dreams and judges · embeddings, reported live by /api/health"
@@ -50,7 +50,7 @@ const swaps = [
 
 export default function ArchitecturePage() {
   return (
-    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+    <div className="cosmic-shell secondary-page min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="People"
@@ -58,25 +58,29 @@ export default function ArchitecturePage() {
           description="The demo scenario is the hardest memory workload we could give it: one person, under pressure, returning across multiple sessions."
           meta={
             <>
-              <TagPill>Event Sourced</TagPill>
+              <TagPill>Event Audited</TagPill>
               <TagPill>Budgeted Recall</TagPill>
               <TagPill>Dream Consolidation</TagPill>
             </>
           }
         />
 
-        <section className="stellar-panel rounded-lg p-5 md:p-6">
+        <section
+          id="architecture-engine"
+          className="stellar-panel secondary-feature-panel scroll-mb-52 rounded-lg p-5 md:p-6"
+        >
           <p className="text-[14px] font-medium text-starlight">
-            Zero Domain Knowledge
+            Domain-isolated core
           </p>
           <p className="mt-3 max-w-4xl font-display text-[30px] leading-tight text-starlight md:text-[38px]">
-            The engine contains zero domain knowledge. Swap one script file and the
-            same engine remembers a customer across support tickets, a patient across
-            visits, an engineer across a codebase. The test suite proves it.
+            The core memory algorithms contain zero demo-domain knowledge. Swap the
+            isolated subject layer and the same engine can remember a customer across
+            support tickets, a patient across visits, or an engineer across a codebase.
+            A purity test enforces the boundary.
           </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <div className="secondary-feature-grid mt-5 grid md:grid-cols-4">
             {swaps.map(([name, detail]) => (
-              <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
+              <div key={name} className="secondary-feature-item p-3">
                 <p className="text-[13px] font-medium text-starlight">
                   {name}
                 </p>
@@ -86,16 +90,16 @@ export default function ArchitecturePage() {
           </div>
         </section>
 
-        <section className="stellar-panel rounded-lg p-5 md:p-6">
+        <section className="stellar-panel secondary-flow-panel rounded-lg p-5 md:p-6">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto_1.15fr_auto_1fr] lg:items-stretch">
             {layers.map((layer, index) => {
               const Icon = layer.icon;
               return (
                 <Fragment key={layer.title}>
                   <div
-                    className={`rounded-lg border bg-field/70 p-5 ${
+                    className={`architecture-layer-card rounded-lg border p-5 ${
                       layer.featured
-                        ? "border-ember/50 shadow-[0_8px_28px_-12px_rgba(93,64,35,0.16)] lg:-my-2"
+                        ? "architecture-core-card border-ember/50 shadow-[0_8px_28px_-12px_rgba(93,64,35,0.16)] lg:-my-2"
                         : "border-hairline"
                     }`}
                   >
@@ -154,9 +158,9 @@ export default function ArchitecturePage() {
               </p>
               <Database aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
             </div>
-            <div className="mt-5 grid gap-3">
+            <div className="secondary-data-list mt-5 grid">
               {storage.map(([name, detail]) => (
-                <div key={name} className="rounded-lg border border-hairline bg-field-2/80 p-3">
+                <div key={name} className="secondary-data-row p-3">
                   <p className="text-[13px] font-medium text-starlight">
                     {name}
                   </p>
@@ -173,11 +177,11 @@ export default function ArchitecturePage() {
               </p>
               <Cloud aria-hidden="true" className="text-dim" size={18} strokeWidth={1.8} />
             </div>
-            <div className="mt-5 grid gap-3">
+            <div className="secondary-data-list mt-5 grid">
               {stack.map(([name, detail]) => (
                 <div
                   key={name}
-                  className="grid gap-2 rounded-lg border border-hairline bg-field-2/80 p-3 md:grid-cols-[170px_1fr]"
+                  className="secondary-data-row grid gap-2 p-3 md:grid-cols-[170px_1fr]"
                 >
                   <p className="text-[13px] font-medium text-starlight">
                     {name}

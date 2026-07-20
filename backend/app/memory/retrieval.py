@@ -24,6 +24,7 @@ class RetrievalCandidate:
     engram: RetrievalEngram
     tokens: int
     score: float
+    semantic_similarity: float
     breakdown: dict[str, float]
 
 
@@ -69,6 +70,7 @@ def score_candidates(
                 engram=engram,
                 tokens=estimate_tokens(engram.content),
                 score=round(score, 4),
+                semantic_similarity=round(sim, 4),
                 breakdown={
                     "sim": round(0.40 * sim, 4),
                     "strength": round(0.30 * strength, 4),

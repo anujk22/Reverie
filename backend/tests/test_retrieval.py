@@ -26,6 +26,7 @@ def make_candidate(
         ),
         tokens=tokens,
         score=score,
+        semantic_similarity=score,
         breakdown={},
     )
 

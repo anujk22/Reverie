@@ -433,7 +433,7 @@ export function EvalsClient() {
   }
 
   return (
-    <div className="cosmic-shell min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
+    <div className="cosmic-shell secondary-page min-h-dvh px-4 py-6 md:min-h-[calc(100dvh-1.5rem)] md:px-8 lg:px-12">
       <div className="relative z-10 mx-auto max-w-6xl space-y-6">
         <PageHeader
           eyebrow="Insights"
@@ -482,9 +482,9 @@ export function EvalsClient() {
         ) : null}
 
         {results?.real_run ? (
-          <div className="space-y-6">
+          <div id="eval-results" className="space-y-6 scroll-mb-52">
             {personalizationVerdict ? (
-              <section className="stellar-panel rounded-lg p-6">
+              <section className="stellar-panel secondary-result-panel rounded-lg p-6">
                 <p className="font-display text-[34px] leading-tight text-starlight md:text-[46px]">
                   Reverie{" "}
                   <span className="brand-gradient-text">
@@ -526,7 +526,7 @@ export function EvalsClient() {
               </section>
             ) : null}
 
-            <section className="grid gap-4 md:grid-cols-3">
+            <section className="secondary-metric-grid grid gap-4 md:grid-cols-3">
               {headlineTiles.map((tile) => (
                 <div key={tile.label} className="stellar-panel rounded-lg p-5">
                   <p className="text-[13px] font-medium text-starlight">
@@ -545,7 +545,7 @@ export function EvalsClient() {
             </section>
 
             {results.headline ? (
-              <section className="stellar-panel rounded-lg p-6">
+              <section className="stellar-panel secondary-takeaway-panel rounded-lg p-6">
                 <p className="text-[14px] font-medium text-starlight">
                   Takeaway
                 </p>

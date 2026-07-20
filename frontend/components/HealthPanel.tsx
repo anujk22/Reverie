@@ -42,7 +42,7 @@ export function HealthPanel() {
           {stateLabel(state)}
         </span>
         {mock ? (
-          <span className="rounded-full border border-ember/40 bg-field-2 px-2 py-0.5 font-mono text-xs text-starlight">
+          <span className="rounded-full border border-coral/50 bg-field-2 px-2 py-0.5 font-mono text-xs text-coral">
             Mock Mode
           </span>
         ) : null}
@@ -74,7 +74,7 @@ export function HealthPanel() {
         {viewStatus?.error ? (
           <div className="sm:col-span-2">
             <dt className="text-dim">Last Signal</dt>
-            <dd className="mt-1 font-mono text-xs text-starlight">{viewStatus.error}</dd>
+            <dd className="mt-1 font-mono text-xs text-coral">{viewStatus.error}</dd>
           </div>
         ) : null}
       </dl>

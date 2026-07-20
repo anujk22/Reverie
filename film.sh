@@ -67,7 +67,11 @@ if ! (cd frontend && npm run build); then
   exit 1
 fi
 
-(cd frontend && npm run start >"$frontend_log" 2>&1) &
+mkdir -p frontend/.next/standalone/.next/static frontend/.next/standalone/public
+cp -R frontend/.next/static/. frontend/.next/standalone/.next/static/
+cp -R frontend/public/. frontend/.next/standalone/public/
+
+(cd frontend/.next/standalone && HOSTNAME=127.0.0.1 PORT=3000 node server.js >"$frontend_log" 2>&1) &
 frontend_pid=$!
 
 health_body=""

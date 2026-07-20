@@ -5,8 +5,7 @@ import {
   Circle,
   Info,
   Maximize2,
-  SlidersHorizontal,
-  Sparkles
+  SlidersHorizontal
 } from "lucide-react";
 import type { Engram, MemoryGraph, RuntimeEvent } from "@/lib/api";
 import { labelText } from "@/lib/text";
@@ -33,6 +32,7 @@ type MemoryCardProps = {
   children: ReactNode;
   tags?: string[];
   confidence?: number | string;
+  confidenceLabel?: string;
   recall?: string;
   variant?: "person" | "reverie";
   pending?: boolean;
@@ -44,6 +44,11 @@ type ContextBudgetMeterProps = {
   total?: number;
   available?: number;
   percent?: number;
+  selected?: number;
+  searched?: number;
+  filtered?: number;
+  ranked?: number;
+  retrievalMs?: number;
 };
 
 type BrainMapPanelProps = {
@@ -52,6 +57,9 @@ type BrainMapPanelProps = {
   graph?: MemoryGraph;
   event?: RuntimeEvent | null;
   budget?: ContextBudgetMeterProps;
+  attentionIds?: string[];
+  selectedId?: string | null;
+  onSelectMemory?: (engram: Engram) => void;
 };
 
 type SectionHeaderProps = {
@@ -75,7 +83,7 @@ type EmptyStateProps = {
 };
 
 const legend = [
-  { label: "Observed issues", className: "bg-[#ff7446]" },
+  { label: "Observed evidence", className: "bg-[#ff7446]" },
   { label: "Learned patterns", className: "bg-[#d4dc78]" },
   { label: "Preferences & affect", className: "bg-[#f4b85e]" },
   { label: "Goals & timing", className: "bg-[#fb8c91]" }
@@ -85,8 +93,6 @@ type BrainRegion = {
   key: string;
   title: string;
   className: string;
-  lineClassName: string;
-  lineSide: "left" | "right";
   matches: (engram: Engram) => boolean;
 };
 
@@ -94,25 +100,19 @@ const brainRegions: BrainRegion[] = [
   {
     key: "preferences",
     title: "Personal Preferences",
-    className: "left-[4%] top-[25%] max-lg:left-[6%] max-lg:top-[20%]",
-    lineClassName: "left-full top-8 h-px w-24 max-xl:w-14",
-    lineSide: "right",
+    className: "left-[4%] top-[6%] max-lg:left-[6%]",
     matches: (engram) => engram.type === "preference"
   },
   {
     key: "pressure",
     title: "Current Pressure",
     className: "left-[7%] top-[66%] max-lg:left-[5%]",
-    lineClassName: "left-full top-4 h-px w-28 max-xl:w-16",
-    lineSide: "right",
     matches: (engram) => engram.type === "affect" || engram.type === "fact"
   },
   {
     key: "knowledge",
     title: "Working Knowledge",
-    className: "right-[3%] top-[24%] text-left max-lg:right-[5%]",
-    lineClassName: "right-full top-8 h-px w-24 max-xl:w-14",
-    lineSide: "left",
+    className: "right-[3%] top-[6%] text-left max-lg:right-[5%]",
     matches: (engram) =>
       engram.type === "misconception" ||
       engram.type === "mastery" ||
@@ -122,8 +122,6 @@ const brainRegions: BrainRegion[] = [
     key: "goals",
     title: "Goals & Timing",
     className: "right-[2%] top-[72%] text-left max-lg:right-[4%]",
-    lineClassName: "right-full top-4 h-px w-28 max-xl:w-16",
-    lineSide: "left",
     matches: (engram) => engram.type === "goal"
   }
 ];
@@ -154,12 +152,13 @@ function pluralMemories(value: number) {
 
 function eventNote(value: string) {
   const notes: Record<string, string> = {
-    "engram.archived": "Archived",
-    "engram.decayed": "Softened",
-    "engram.merged": "Merged",
-    "engram.observed": "New Memory",
-    "engram.reinforced": "Reinforced",
-    "engram.superseded": "Rewritten"
+    "engram.archived": "Below retention floor",
+    "engram.decayed": "Strength decayed",
+    "engram.deleted": "Explicitly forgotten",
+    "engram.merged": "Duplicate consolidated",
+    "engram.observed": "Candidate extracted",
+    "engram.reinforced": "Selected for context",
+    "engram.superseded": "Older version superseded"
   };
   return notes[value] ?? labelText(value.replace(/^engram\./, ""));
 }
@@ -168,16 +167,17 @@ function regionNote(nodes: Engram[], event: RuntimeEvent | null | undefined, reg
   if (event?.kind === "memory_event" && event.engram && region.matches(event.engram)) {
     return eventNote(event.event_type);
   }
-  if (!nodes.length) return "Listening";
-  if (nodes.some((node) => node.provisional)) return "Forming";
+  if (!nodes.length) return "No durable memories";
+  const forming = nodes.filter((node) => node.provisional).length;
+  if (forming) return `${forming} observation${forming === 1 ? "" : "s"} forming`;
 
   const averageStrength =
     nodes.reduce((total, node) => total + Math.max(0, Math.min(1, node.strength)), 0) /
     nodes.length;
   const recalls = nodes.reduce((total, node) => total + node.access_count, 0);
-  if (averageStrength >= 0.72 || recalls >= nodes.length * 2) return "Reinforced";
-  if (averageStrength >= 0.48) return "Active";
-  return "New";
+  if (recalls) return `Durable · ${recalls} retrieval${recalls === 1 ? "" : "s"}`;
+  if (averageStrength >= 0.48) return "Durable · active";
+  return "Durable · weakening";
 }
 
 function hashSeed(value: string) {
@@ -279,22 +279,22 @@ export function MemoryCard({
   children,
   tags = [],
   confidence,
+  confidenceLabel = "CONFIDENCE",
   recall,
   variant = actor === "Reverie" ? "reverie" : "person",
   pending = false,
   onTagClick
 }: MemoryCardProps) {
   return (
-    <article className={`memory-card ${pending ? "memory-card-pending" : ""}`}>
-      <div className={`memory-avatar ${variant === "reverie" ? "memory-avatar-dark" : ""}`}>
-        {variant === "reverie" ? <Sparkles aria-hidden="true" size={17} /> : "LP"}
-      </div>
-      <time className="memory-time">{timestamp}</time>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <article
+      className={`memory-card memory-card-${variant} ${pending ? "memory-card-pending" : ""}`}
+    >
+      <div className="memory-card-content">
+        <div className="memory-card-header">
           <h3 className={`memory-actor ${variant === "person" ? "text-coral" : "text-starlight"}`}>
             {actor}
           </h3>
+          <time className="memory-time">{timestamp}</time>
           {recall ? <span className="memory-recall">{labelText(recall)}</span> : null}
         </div>
         <div className="memory-copy">{children}</div>
@@ -304,7 +304,9 @@ export function MemoryCard({
               #{tag}
             </TagPill>
           ))}
-          {confidence ? <ConfidenceLabel value={confidence} /> : null}
+          {confidence !== undefined ? (
+            <ConfidenceLabel value={confidence} label={confidenceLabel} />
+          ) : null}
         </div>
       </div>
     </article>
@@ -315,14 +317,19 @@ export function ContextBudgetMeter({
   used = 128000,
   total = 200000,
   available = 72000,
-  percent = 64
+  percent = 64,
+  selected,
+  searched,
+  filtered,
+  ranked,
+  retrievalMs
 }: ContextBudgetMeterProps) {
   const safePercent = Math.round(Math.max(0, Math.min(100, percent)));
   return (
     <section className="context-budget" aria-label="Context budget">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h2>CONTEXT BUDGET</h2>
+          <h2>MEMORY CONTEXT BUDGET</h2>
           <Info aria-hidden="true" size={15} strokeWidth={1.6} />
         </div>
         <p className="context-budget-total">
@@ -336,6 +343,12 @@ export function ContextBudgetMeter({
         <p>{safePercent}% USED</p>
         <p>{compactNumber(available)} AVAILABLE</p>
       </div>
+      {searched !== undefined ? (
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-dim">
+          {selected ?? 0} selected · {searched} searched · {filtered ?? 0} filtered · {ranked ?? 0}{" "}
+          ranked{retrievalMs !== undefined ? ` · ${retrievalMs}ms` : ""}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -345,12 +358,16 @@ export function BrainMapPanel({
   variant = "full",
   graph,
   event,
-  budget
+  budget,
+  attentionIds = [],
+  selectedId,
+  onSelectMemory
 }: BrainMapPanelProps) {
   const eventId = event?.kind === "memory_event" ? event.event.id : null;
   const eventEngramId = event?.kind === "memory_event" ? event.event.engram_id : null;
   const nodes = visibleBrainNodes(graph, event);
   const activeNodes = nodes.filter((node) => node.status === "active");
+  const attention = new Set(attentionIds);
   const regionViews = brainRegions.map((region) => {
     const regionNodes = activeNodes.filter(region.matches);
     return {
@@ -362,9 +379,7 @@ export function BrainMapPanel({
 
   return (
     <aside
-      className={`brain-map-panel ${
-        variant === "embedded" ? "brain-map-panel-embedded" : ""
-      }`}
+      className={`brain-map-panel ${variant === "embedded" ? "brain-map-panel-embedded" : ""}`}
       aria-label="Active autobiographical memory map"
     >
       <div className="brain-panel-noise" />
@@ -386,14 +401,16 @@ export function BrainMapPanel({
         </div>
       </div>
 
-      <button
-        type="button"
-        aria-label="Expand memory map"
-        onClick={onExpand}
-        className="brain-expand"
-      >
-        <Maximize2 aria-hidden="true" size={18} strokeWidth={1.6} />
-      </button>
+      {onExpand ? (
+        <button
+          type="button"
+          aria-label="Expand memory map"
+          onClick={onExpand}
+          className="brain-expand"
+        >
+          <Maximize2 aria-hidden="true" size={18} strokeWidth={1.6} />
+        </button>
+      ) : null}
 
       <div className="brain-stage">
         <div className="brain-ambient brain-ambient-a" />
@@ -405,11 +422,38 @@ export function BrainMapPanel({
             width={1438}
             height={1230}
             priority
+            unoptimized
             className="brain-image"
           />
-          <div className="brain-live-layer" aria-hidden="true">
+          <div className="brain-live-layer">
+            <svg className="brain-relationship-layer" viewBox="0 0 100 100" aria-hidden="true">
+              {(graph?.links ?? []).map((link) => {
+                const source = nodes.find((node) => node.id === link.source);
+                const target = nodes.find((node) => node.id === link.target);
+                if (!source || !target) return null;
+                const active =
+                  (attention.has(source.id) && attention.has(target.id)) ||
+                  selectedId === source.id ||
+                  selectedId === target.id;
+                if (!active) return null;
+                const start = nodePoint(source);
+                const end = nodePoint(target);
+                return (
+                  <line
+                    key={`${link.source}-${link.target}-${link.type}`}
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    className="brain-relationship-active"
+                  />
+                );
+              })}
+            </svg>
             {nodes.map((node) => {
               const isEventNode = eventEngramId === node.id;
+              const isAttentionNode = attention.has(node.id);
+              const isSelectedNode = selectedId === node.id;
               const eventClass =
                 event?.kind === "memory_event" && isEventNode
                   ? ` brain-memory-node-event brain-memory-node-${event.event_type.replace(
@@ -418,9 +462,14 @@ export function BrainMapPanel({
                     )}`
                   : "";
               return (
-                <span
+                <button
+                  type="button"
                   key={`${node.id}-${isEventNode ? eventId : "idle"}`}
-                  className={`brain-memory-node brain-memory-node-${node.status}${eventClass}`}
+                  aria-label={`Inspect ${labelText(node.type)} memory: ${node.content}`}
+                  onClick={() => onSelectMemory?.(node)}
+                  className={`brain-memory-node brain-memory-node-${node.status}${eventClass}${
+                    isAttentionNode ? " brain-memory-node-attention" : ""
+                  }${isSelectedNode ? " brain-memory-node-selected" : ""}`}
                   style={nodeStyle(node)}
                 />
               );
@@ -433,9 +482,6 @@ export function BrainMapPanel({
 
         {regionViews.map((callout) => (
           <div key={callout.key} className={`brain-callout ${callout.className}`}>
-            <span
-              className={`brain-callout-line brain-callout-line-to-${callout.lineSide} ${callout.lineClassName}`}
-            />
             <h3>{callout.title}</h3>
             <p>{callout.detail}</p>
             <p>{callout.note}</p>

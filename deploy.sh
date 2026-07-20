@@ -12,8 +12,8 @@ fi
 
 echo "Building linux images locally for $PLATFORM..."
 docker buildx build --platform "$PLATFORM" -t reverie-backend:latest --load ./backend
-docker buildx build --platform "$PLATFORM" -t reverie-frontend:latest --load ./frontend
-docker save reverie-backend:latest reverie-frontend:latest -o "$IMAGE_TAR"
+docker buildx build --platform "$PLATFORM" --build-arg NEXT_PUBLIC_API_BASE=/ -t reverie-frontend:latest --load ./frontend
+docker save -o "$IMAGE_TAR" reverie-backend:latest reverie-frontend:latest
 
 echo "Syncing deploy files..."
 rsync -az --delete \

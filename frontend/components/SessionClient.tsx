@@ -8,8 +8,7 @@ import {
   BrainMapPanel,
   ComposerChrome,
   EmptyState,
-  MemoryCard,
-  MetadataChip
+  MemoryCard
 } from "@/components/ReverieUI";
 import { RichText } from "@/components/RichText";
 import {
@@ -56,59 +55,11 @@ type MemoryMarker = {
 type ChatItem = ChatMessage | MemoryMarker;
 
 const emptyGraph: MemoryGraph = { nodes: [], links: [] };
-const SESSION_ONE_TITLE = "Session 1 · store migration";
-
-const metadata = [
-  ["ID", "LP-90817"],
-  ["AGE", "34"],
-  ["ROLE", "Store Operations Lead"],
-  ["LOCATION", "Seoul, KR"],
-  ["CONTEXT", "Store Migration"],
-  ["MEMORY DEPTH", "Deep"],
-  ["RELATIONSHIP", "Self"],
-  ["LAST SYNC", "2m ago"]
-];
-
-const sampleCards = [
-  {
-    actor: "You",
-    timestamp: "09:42 AM",
-    content: "An order sync failed. I thought webhook retries happened automatically. What should I check first?",
-    tags: ["order-sync", "webhook-retries"],
-    variant: "person" as const
-  },
-  {
-    actor: "Reverie",
-    timestamp: "09:42 AM",
-    content:
-      "Start in Settings → Webhooks. Set Retry failed order sync to Enabled, then confirm Max attempts is 3 before you rerun one failed order.",
-    tags: ["exact-steps", "real-values", "order-sync"],
-    confidence: 92,
-    recall: "memory recall",
-    variant: "reverie" as const
-  },
-  {
-    actor: "You",
-    timestamp: "09:43 AM",
-    content: "Please give exact values, not documentation links.",
-    tags: ["exact-steps"],
-    variant: "person" as const
-  },
-  {
-    actor: "Reverie",
-    timestamp: "09:43 AM",
-    content:
-      "I’ll keep the next check small and concrete: Enabled, 3 attempts, then verify one order reaches Synced.",
-    tags: ["low-pressure", "real-values", "launch"],
-    confidence: 95,
-    recall: "self model",
-    variant: "reverie" as const
-  }
-];
+const SESSION_ONE_TITLE = "Session 1 · interview preparation";
 
 const markerEyebrows: Record<string, string> = {
   "engram.observed": "New Memory",
-  "engram.reinforced": "Memory Reinforced",
+  "engram.deleted": "Memory Forgotten",
   "engram.superseded": "Memory Rewritten"
 };
 
@@ -168,19 +119,29 @@ function humanError(error: unknown) {
 
 function memoryLabel(item: MemoryPackItem) {
   const text = item.content.toLowerCase();
-  if (text.includes("step") || text.includes("real value") || text.includes("doc")) return "exact steps";
-  if (text.includes("frustrated") || text.includes("failed order")) return "low pressure";
-  if (text.includes("webhook") || text.includes("retry")) return "webhook retries";
-  if (text.includes("sale") || text.includes("launch")) return "launch date";
-  if (text.includes("shipping")) return "shipping zone";
-  if (text.includes("order sync")) return "order sync";
+  if (text.includes("one question") || text.includes("direct feedback")) return "direct feedback";
+  if (text.includes("anxious") || text.includes("freezing")) return "interview pressure";
+  if (text.includes("technical detail") || text.includes("impact")) return "answer focus";
+  if (text.includes("interview") || text.includes("monday") || text.includes("friday")) {
+    return "interview timing";
+  }
   return item.type.replace("_", " ").split(" ").slice(0, 2).join(" ");
+}
+
+function memoryLabels(items?: MemoryPackItem[]) {
+  if (!items?.length) return [];
+  return Array.from(new Set(items.map(memoryLabel))).slice(0, 3);
 }
 
 function confidenceFrom(items?: MemoryPackItem[]) {
   if (!items?.length) return undefined;
-  const score = items.reduce((total, item) => total + item.score, 0) / items.length;
-  return Math.max(72, Math.min(99, Math.round(score * 100)));
+  const confidenceValues = items
+    .map((item) => item.confidence)
+    .filter((value): value is number => typeof value === "number");
+  if (!confidenceValues.length) return undefined;
+  return Math.round(
+    (confidenceValues.reduce((total, value) => total + value, 0) / confidenceValues.length) * 100
+  );
 }
 
 function formatTime(value: Date) {
@@ -213,6 +174,7 @@ export function SessionClient() {
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const hasChatRef = useRef(false);
   const sessionRef = useRef<SessionRecord | null>(null);
   const sendMessageRef = useRef<
@@ -306,6 +268,17 @@ export function SessionClient() {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [items]);
+
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    composer.style.height = "60px";
+    const nextHeight = Math.min(168, Math.max(60, composer.scrollHeight));
+    composer.style.height = `${nextHeight}px`;
+    if (composer.scrollHeight > nextHeight) {
+      composer.scrollTop = composer.scrollHeight;
+    }
+  }, [draft]);
 
   const nodeById = useMemo(() => {
     return new Map(graph.nodes.map((node) => [node.id, node]));
@@ -570,44 +543,46 @@ export function SessionClient() {
 
   const hasMessages = items.some((item) => item.kind === "message");
   const directorActive = director.status !== "idle";
+  const durableMemoryCount = graph.nodes.filter(
+    (node) => node.status === "active" && !node.provisional
+  ).length;
+  const sessionLabel = session?.title.split("·")[0]?.trim() ?? "No session";
   return (
     <div className="grid min-h-dvh overflow-hidden bg-field lg:h-dvh lg:grid-cols-[minmax(560px,46%)_minmax(0,54%)]">
-      <section
-        className={`cosmic-shell flex min-h-dvh flex-col border-hairline transition-[padding] lg:h-dvh lg:min-h-0 lg:border-r ${
-          directorActive ? "pb-56 md:pb-52" : ""
-        }`}
-      >
-        <header className="relative shrink-0 px-6 pb-4 pt-8 md:px-10 lg:px-11 lg:pt-10">
+      <section id="session-story" className="cosmic-shell flex min-h-dvh flex-col border-hairline lg:h-dvh lg:min-h-0 lg:border-r">
+        <header className="relative shrink-0 px-6 pb-4 pt-6 md:px-10 lg:px-11 lg:pt-7">
           <div className="min-w-0">
             <div className="min-w-0">
-              <p className="mb-4 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-starlight">
+              <p className="mb-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-starlight">
                 <span aria-hidden="true" className="h-2 w-2 rounded-full bg-coral" />
                 Visible memory engine
               </p>
-              <h1 className="display-glow whitespace-nowrap font-display text-[58px] font-medium leading-[0.9] text-starlight max-sm:whitespace-normal md:text-[74px] xl:text-[86px]">
-                LENA PARK
+              <h1 className="display-glow font-display text-[40px] font-medium leading-[0.95] text-starlight md:text-[48px] xl:text-[54px]">
+                REVERIE
               </h1>
-              <p className="mt-4 max-w-xl text-[15px] leading-6 text-dim">
-                Evidence, dream consolidation, and budgeted recall for one returning person.
+              <p className="mt-3 max-w-xl text-[15px] leading-6 text-dim">
+                A memory agent that remembers, revises, and forgets across sessions.
               </p>
-              <div className="mt-7 flex max-w-[720px] flex-wrap gap-2">
-                {metadata.map(([label, value]) => (
-                  <MetadataChip key={label} label={label} value={value} />
-                ))}
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-dim">
+                <span className="text-starlight">Lena</span>
+                <span aria-hidden="true" className="text-faint">·</span>
+                <span>{sessionLabel}</span>
+                <span aria-hidden="true" className="text-faint">·</span>
+                <span>{durableMemoryCount} durable {durableMemoryCount === 1 ? "memory" : "memories"}</span>
               </div>
             </div>
 
           </div>
 
           {error ? (
-            <p role="alert" className="relative mt-4 pl-4 text-sm leading-6 text-starlight">
+            <p role="alert" className="relative mt-4 pl-4 text-sm leading-6 text-coral">
               <span className="transcript-rail absolute bottom-1 left-0 top-1 w-[3px] rounded-full" />
               {error}
             </p>
           ) : null}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3 md:px-10 lg:px-11">
+        <div id="session-thread" className="min-h-0 flex-1 overflow-y-auto px-6 py-3 md:px-10 lg:px-11">
           {booting ? (
             <div className="space-y-4">
               <div className="h-4 w-1/3 rounded-full bg-field-2" />
@@ -615,7 +590,7 @@ export function SessionClient() {
               <div className="stellar-panel ml-auto h-36 w-5/6" />
             </div>
           ) : hasMessages ? (
-            <div className="space-y-2 pb-6">
+            <div className="space-y-3 pb-6">
               {items.map((item) =>
                 item.kind === "memory" ? (
                   <div
@@ -635,11 +610,12 @@ export function SessionClient() {
                 ) : (
                   <MemoryCard
                     key={item.localId}
-                    actor={item.role === "student" ? "You" : "Reverie"}
+                    actor={item.role === "student" ? "Lena" : "Reverie"}
                     timestamp={formatTime(item.createdAt)}
                     variant={item.role === "student" ? "person" : "reverie"}
-                    tags={item.usedEngrams?.slice(0, 3).map(memoryLabel) ?? []}
+                    tags={memoryLabels(item.usedEngrams)}
                     confidence={item.role === "tutor" ? confidenceFrom(item.usedEngrams) : undefined}
+                    confidenceLabel="MEMORY SUPPORT"
                     recall={item.usedEngrams?.length ? "memory recall" : undefined}
                     pending={item.pending}
                     onTagClick={(tag) => {
@@ -664,22 +640,9 @@ export function SessionClient() {
               </EmptyState>
             </div>
           ) : (
-            <div className="space-y-2 pb-6">
-              {sampleCards.map((card) => (
-                <MemoryCard
-                  key={`${card.actor}-${card.timestamp}-${card.content}`}
-                  actor={card.actor}
-                  timestamp={card.timestamp}
-                  variant={card.variant}
-                  tags={card.tags}
-                  confidence={card.confidence}
-                  recall={card.recall}
-                >
-                  {card.content}
-                </MemoryCard>
-              ))}
+            <div className="pb-6">
               <EmptyState title="Memory engine offline">
-                <p>Start the backend to replace this reference transcript with live memory.</p>
+                <p>Reconnect the backend to restore the persisted session and memory graph.</p>
               </EmptyState>
             </div>
           )}
@@ -700,6 +663,7 @@ export function SessionClient() {
               Message
             </label>
             <textarea
+              ref={composerRef}
               id="message"
               value={draft}
               disabled={streaming || !session || dreaming}
@@ -711,7 +675,7 @@ export function SessionClient() {
                 }
               }}
               rows={1}
-              placeholder="Ask anything about your memories..."
+              placeholder="Message Reverie..."
             />
           </ComposerChrome>
         </form>
@@ -720,19 +684,40 @@ export function SessionClient() {
       <BrainMapPanel
         graph={graph}
         event={lastMemoryEvent}
+        attentionIds={pack?.winners.map((item) => item.engram_id) ?? []}
+        selectedId={selected?.id}
+        onSelectMemory={setSelected}
         budget={
           pack
             ? {
                 used: pack.used,
                 total: pack.budget,
                 available: Math.max(0, pack.budget - pack.used),
-                percent: (pack.used / Math.max(1, pack.budget)) * 100
+                percent: (pack.used / Math.max(1, pack.budget)) * 100,
+                selected: pack.pipeline?.selected,
+                searched: pack.pipeline?.searched,
+                filtered: pack.pipeline?.filtered,
+                ranked: pack.pipeline?.ranked,
+                retrievalMs: pack.pipeline?.retrieval_ms
               }
             : undefined
         }
       />
 
-      <MemoryInspector engram={selected} onClose={() => setSelected(null)} />
+      <MemoryInspector
+        engram={selected}
+        onClose={() => setSelected(null)}
+        presentation={directorActive}
+        sessionId={session?.id}
+        retrievalItem={pack?.winners.find((item) => item.engram_id === selected?.id)}
+        onChanged={async () => {
+          setSelected(null);
+          await loadGraph();
+          if (sessionRef.current) {
+            setPack(await fetchMemoryPack(sessionRef.current.id));
+          }
+        }}
+      />
     </div>
   );
 }
