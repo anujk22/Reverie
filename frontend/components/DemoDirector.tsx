@@ -644,29 +644,6 @@ function DemoDirectorOverlay({ error }: { error: string | null }) {
   const stateLabel = status === "done" ? "Done" : busy ? "Running" : autoplay ? "Playing" : "Paused";
   const inspectorBeat = currentBeat.action.type === "show_engram_inspector";
 
-  if (!error) {
-    const quietControlAction = status === "done" ? replay : toggleAutoplay;
-    const quietControlLabel = status === "done" ? "Replay" : autoplay ? "Pause" : "Play";
-
-    return (
-      <div className="pointer-events-none fixed inset-0 z-50">
-        <button
-          type="button"
-          aria-label={quietControlLabel}
-          title={quietControlLabel}
-          onClick={quietControlAction}
-          className="pointer-events-auto fixed bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full border border-hairline/70 bg-field/80 text-dim opacity-70 shadow-sm transition hover:text-starlight hover:opacity-100"
-        >
-          {autoplay && status !== "done" ? (
-            <Pause aria-hidden="true" size={12} strokeWidth={1.8} />
-          ) : (
-            <Play aria-hidden="true" size={12} strokeWidth={1.8} />
-          )}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div
