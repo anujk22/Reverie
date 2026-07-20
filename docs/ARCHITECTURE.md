@@ -13,7 +13,7 @@ visits, or an engineer across a codebase. A purity test enforces that boundary. 
 acceptance tests in [`backend/tests/test_dedupe.py`](../backend/tests/test_dedupe.py)
 exercise the duplicate guard outside the demo subject.
 
-![Reverie architecture diagram](./diagram.svg)
+![Reverie architecture diagram](./diagram.png)
 
 The complete stack was deployed on Alibaba Cloud ECS before the submission
 instance was released. Original visual evidence and the direct Qwen Cloud source

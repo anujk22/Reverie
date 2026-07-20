@@ -15,7 +15,7 @@ budget.
 | --- | --- |
 | Qwen Cloud API usage | [Production endpoint and model routing](https://github.com/anujk22/Reverie/blob/main/backend/app/config.py) |
 | Alibaba Cloud deployment | [Historical ECS deployment record](docs/ALIBABA_DEPLOYMENT_PROOF.md) |
-| Architecture | [System diagram](docs/diagram.svg) and [technical notes](docs/ARCHITECTURE.md) |
+| Architecture | [System diagram](docs/diagram.png) and [technical notes](docs/ARCHITECTURE.md) |
 | Measured behavior | [Frozen live evaluation](EVALS.md) and [evaluation harness](backend/app/evals/runner.py) |
 | Reproducible deployment | [ECS deployment guide](docs/DEPLOY.md) and [`deploy.sh`](deploy.sh) |
 
@@ -46,7 +46,7 @@ boundary.
 
 ## 🧠 Architecture
 
-![Architecture diagram](docs/diagram.svg)
+![Architecture diagram](docs/diagram.png)
 
 1. `qwen-flash` observes an exchange and proposes typed memories.
 2. Deterministic quote gates reject unsupported candidates.
